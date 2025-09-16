@@ -1,28 +1,13 @@
 @php
     use Illuminate\Support\Str;
-
-    // Lee de la tabla app_config (vía helper). Si no tienes el helper, cambia por \App\Helpers\AppConfig::get(...).
     $recurrEnabled = (int) app_cfg('OPCION_MENU_FRA_RECURRENTE', 0) === 1;
 @endphp
 
 @foreach($items as $item)
   @php
-      // 1) Si el item trae option_key, úsalo
-      $optionKey = $item->data('option_key') ?? null;
-
-      // 2) Si no, detecta por URL/título
       $href = method_exists($item, 'url') ? (string) $item->url() : '';
-      $isRecurringByUrl   = Str::contains($href, '/admin/recurring-invoices');
-      $isRecurringByTitle = Str::contains(Str::lower((string) ($item->title ?? '')), 'recurring');
-
-      $showItem = true;
-
-      if (
-          ($optionKey === 'OPCION_MENU_FRA_RECURRENTE' && !$recurrEnabled) ||
-          (!$recurrEnabled && ($isRecurringByUrl || $isRecurringByTitle))
-      ) {
-          $showItem = false;
-      }
+      $isRecurring = Str::contains($href, '/admin/recurring-invoices');
+      $showItem = !($isRecurring && !$recurrEnabled);
   @endphp
 
   @if($showItem)
