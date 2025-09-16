@@ -53,13 +53,15 @@
             "Modules\\": "Modules/"
         },
         "files": [
-            "app/Space/helpers.php"
+            "app/Space/helpers.php",
+            "app/Support/appcfg.php"
         ]
     },
-    "autoload-dev": {
-        "psr-4": {
-            "Tests\\": "tests/"
-        }
+    "autoload": {
+        "files": [
+            "app/Space/helpers.php",
+            "app/Support/appcfg.php"
+        ]
     },
     "scripts": {
         "post-autoload-dump": [

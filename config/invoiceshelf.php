@@ -343,16 +343,17 @@ return [
             'ability' => 'view-invoice',
             'model' => Invoice::class,
         ],
-        AppConfig::get('OPCION_MENU_FRA_RECURRENTE', '0') === '1' ? [
+        [
             'title' => 'navigation.recurring-invoices',
             'group' => 2,
-            'link' => '/admin/recurring-invoices',
-            'icon' => 'DocumentTextIcon',
-            'name' => 'Recurring Invoices',
+            'link'  => '/admin/recurring-invoices',
+            'icon'  => 'DocumentTextIcon',
+            'name'  => 'Recurring Invoices',
             'owner_only' => false,
             'ability' => 'view-recurring-invoice',
-            'model' => RecurringInvoice::class,
-        ] : null,
+            'model' => \App\Models\RecurringInvoice::class,
+            'option_key' => 'OPCION_MENU_FRA_RECURRENTE',
+        ],
         [
             'title' => 'navigation.payments',
             'group' => 2,

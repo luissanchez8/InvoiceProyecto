@@ -107,13 +107,23 @@ class AppServiceProvider extends ServiceProvider
 
     public function generateMenu($menu, $data)
     {
-        $menu->add($data['title'], $data['link'])
+        // Si este item depende de una opción y está deshabilitada, no lo generes
+        if (!empty($data['option_key']) && (int) app_cfg($data['option_key'], 0) !== 1) {
+            return;
+        }
+
+        $item = $menu->add($data['title'], $data['link'])
             ->data('icon', $data['icon'])
             ->data('name', $data['name'])
             ->data('owner_only', $data['owner_only'])
             ->data('ability', $data['ability'])
             ->data('model', $data['model'])
             ->data('group', $data['group']);
+
+        // Propaga option_key al item para que el blade pueda saberlo (opcional pero útil)
+        if (!empty($data['option_key'])) {
+            $item->data('option_key', $data['option_key']);
+        }
     }
 
     public function bootAuth()

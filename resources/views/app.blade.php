@@ -4,7 +4,11 @@
 <head>
     <meta charset="utf-8">
     <!-- <title>{{ get_page_title(!Request::header('company')) }}</title> -->
-    <title>{{ $appConfig['NOMBRE_EMPRESA'] ?? 'InvoiceShelf' }} - Sistema de Facturación</title>
+    <img
+        src="{{ app_cfg('URL_LOGOTIPO', asset('images/logo.png')) }}"
+        alt="{{ app_cfg('NOMBRE_EMPRESA', config('app.name')) }}"
+        style="height:40px" />
+    <title>{{ app_cfg('NOMBRE_EMPRESA', config('app.name')) }}</title>
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <link rel="apple-touch-icon" sizes="180x180" href="/favicons/apple-touch-icon.png">
     <link rel="icon" type="image/png" sizes="32x32" href="/favicons/favicon-32x32.png">
@@ -19,7 +23,7 @@
 
     <!-- Module Styles -->
     @foreach(\App\Services\Module\ModuleFacade::allStyles() as $name => $path)
-        <link rel="stylesheet" href="/modules/styles/{{ $name }}">
+    <link rel="stylesheet" href="/modules/styles/{{ $name }}">
     @endforeach
 
     @vite('resources/scripts/main.js')
@@ -31,11 +35,11 @@
 
     <!-- Module Scripts -->
     @foreach (\App\Services\Module\ModuleFacade::allScripts() as $name => $path)
-        @if (\Illuminate\Support\Str::startsWith($path, ['http://', 'https://']))
-            <script type="module" src="{!! $path !!}"></script>
-        @else
-            <script type="module" src="/modules/scripts/{{ $name }}"></script>
-        @endif
+    @if (\Illuminate\Support\Str::startsWith($path, ['http://', 'https://']))
+    <script type="module" src="{!! $path !!}"></script>
+    @else
+    <script type="module" src="/modules/scripts/{{ $name }}"></script>
+    @endif
     @endforeach
 
     <script type="module">
@@ -66,7 +70,7 @@
         @endif
 
         @if(config('app.env') === 'demo')
-            window.demo_mode = true
+        window.demo_mode = true
         @endif
 
         window.InvoiceShelf.start()
