@@ -1,17 +1,28 @@
 @php
-    // Leemos una sola vez por request
+    use Illuminate\Support\Str;
+
+    // Lee de la tabla app_config (vía helper). Si no tienes el helper, cambia por \App\Helpers\AppConfig::get(...).
     $recurrEnabled = (int) app_cfg('OPCION_MENU_FRA_RECURRENTE', 0) === 1;
 @endphp
 
 @foreach($items as $item)
   @php
-    // Si el item está gobernado por una opción y ésta está desactivada, no mostramos
-    $optionKey = $item->data('option_key') ?? null;
-    $showItem = true;
+      // 1) Si el item trae option_key, úsalo
+      $optionKey = $item->data('option_key') ?? null;
 
-    if ($optionKey === 'OPCION_MENU_FRA_RECURRENTE' && !$recurrEnabled) {
-        $showItem = false;
-    }
+      // 2) Si no, detecta por URL/título
+      $href = method_exists($item, 'url') ? (string) $item->url() : '';
+      $isRecurringByUrl   = Str::contains($href, '/admin/recurring-invoices');
+      $isRecurringByTitle = Str::contains(Str::lower((string) ($item->title ?? '')), 'recurring');
+
+      $showItem = true;
+
+      if (
+          ($optionKey === 'OPCION_MENU_FRA_RECURRENTE' && !$recurrEnabled) ||
+          (!$recurrEnabled && ($isRecurringByUrl || $isRecurringByTitle))
+      ) {
+          $showItem = false;
+      }
   @endphp
 
   @if($showItem)
@@ -20,7 +31,9 @@
         <a @lm_attrs($item->link)
            @if($item->hasChildren()) class="nav-link dropdown-toggle" role="button" @data_toggle_attribute="dropdown" aria-haspopup="true" aria-expanded="false"
            @else class="nav-link"
-           @endif @lm_endattrs href="{!! $item->url() !!}">
+           @endif
+           @lm_endattrs
+           href="{!! $item->url() !!}">
           {!! $item->title !!}
           @if($item->hasChildren()) <b class="caret"></b> @endif
         </a>
