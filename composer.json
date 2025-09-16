@@ -46,22 +46,16 @@
         "spatie/laravel-ignition": "^2.9"
     },
     "autoload": {
-        "psr-4": {
-            "App\\": "app/",
-            "Database\\Factories\\": "database/factories/",
-            "Database\\Seeders\\": "database/seeders/",
-            "Modules\\": "Modules/"
-        },
-        "files": [
-            "app/Space/helpers.php",
-            "app/Support/appcfg.php"
-        ]
-    },
-    "autoload": {
-        "files": [
-            "app/Space/helpers.php",
-            "app/Support/appcfg.php"
-        ]
+      "psr-4": {
+        "App\\": "app/",
+        "Database\\Factories\\": "database/factories/",
+        "Database\\Seeders\\": "database/seeders/",
+        "Modules\\": "Modules/"
+      },
+      "files": [
+        "app/Space/helpers.php",
+        "app/Support/appcfg.php"
+      ]
     },
     "scripts": {
         "post-autoload-dump": [
