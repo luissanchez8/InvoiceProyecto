@@ -3,12 +3,7 @@
 
 <head>
     <meta charset="utf-8">
-    <!-- <title>{{ get_page_title(!Request::header('company')) }}</title> -->
-    <!--<img
-        src="{{ app_cfg('URL_LOGOTIPO', asset('images/logo.png')) }}"
-        alt="{{ app_cfg('NOMBRE_EMPRESA', config('app.name')) }}"
-        style="height:40px" />-->
-    <title>{{ app_cfg('NOMBRE_EMPRESA', config('app.name')) }}</title>
+    <title>{{ config('app.name') }}</title>
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <link rel="apple-touch-icon" sizes="180x180" href="/favicons/apple-touch-icon.png">
     <link rel="icon" type="image/png" sizes="32x32" href="/favicons/favicon-32x32.png">
