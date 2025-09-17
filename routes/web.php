@@ -169,3 +169,10 @@ Route::get('/api/logo-url', function () {
 
     return response()->json(['url' => $logoUrl]);
 });
+
+Route::get('/logo-url', function () {
+    return response()->json([
+        'url'  => app_cfg('URL_LOGOTIPO', asset('images/logo.png')),
+        'name' => app_cfg('NOMBRE_EMPRESA', config('app.name')),
+    ]);
+})->name('logo.url');
