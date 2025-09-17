@@ -4,22 +4,23 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * Lee un valor de la tabla app_config.
- * - No consulta si la tabla aún no existe (primera subida / migraciones).
- * - No rompe aunque no haya conexión o falle algo: devuelve $default.
+ * app_cfg('KEY', $default)
+ * Nunca lanza excepciones ni warnings al renderizar vistas:
+ * - No consulta si no hay conexión o no existe la tabla.
+ * - Devuelve $default ante cualquier fallo.
  * - Memo por request para evitar múltiples queries.
  */
 if (! function_exists('app_cfg')) {
     function app_cfg(string $key, $default = null) {
-        static $memo, $ready;
+        static $memo = null;
+        static $ready = null;
 
         if ($ready === null) {
             try {
-                // Si estamos en consola (migrate, config:cache, etc.) y aún no existe la tabla, no leemos
-                $tableExists = Schema::hasTable('app_config');
-                $ready = $tableExists;
+                // Asegura que hay conexión y que la tabla existe
+                // Nota: hasTable internamente abre conexión; si falla, capturamos
+                $ready = Schema::hasTable('app_config');
             } catch (\Throwable $e) {
-                // Si no podemos ni preguntar (p.ej. DB aún no conectada), considera no listo
                 $ready = false;
             }
         }
@@ -32,8 +33,7 @@ if (! function_exists('app_cfg')) {
             try {
                 $memo = DB::table('app_config')->pluck('value', 'key')->toArray();
             } catch (\Throwable $e) {
-                // Cualquier error aquí → no rompemos el render
-                $memo = [];
+                $memo = []; // nunca re-lanzar
             }
         }
 
