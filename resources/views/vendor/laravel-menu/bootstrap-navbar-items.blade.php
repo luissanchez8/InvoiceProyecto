@@ -1,33 +1,14 @@
 @php
-    // lee el flag desde BD (tabla app_config)
+    // Lee el flag de BD; si algo falla, $recurrEnabled será false/true según tu default
     $recurrEnabled = (int) app_cfg('OPCION_MENU_FRA_RECURRENTE', 0) === 1;
 @endphp
 
 @foreach($items as $item)
     @php
-        // TITULO seguro
-        $title = strtolower(trim(strip_tags($item->title ?? '')));
-
-        // URL segura (algunos items pueden romper al construirla)
-        $href = '';
-        try {
-            if (method_exists($item, 'url')) {
-                $href = (string) $item->url();
-            }
-        } catch (\Throwable $e) {
-            $href = '';
-        }
-
-        // detectar el item "Facturas recurrentes"
-        $isRecurring = (strpos($href, '/admin/recurring-invoices') !== false)
-                       || (strpos($title, 'recurr') !== false); // por si cambia la URL y queda el texto
-
-        // si está desactivado en BD, saltamos este item
-        if ($isRecurring && !$recurrEnabled) {
-            // salta al siguiente item sin renderizar este <li>
-            // (esto evita desbalancear la lista y no rompe el HTML)
-            // Nota: no uses 'use Str' dentro de @php
-        }
+        // Detecta por data('name') o title (sin tocar URL fuera de <a>)
+        $rawName = $item->data('name') ?? ($item->title ?? '');
+        $name    = strtolower(trim(strip_tags((string) $rawName)));
+        $isRecurring = (strpos($name, 'recurr') !== false); // “recurr”, “recurring”, “recurrentes”, ...
     @endphp
 
     @if($isRecurring && !$recurrEnabled)
@@ -41,7 +22,7 @@
                @else class="nav-link"
                @endif
                @lm_endattrs
-               href="{!! $href ?: $item->url() !!}">
+               href="{!! $item->url() !!}">
                 {!! $item->title !!}
                 @if($item->hasChildren()) <b class="caret"></b> @endif
             </a>
