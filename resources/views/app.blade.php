@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="utf-8">
-    <title>{{ config('app.name') }}</title>
+    <title>{{ app_cfg('NOMBRE_EMPRESA', config('app.name')) }}</title>
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <link rel="apple-touch-icon" sizes="180x180" href="/favicons/apple-touch-icon.png">
     <link rel="icon" type="image/png" sizes="32x32" href="/favicons/favicon-32x32.png">
@@ -38,19 +38,28 @@
     @endforeach
 
     <script type="module">
-        @if(isset($customer_logo))
+    @if(isset($customer_logo))
+    window.customer_logo = "/storage/{{$customer_logo}}"
+    @endif
 
-        window.customer_logo = "/storage/{{$customer_logo}}"
+    @if(isset($login_page_logo))
+    window.login_page_logo = "/storage/{{$login_page_logo}}"
+    @endif
 
-        @endif
-        @if(isset($login_page_logo))
-
-        window.login_page_logo = "/storage/{{$login_page_logo}}"
-
-        @endif
+    // 👇 FALLBACKS: si no están definidos por Blade, usa app_config
+    if (!window.customer_logo) {
+      window.customer_logo = @json(app_cfg('URL_LOGOTIPO', asset('images/logo.png')));
+    }
+    if (!window.login_page_logo) {
+      window.login_page_logo = window.customer_logo;
+    }
+    if (!window.brand_name) {
+      window.brand_name = @json(app_cfg('NOMBRE_EMPRESA', config('app.name')));
+    }
         @if(isset($login_page_heading))
 
         window.login_page_heading = "{{$login_page_heading}}"
+
 
         @endif
         @if(isset($login_page_description))
@@ -68,6 +77,12 @@
         window.demo_mode = true
         @endif
 
+        // url absoluta y correcta aunque cambies prefijos / subdominios
+        window.LOGO_ENDPOINT = @json(route('logo.url'));
+
+          // (Opcional) fallbacks directos desde BD para que no haya parpadeo
+        window.customer_logo = window.customer_logo || @json(app_cfg('URL_LOGOTIPO', asset('images/logo.png')));
+        window.brand_name    = window.brand_name    || @json(app_cfg('NOMBRE_EMPRESA', config('app.name')));
         window.InvoiceShelf.start()
     </script>
 </body>
