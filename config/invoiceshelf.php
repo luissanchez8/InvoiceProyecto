@@ -331,7 +331,7 @@ return [
             'name' => 'Estimates',
             'owner_only' => false,
             'ability' => 'view-estimate',
-            'model' => Estimate::class,,
+            'model' => Estimate::class,
             'option_key' => 'OPCION_MENU_PRESUPUESTOS',
         ],
         [
@@ -342,7 +342,7 @@ return [
             'name' => 'Invoices',
             'owner_only' => false,
             'ability' => 'view-invoice',
-            'model' => Invoice::class,,
+            'model' => Invoice::class,
             'option_key' => 'OPCION_MENU_FACTURAS',
         ],
         [
