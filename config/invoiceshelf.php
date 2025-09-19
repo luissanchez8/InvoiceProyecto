@@ -331,7 +331,8 @@ return [
             'name' => 'Estimates',
             'owner_only' => false,
             'ability' => 'view-estimate',
-            'model' => Estimate::class,
+            'model' => Estimate::class,,
+            'option_key' => 'OPCION_MENU_PRESUPUESTOS',
         ],
         [
             'title' => 'navigation.invoices',
@@ -341,7 +342,8 @@ return [
             'name' => 'Invoices',
             'owner_only' => false,
             'ability' => 'view-invoice',
-            'model' => Invoice::class,
+            'model' => Invoice::class,,
+            'option_key' => 'OPCION_MENU_FACTURAS',
         ],
         [
             'title' => 'navigation.recurring-invoices',
@@ -363,6 +365,7 @@ return [
             'owner_only' => false,
             'ability' => 'view-payment',
             'model' => Payment::class,
+            'option_key' => 'OPCION_MENU_PAGOS',
         ],
         [
             'title' => 'navigation.expenses',
@@ -373,6 +376,7 @@ return [
             'owner_only' => false,
             'ability' => 'view-expense',
             'model' => Expense::class,
+            'option_key' => 'OPCION_MENU_GASTOS',
         ],
         [
             'title' => 'navigation.modules',
