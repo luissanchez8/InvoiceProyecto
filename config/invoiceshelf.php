@@ -384,7 +384,7 @@ return [
             'link' => '/admin/modules',
             'icon' => 'PuzzlePieceIcon',
             'name' => 'Modules',
-            'owner_only' => false,
+            'owner_only' => auth()->check() && ! auth()->user()->hasRole('asistencia'),
             'ability' => '',
             'model' => '',
         ],
