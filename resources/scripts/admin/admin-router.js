@@ -242,7 +242,7 @@ export default [
           {
             path: 'company-info',
             name: 'company.info',
-            meta: { isOwner: true },
+            meta: { isOwner: false },
             component: CompanyInfo,
           },
           {
