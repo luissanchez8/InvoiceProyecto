@@ -69,7 +69,7 @@
           />
         </BaseInputGroup>
 
-        <BaseInputGroup v-if="isAsistencia" :label="$t('settings.language')">
+        <BaseInputGroup :label="$t('settings.language')">
           <BaseMultiselect
             v-model="userForm.language"
             :options="globalStore.config.languages"
@@ -115,7 +115,6 @@ const userStore = useUserStore()
 const globalStore = useGlobalStore()
 const companyStore = useCompanyStore()
 const { t } = useI18n()
-const isAsistencia = computed(() => userStore.currentUser?.role === 'asistencia')
 
 let isSaving = ref(false)
 let avatarFileBlob = ref(null)
@@ -199,12 +198,12 @@ async function updateUserData() {
       data = { ...data, password: userForm.password }
     }
     // Update Language if changed
-    if (
-      isAsistencia.value &&
-      userStore.currentUserSettings.language !== userForm.language
-    ) {
+
+    if (userStore.currentUserSettings.language !== userForm.language) {
       await userStore.updateUserSettings({
-        settings: { language: userForm.language },
+        settings: {
+          language: userForm.language,
+        },
       })
     }
 
