@@ -16,6 +16,7 @@
       </BaseInputGrid>
 
       <BaseInputGrid class="mt-5">
+        <!-- Nombre de la empresa -->
         <BaseInputGroup
           :label="$t('settings.company_info.company_name')"
           :error="v$.name.$error && v$.name.$errors[0].$message"
@@ -28,16 +29,16 @@
           />
         </BaseInputGroup>
 
+        <!-- Teléfono -->
         <BaseInputGroup :label="$t('settings.company_info.phone')">
           <BaseInput v-model="companyForm.address.phone" />
         </BaseInputGroup>
 
+        <!-- País (solo asistencia) -->
         <BaseInputGroup
+          v-if="isAsistencia"
           :label="$t('settings.company_info.country')"
-          :error="
-            v$.address.country_id.$error &&
-            v$.address.country_id.$errors[0].$message
-          "
+          :error="v$.address.country_id.$error && v$.address.country_id.$errors[0].$message"
           required
         >
           <BaseMultiselect
@@ -53,7 +54,8 @@
           />
         </BaseInputGroup>
 
-        <BaseInputGroup :label="$t('settings.company_info.state')">
+        <!-- Provincia (antes Estado) -->
+        <BaseInputGroup :label="'Provincia'">
           <BaseInput
             v-model="companyForm.address.state"
             name="state"
@@ -61,14 +63,17 @@
           />
         </BaseInputGroup>
 
+        <!-- Ciudad -->
         <BaseInputGroup :label="$t('settings.company_info.city')">
           <BaseInput v-model="companyForm.address.city" type="text" />
         </BaseInputGroup>
 
+        <!-- Código Postal -->
         <BaseInputGroup :label="$t('settings.company_info.zip')">
           <BaseInput v-model="companyForm.address.zip" />
         </BaseInputGroup>
 
+        <!-- Dirección -->
         <div>
           <BaseInputGroup :label="$t('settings.company_info.address')">
             <BaseTextarea
@@ -86,14 +91,44 @@
         </div>
 
         <div class="space-y-6">
-          <BaseInputGroup :label="$t('settings.company_info.tax_id')">
+          <!-- CIF (antes Número de identificación fiscal) -->
+          <BaseInputGroup :label="'CIF'">
             <BaseInput v-model="companyForm.tax_id" type="text" />
           </BaseInputGroup>
 
-          <BaseInputGroup :label="$t('settings.company_info.vat_id')">
+          <!-- Número de IVA (solo asistencia) -->
+          <BaseInputGroup v-if="isAsistencia" :label="'Número de IVA'">
             <BaseInput v-model="companyForm.vat_id" type="text" />
           </BaseInputGroup>
         </div>
+
+        <!-- Email de contacto (obligatorio) -->
+        <BaseInputGroup
+          :label="'Email de contacto'"
+          :error="v$.address.contact_email.$error && v$.address.contact_email.$errors[0].$message"
+          required
+        >
+          <BaseInput
+            v-model="companyForm.address.contact_email"
+            type="email"
+            :invalid="v$.address.contact_email.$error"
+            @blur="v$.address.contact_email.$touch()"
+            placeholder="contacto@empresa.com"
+          />
+        </BaseInputGroup>
+
+        <!-- Página web (opcional) -->
+        <BaseInputGroup :label="'Página web'">
+          <BaseInput
+            v-model="companyForm.address.website"
+            placeholder="https://example.com"
+          />
+        </BaseInputGroup>
+
+        <!-- Persona de contacto (opcional) -->
+        <BaseInputGroup :label="'Persona de contacto'">
+          <BaseInput v-model="companyForm.address.contact_person" />
+        </BaseInputGroup>
       </BaseInputGrid>
 
       <BaseButton
@@ -137,25 +172,29 @@
 import { reactive, ref, inject, computed } from 'vue'
 import { useGlobalStore } from '@/scripts/admin/stores/global'
 import { useCompanyStore } from '@/scripts/admin/stores/company'
+import { useUserStore } from '@/scripts/admin/stores/user'
 import { useI18n } from 'vue-i18n'
-import { required, minLength, helpers } from '@vuelidate/validators'
+import { required, minLength, helpers, email } from '@vuelidate/validators'
 import { useVuelidate } from '@vuelidate/core'
 import { useModalStore } from '@/scripts/stores/modal'
 import DeleteCompanyModal from '@/scripts/admin/components/modal-components/DeleteCompanyModal.vue'
 
 const companyStore = useCompanyStore()
 const globalStore = useGlobalStore()
+const userStore = useUserStore()
 const modalStore = useModalStore()
 const { t } = useI18n()
 const utils = inject('utils')
+
+const isAsistencia = computed(() => userStore.currentUser?.role === 'asistencia')
 
 let isSaving = ref(false)
 
 const companyForm = reactive({
   name: null,
   logo: null,
-  tax_id: null,
-  vat_id: null,
+  tax_id: null,   // CIF
+  vat_id: null,   // Número de IVA (solo asistencia)
   address: {
     address_street_1: '',
     address_street_2: '',
@@ -165,6 +204,8 @@ const companyForm = reactive({
     city: '',
     phone: '',
     zip: '',
+    contact_email: '',     // NUEVO (obligatorio)
+    contact_person: '',    // NUEVO (opcional)
   },
 })
 
@@ -193,8 +234,13 @@ const rules = computed(() => {
       ),
     },
     address: {
-      country_id: {
+      // País requerido SOLO si es asistencia y el campo existe visible.
+      country_id: isAsistencia.value
+        ? { required: helpers.withMessage(t('validation.required'), required) }
+        : {},
+      contact_email: {
         required: helpers.withMessage(t('validation.required'), required),
+        email: helpers.withMessage(t('validation.email_incorrect'), email),
       },
     },
   }
@@ -219,14 +265,35 @@ function onFileInputRemove() {
 
 async function updateCompanyData() {
   v$.value.$touch()
-
-  if (v$.value.$invalid) {
-    return true
-  }
+  if (v$.value.$invalid) return true
 
   isSaving.value = true
 
-  const res = await companyStore.updateCompany(companyForm)
+  // Construimos payload limpio y aplicamos las restricciones por rol
+  const payload = {
+    name: companyForm.name,
+    logo: companyForm.logo,
+    tax_id: companyForm.tax_id, // CIF (visible a todos)
+    address: {
+      address_street_1: companyForm.address.address_street_1,
+      address_street_2: companyForm.address.address_street_2,
+      website: companyForm.address.website || '',
+      state: companyForm.address.state,
+      city: companyForm.address.city,
+      phone: companyForm.address.phone,
+      zip: companyForm.address.zip,
+      contact_email: companyForm.address.contact_email,
+      contact_person: companyForm.address.contact_person || '',
+    },
+  }
+
+  // Solo asistencia puede enviar país y número de IVA
+  if (isAsistencia.value) {
+    payload.address.country_id = companyForm.address.country_id
+    payload.vat_id = companyForm.vat_id
+  }
+
+  const res = await companyStore.updateCompany(payload)
 
   if (res.data.data) {
     if (logoFileBlob.value || isCompanyLogoRemoved.value) {
