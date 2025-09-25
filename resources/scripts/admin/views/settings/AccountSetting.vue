@@ -69,7 +69,8 @@
           />
         </BaseInputGroup>
 
-        <BaseInputGroup :label="$t('settings.language')">
+        <!-- Idioma: solo visible para rol 'asistencia' -->
+        <BaseInputGroup v-if="isAsistencia" :label="$t('settings.language')">
           <BaseMultiselect
             v-model="userForm.language"
             :options="globalStore.config.languages"
@@ -115,6 +116,9 @@ const userStore = useUserStore()
 const globalStore = useGlobalStore()
 const companyStore = useCompanyStore()
 const { t } = useI18n()
+
+// Solo 'asistencia' puede ver/editar idioma
+const isAsistencia = computed(() => userStore.currentUser?.role === 'asistencia')
 
 let isSaving = ref(false)
 let avatarFileBlob = ref(null)
@@ -177,10 +181,7 @@ function onFileInputRemove() {
 
 async function updateUserData() {
   v$.value.$touch()
-
-  if (v$.value.$invalid) {
-    return true
-  }
+  if (v$.value.$invalid) return true
 
   isSaving.value = true
 
@@ -190,20 +191,17 @@ async function updateUserData() {
   }
 
   try {
-    if (
-      userForm.password != null &&
-      userForm.password !== undefined &&
-      userForm.password !== ''
-    ) {
+    if (userForm.password) {
       data = { ...data, password: userForm.password }
     }
-    // Update Language if changed
 
-    if (userStore.currentUserSettings.language !== userForm.language) {
+    // Guardar idioma SOLO si es 'asistencia' y ha cambiado
+    if (
+      isAsistencia.value &&
+      userStore.currentUserSettings.language !== userForm.language
+    ) {
       await userStore.updateUserSettings({
-        settings: {
-          language: userForm.language,
-        },
+        settings: { language: userForm.language },
       })
     }
 
@@ -214,7 +212,6 @@ async function updateUserData() {
 
       if (avatarFileBlob.value || isAdminAvatarRemoved.value) {
         let avatarData = new FormData()
-
         if (avatarFileBlob.value) {
           avatarData.append('admin_avatar', avatarFileBlob.value)
         }
