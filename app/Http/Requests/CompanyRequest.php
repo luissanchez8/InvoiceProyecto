@@ -20,29 +20,29 @@ class CompanyRequest extends FormRequest
      */
     public function rules(): array
     {
+        $user = $this->user();
+    
         return [
             'name' => [
                 'required',
                 Rule::unique('companies')->ignore($this->header('company'), 'id'),
             ],
-            'vat_id' => [
-                'nullable',
-            ],
-            'tax_id' => [
-                'nullable',
-            ],
-            'slug' => [
-                'nullable',
-            ],
-            'contact_email' => ['required','email','max:255'],
+            'vat_id' => ['nullable'],
+            'tax_id' => ['nullable'],
+            'slug'   => ['nullable'],
+    
+            // NUEVOS CAMPOS
+            'contact_email' => ['required','email'],   // obligatorio
             'contact_name'  => ['nullable','string','max:255'],
-            'website'       => ['nullable','url','max:255'],
+            'website'       => ['nullable','string','max:255'],
+    
+            // País: solo obligatorio para 'asistencia'; para el resto, nullable
             'address.country_id' => [
-                'required',
+                $user && $user->role === 'asistencia' ? 'required' : 'nullable',
             ],
         ];
     }
-
+    
     public function getCompanyPayload()
     {
         return collect($this->validated())
@@ -51,6 +51,7 @@ class CompanyRequest extends FormRequest
                 'slug',
                 'vat_id',
                 'tax_id',
+                // incluir los nuevos
                 'contact_email',
                 'contact_name',
                 'website',
