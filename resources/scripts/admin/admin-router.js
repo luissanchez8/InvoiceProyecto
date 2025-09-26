@@ -332,7 +332,7 @@ export default [
           {
             path: 'pdf-generation',
             name: 'pdf.generation',
-            meta: { isOwner: false },
+            meta: { isOwner: true },
             component: PDFGenerationSettings,
           },
         ],
