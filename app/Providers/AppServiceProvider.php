@@ -4,6 +4,9 @@ namespace App\Providers;
 
 use App\Bouncer\Scopes\DefaultScope;
 use App\Helpers\AppConfig;
+use App\Models\Company;
+use App\Models\Address;
+use App\Policies\AddressPolicy;
 use App\Policies\CompanyPolicy;
 use App\Policies\CustomerPolicy;
 use App\Policies\DashboardPolicy;
@@ -128,6 +131,9 @@ class AppServiceProvider extends ServiceProvider
 
     public function bootAuth()
     {
+
+        Gate::policy(Company::class, CompanyPolicy::class);
+        Gate::policy(Address::class, AddressPolicy::class);
 
         Gate::define('create company', [CompanyPolicy::class, 'create']);
         Gate::define('transfer company ownership', [CompanyPolicy::class, 'transferOwnership']);
