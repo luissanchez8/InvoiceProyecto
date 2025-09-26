@@ -1042,7 +1042,7 @@
         "retrospective_edits_description": " Según las leyes de su país o sus preferencias, puede restringir que los usuarios editen las facturas finalizadas."
       },
       "estimates": {
-        "title": "Estimaciones",
+        "title": "Presupuestos",
         "estimate_number_format": "Formato de número de estimación",
         "estimate_number_format_description": "Personalice cómo se genera automáticamente su número de presupuesto cuando crea un nuevo presupuesto.",
         "preview_estimate_number": "Vista previa del número de presupuesto",
