@@ -183,7 +183,7 @@ return [
             'name' => 'Exchange Rate Provider',
             'link' => '/admin/settings/exchange-rate-provider',
             'icon' => 'BanknotesIcon',
-            'owner_only' => false,
+            'owner_only' => true,
             'ability' => 'view-exchange-rate-provider',
             'model' => ExchangeRateProvider::class,
         ],
