@@ -33,39 +33,39 @@
 <script setup>
 import { computed, reactive, inject } from 'vue'
 import { useCompanyStore } from '@/scripts/admin/stores/company'
-import { useUserStore } from '@/scripts/admin/stores/user'
-import InvoicesTabInvoiceNumber from './InvoicesTabInvoiceNumber.vue'
-import InvoicesTabRetrospective from './InvoicesTabRetrospective.vue'
-import InvoicesTabDueDate from './InvoicesTabDueDate.vue'
-import InvoicesTabDefaultFormats from './InvoicesTabDefaultFormats.vue'
 
-const utils = inject('utils')
 const companyStore = useCompanyStore()
-const userStore = useUserStore()
+const utils = inject('utils')
 
-const isAsistencia = computed(() => userStore.currentUser?.role === 'asistencia')
+const isAsistencia = computed(() => companyStore.currentUser?.role === 'asistencia')
 
-const invoiceSettings = reactive({
-  // por defecto ACTIVADO
-  invoice_email_attachment: 'YES',
-})
+const invoiceSettings = reactive({ invoice_email_attachment: null })
+utils.mergeSettings(invoiceSettings, { ...companyStore.selectedCompanySettings })
 
-utils.mergeSettings(invoiceSettings, {
-  ...companyStore.selectedCompanySettings,
-})
-
-// si no hay valor en BD, mantener YES por defecto
-if (!invoiceSettings.invoice_email_attachment) {
-  invoiceSettings.invoice_email_attachment = 'YES'
-}
-
+// por defecto: ON (YES)
 const sendAsAttachmentField = computed({
-  get: () => invoiceSettings.invoice_email_attachment === 'YES',
+  get: () => invoiceSettings.invoice_email_attachment !== 'NO',
   set: async (newValue) => {
     const value = newValue ? 'YES' : 'NO'
-    const data = { settings: { invoice_email_attachment: value } }
     invoiceSettings.invoice_email_attachment = value
-    await companyStore.updateCompanySettings({ data, message: 'general.setting_updated' })
+    await companyStore.updateCompanySettings({
+      data: { settings: { invoice_email_attachment: value } },
+      message: 'general.setting_updated',
+    })
   },
 })
 </script>
+
+<template>
+  <!-- … tus secciones … -->
+
+  <!-- SOLO asistencia -->
+  <BaseDivider class="mt-6 mb-2" />
+  <ul class="divide-y divide-gray-200" v-if="isAsistencia">
+    <BaseSwitchSection
+      v-model="sendAsAttachmentField"
+      :title="$t('settings.customization.invoices.invoice_email_attachment')"
+      :description="$t('settings.customization.invoices.invoice_email_attachment_setting_description')"
+    />
+  </ul>
+</template>
