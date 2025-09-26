@@ -5,7 +5,8 @@
     :title="$t('settings.roles.title')"
     :description="$t('settings.roles.description')"
   >
-    <template v-if="userStore.currentUser.is_owner" #action>
+    <!-- Botón solo visible para el rol asistencia -->
+    <template v-if="isAsistencia" #action>
       <BaseButton variant="primary-outline" @click="openRoleModal">
         <template #left="slotProps">
           <BaseIcon name="PlusIcon" :class="slotProps.class" />
@@ -48,51 +49,53 @@ import { useModalStore } from '@/scripts/stores/modal'
 import { useUserStore } from '@/scripts/admin/stores/user'
 import { useCompanyStore } from '@/scripts/admin/stores/company'
 import RolesModal from '@/scripts/admin/components/modal-components/RolesModal.vue'
-import abilities from '@/scripts/admin/stub/abilities'
 
 const modalStore = useModalStore()
 const roleStore = useRoleStore()
 const userStore = useUserStore()
 const companyStore = useCompanyStore()
-
 const { t } = useI18n()
+
 const table = ref(null)
 
-const roleColumns = computed(() => {
-  return [
-    {
-      key: 'name',
-      label: t('settings.roles.role_name'),
-      thClass: 'extra',
-      tdClass: 'font-medium text-gray-900',
-    },
-    {
-      key: 'created_at',
-      label: t('settings.roles.added_on'),
-      tdClass: 'font-medium text-gray-900',
-    },
+// ¿El usuario logueado es 'asistencia'?
+const isAsistencia = computed(() => userStore.currentUser?.role === 'asistencia')
 
-    {
-      key: 'actions',
-      label: '',
-      tdClass: 'text-right text-sm font-medium',
-      sortable: false,
-    },
-  ]
-})
+const roleColumns = computed(() => [
+  {
+    key: 'name',
+    label: t('settings.roles.role_name'),
+    thClass: 'extra',
+    tdClass: 'font-medium text-gray-900',
+  },
+  {
+    key: 'created_at',
+    label: t('settings.roles.added_on'),
+    tdClass: 'font-medium text-gray-900',
+  },
+  {
+    key: 'actions',
+    label: '',
+    tdClass: 'text-right text-sm font-medium',
+    sortable: false,
+  },
+])
 
 async function fetchData({ page, filter, sort }) {
-  let data = {
+  const data = {
     orderByField: sort.fieldName || 'created_at',
     orderBy: sort.order || 'desc',
     company_id: companyStore.selectedCompany.id,
   }
 
-  let response = await roleStore.fetchRoles(data)
+  const response = await roleStore.fetchRoles(data)
 
-  return {
-    data: response.data.data,
-  }
+  // Ocultar el rol 'asistencia' para todos excepto el propio 'asistencia'
+  const rows = (response.data?.data || []).filter((r) =>
+    isAsistencia.value ? true : r.name !== 'asistencia'
+  )
+
+  return { data: rows }
 }
 
 async function refreshTable() {
@@ -101,7 +104,6 @@ async function refreshTable() {
 
 async function openRoleModal() {
   await roleStore.fetchAbilities()
-
   modalStore.openModal({
     title: t('settings.roles.add_role'),
     componentName: 'RolesModal',
