@@ -11,7 +11,9 @@
 
   <BaseDivider class="my-8" />
 
-  <EstimatesTabDefaultFormats />
+  <!-- SOLO asistencia ve “Formatos por defecto” -->
+  <EstimatesTabDefaultFormats v-if="isAsistencia" />
+  <BaseDivider class="my-8" v-if="isAsistencia" />
 
   <BaseDivider class="mt-6 mb-2" />
 
@@ -31,6 +33,7 @@
 <script setup>
 import { computed, reactive, inject } from 'vue'
 import { useCompanyStore } from '@/scripts/admin/stores/company'
+import { useUserStore } from '@/scripts/admin/stores/user'
 
 import EstimatesTabEstimateNumber from './EstimatesTabEstimateNumber.vue'
 import EstimatesTabExpiryDate from './EstimatesTabExpiryDate.vue'
@@ -38,8 +41,11 @@ import EstimatesTabDefaultFormats from './EstimatesTabDefaultFormats.vue'
 import EstimatesTabConvertEstimate from './EstimatesTabConvertEstimate.vue'
 
 const utils = inject('utils')
-
 const companyStore = useCompanyStore()
+const userStore = useUserStore()
+
+// Solo asistencia puede ver Formatos por defecto
+const isAsistencia = computed(() => userStore.currentUser?.role === 'asistencia')
 
 const estimateSettings = reactive({
   estimate_email_attachment: null,
@@ -50,20 +56,11 @@ utils.mergeSettings(estimateSettings, {
 })
 
 const sendAsAttachmentField = computed({
-  get: () => {
-    return estimateSettings.estimate_email_attachment === 'YES'
-  },
+  get: () => estimateSettings.estimate_email_attachment === 'YES',
   set: async (newValue) => {
     const value = newValue ? 'YES' : 'NO'
-
-    let data = {
-      settings: {
-        estimate_email_attachment: value,
-      },
-    }
-
+    const data = { settings: { estimate_email_attachment: value } }
     estimateSettings.estimate_email_attachment = value
-
     await companyStore.updateCompanySettings({
       data,
       message: 'general.setting_updated',
