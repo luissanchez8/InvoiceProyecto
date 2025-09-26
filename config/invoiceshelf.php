@@ -163,7 +163,7 @@ return [
             'name' => 'PDF Generation',
             'link' => '/admin/settings/pdf-generation',
             'icon' => 'DocumentIcon',
-            'owner_only' => false,
+            'owner_only' => true,
             'ability' => '',
             'model' => '',
         ],
