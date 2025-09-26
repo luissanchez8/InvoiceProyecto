@@ -12,23 +12,10 @@ class SettingsPolicy
 
     public function manageCompany(User $user, Company $company)
     {
-        // 1. Owner siempre puede
-        if ($user->id === $company->owner_id) {
-            return true;
-        }
-
-        // 2. Rol "asistencia" también puede
-        if ($user->role === 'asistencia') {
-            return true;
-        }
-
-        // 3. Si quieres, también permite a cualquier usuario ligado a esa empresa
-        if ($user->companies()->where('companies.id', $company->id)->exists()) {
-            return true;
-        }
-
-        // 4. Si no cumple nada → denegado
-        return false;
+        // Cualquier usuario asociado a la empresa puede ver la sección (GET)
+        $belongs = $user->companies()->where('company_id', $company->id)->exists();
+    
+        return $belongs || $user->id == $company->owner_id || $user->role === 'asistencia';
     }
 
     public function manageBackups(User $user)
