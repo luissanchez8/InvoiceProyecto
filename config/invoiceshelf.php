@@ -394,7 +394,7 @@ return [
             'link' => '/admin/users',
             'icon' => 'UsersIcon',
             'name' => 'Users',
-            'owner_only' => true,
+            'owner_only' => false,
             'ability' => '',
             'model' => '',
         ],
