@@ -1022,7 +1022,7 @@
         "preview_invoice_number": "Previsualizar número de factura",
         "due_date": "Fecha de vencimiento",
         "due_date_description": "Especifique cómo se establece automáticamente la fecha de vencimiento cuando crea una factura.",
-        "due_date_days": "Factura vence después de días",
+        "due_date_days": "FactuDra vence después de días",
         "set_due_date_automatically": "Establecer fecha de vencimiento automáticamente",
         "set_due_date_automatically_description": "Habilite esto si desea establecer la fecha de vencimiento automáticamente cuando crea una nueva factura.",
         "default_formats": "Formatos por defecto",
@@ -1034,12 +1034,12 @@
         "invoice_email_attachment": "Enviar cotización como adjunto",
         "invoice_email_attachment_setting_description": "Activa esto si quieres enviar facturas como archivo adjunto de correo electrónico. Tenga en cuenta que el botón 'Ver factura' en los correos electrónicos ya no se mostrará cuando esté habilitado.",
         "invoice_settings_updated": "La configuración de facturas se ha actualizado correctamente",
-        "retrospective_edits": "Ediciones retrospectivas",
+        "retrospective_edits": "¿Permitir edición de facturas?",
         "allow": "Permitir",
         "disable_on_invoice_partial_paid": "Desactivar después de que se registre un pago parcial",
         "disable_on_invoice_paid": "Desactivar después de que se registre el pago completo",
         "disable_on_invoice_sent": "Desactivar después de enviar la factura",
-        "retrospective_edits_description": " Según las leyes de su país o sus preferencias, puede restringir que los usuarios editen las facturas finalizadas."
+        "retrospective_edits_description": " Según sus preferencias, puede restringir que los usuarios editen las facturas finalizadas."
       },
       "estimates": {
         "title": "Presupuestos",
