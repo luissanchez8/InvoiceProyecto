@@ -34,6 +34,9 @@ class CompanyRequest extends FormRequest
             'slug' => [
                 'nullable',
             ],
+            'contact_email' => ['required','email','max:255'],
+            'contact_name'  => ['nullable','string','max:255'],
+            'website'       => ['nullable','url','max:255'],
             'address.country_id' => [
                 'required',
             ],
@@ -48,6 +51,9 @@ class CompanyRequest extends FormRequest
                 'slug',
                 'vat_id',
                 'tax_id',
+                'contact_email',
+                'contact_name',
+                'website',
             ])
             ->toArray();
     }
