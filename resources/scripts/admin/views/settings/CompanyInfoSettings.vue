@@ -38,13 +38,13 @@
         <BaseInputGroup
           v-if="isAsistencia"
           :label="$t('settings.company_info.country')"
-          :error="v$.address.country_id.$error && v$.address.country_id.$errors[0].$message"
+          :error="v$.address.country_id?.$error && v$.address.country_id.$errors[0].$message"
           required
         >
           <BaseMultiselect
             v-model="companyForm.address.country_id"
             label="name"
-            :invalid="v$.address.country_id.$error"
+            :invalid="v$.address.country_id?.$error"
             :options="globalStore.countries"
             value-prop="id"
             :can-deselect="true"
@@ -56,11 +56,7 @@
 
         <!-- Provincia (antes Estado) -->
         <BaseInputGroup :label="'Provincia'">
-          <BaseInput
-            v-model="companyForm.address.state"
-            name="state"
-            type="text"
-          />
+          <BaseInput v-model="companyForm.address.state" name="state" type="text" />
         </BaseInputGroup>
 
         <!-- Ciudad -->
@@ -76,10 +72,7 @@
         <!-- Dirección -->
         <div>
           <BaseInputGroup :label="$t('settings.company_info.address')">
-            <BaseTextarea
-              v-model="companyForm.address.address_street_1"
-              rows="2"
-            />
+            <BaseTextarea v-model="companyForm.address.address_street_1" rows="2" />
           </BaseInputGroup>
 
           <BaseTextarea
@@ -102,41 +95,33 @@
           </BaseInputGroup>
         </div>
 
-        <!-- Email de contacto (obligatorio) -->
+        <!-- Email de contacto (obligatorio, RAÍZ) -->
         <BaseInputGroup
           :label="'Email de contacto'"
-          :error="v$.address.contact_email.$error && v$.address.contact_email.$errors[0].$message"
+          :error="v$.contact_email.$error && v$.contact_email.$errors[0].$message"
           required
         >
           <BaseInput
-            v-model="companyForm.address.contact_email"
+            v-model="companyForm.contact_email"
             type="email"
-            :invalid="v$.address.contact_email.$error"
-            @blur="v$.address.contact_email.$touch()"
+            :invalid="v$.contact_email.$error"
+            @blur="v$.contact_email.$touch()"
             placeholder="contacto@empresa.com"
           />
         </BaseInputGroup>
 
-        <!-- Página web (opcional) -->
+        <!-- Página web (opcional, RAÍZ) -->
         <BaseInputGroup :label="'Página web'">
-          <BaseInput
-            v-model="companyForm.address.website"
-            placeholder="https://example.com"
-          />
+          <BaseInput v-model="companyForm.website" placeholder="https://example.com" />
         </BaseInputGroup>
 
-        <!-- Persona de contacto (opcional) -->
+        <!-- Persona de contacto (opcional, RAÍZ) -->
         <BaseInputGroup :label="'Persona de contacto'">
-          <BaseInput v-model="companyForm.address.contact_person" />
+          <BaseInput v-model="companyForm.contact_name" />
         </BaseInputGroup>
       </BaseInputGrid>
 
-      <BaseButton
-        :loading="isSaving"
-        :disabled="isSaving"
-        type="submit"
-        class="mt-6"
-      >
+      <BaseButton :loading="isSaving" :disabled="isSaving" type="submit" class="mt-6">
         <template #left="slotProps">
           <BaseIcon v-if="!isSaving" :class="slotProps.class" name="ArrowDownOnSquareIcon" />
         </template>
@@ -149,9 +134,7 @@
           {{ $t('settings.company_info.delete_company') }}
         </h3>
         <div class="mt-2 max-w-xl text-sm text-gray-500">
-          <p>
-            {{ $t('settings.company_info.delete_company_description') }}
-          </p>
+          <p>{{ $t('settings.company_info.delete_company_description') }}</p>
         </div>
         <div class="mt-5">
           <button
@@ -193,25 +176,25 @@ let isSaving = ref(false)
 const companyForm = reactive({
   name: null,
   logo: null,
-  tax_id: null,   // CIF
-  vat_id: null,   // Número de IVA (solo asistencia)
+  tax_id: null,          // CIF
+  vat_id: null,          // Número de IVA (solo asistencia)
+  // NUEVOS (en la RAÍZ de companies)
+  contact_email: '',
+  website: '',
+  contact_name: '',
   address: {
     address_street_1: '',
     address_street_2: '',
-    website: '',
     country_id: null,
     state: '',
     city: '',
     phone: '',
     zip: '',
-    contact_email: '',     // NUEVO (obligatorio)
-    contact_person: '',    // NUEVO (opcional)
   },
 })
 
-utils.mergeSettings(companyForm, {
-  ...companyStore.selectedCompany,
-})
+// precarga desde store
+utils.mergeSettings(companyForm, { ...companyStore.selectedCompany })
 
 let previewLogo = ref([])
 let logoFileBlob = ref(null)
@@ -219,37 +202,28 @@ let logoFileName = ref(null)
 const isCompanyLogoRemoved = ref(false)
 
 if (companyForm.logo) {
-  previewLogo.value.push({
-    image: companyForm.logo,
-  })
+  previewLogo.value.push({ image: companyForm.logo })
 }
 
-const rules = computed(() => {
-  return {
-    name: {
-      required: helpers.withMessage(t('validation.required'), required),
-      minLength: helpers.withMessage(
-        t('validation.name_min_length'),
-        minLength(3),
-      ),
-    },
-    address: {
-      // País requerido SOLO si es asistencia y el campo existe visible.
-      country_id: isAsistencia.value
-        ? { required: helpers.withMessage(t('validation.required'), required) }
-        : {},
-      contact_email: {
-        required: helpers.withMessage(t('validation.required'), required),
-        email: helpers.withMessage(t('validation.email_incorrect'), email),
-      },
-    },
-  }
-})
+const rules = computed(() => ({
+  name: {
+    required: helpers.withMessage(t('validation.required'), required),
+    minLength: helpers.withMessage(t('validation.name_min_length'), minLength(3)),
+  },
+  // email de contacto en la RAÍZ
+  contact_email: {
+    required: helpers.withMessage(t('validation.required'), required),
+    email: helpers.withMessage(t('validation.email_incorrect'), email),
+  },
+  address: {
+    // País requerido sólo visible para asistencia
+    country_id: isAsistencia.value
+      ? { required: helpers.withMessage(t('validation.required'), required) }
+      : {},
+  },
+}))
 
-const v$ = useVuelidate(
-  rules,
-  computed(() => companyForm),
-)
+const v$ = useVuelidate(rules, computed(() => companyForm))
 
 globalStore.fetchCountries()
 
@@ -257,7 +231,6 @@ function onFileInputChange(fileName, file, fileCount, fileList) {
   logoFileName.value = fileList.name
   logoFileBlob.value = file
 }
-
 function onFileInputRemove() {
   logoFileBlob.value = null
   isCompanyLogoRemoved.value = true
@@ -269,43 +242,36 @@ async function updateCompanyData() {
 
   isSaving.value = true
 
-  // Construimos payload limpio y aplicamos las restricciones por rol
+  // Payload que cuadra con el backend (companies.* + address.*)
   const payload = {
     name: companyForm.name,
-    logo: companyForm.logo,
-    tax_id: companyForm.tax_id, // CIF (visible a todos)
+    tax_id: companyForm.tax_id,
+    contact_email: companyForm.contact_email,
+    website: companyForm.website || '',
+    contact_name: companyForm.contact_name || '',
     address: {
       address_street_1: companyForm.address.address_street_1,
       address_street_2: companyForm.address.address_street_2,
-      website: companyForm.address.website || '',
       state: companyForm.address.state,
       city: companyForm.address.city,
       phone: companyForm.address.phone,
       zip: companyForm.address.zip,
-      contact_email: companyForm.address.contact_email,
-      contact_person: companyForm.address.contact_person || '',
+      // country_id solo si asistencia
+      ...(isAsistencia.value ? { country_id: companyForm.address.country_id } : {}),
     },
-  }
-
-  // Solo asistencia puede enviar país y número de IVA
-  if (isAsistencia.value) {
-    payload.address.country_id = companyForm.address.country_id
-    payload.vat_id = companyForm.vat_id
+    // vat_id solo si asistencia
+    ...(isAsistencia.value ? { vat_id: companyForm.vat_id } : {}),
   }
 
   const res = await companyStore.updateCompany(payload)
 
   if (res.data.data) {
     if (logoFileBlob.value || isCompanyLogoRemoved.value) {
-      let logoData = new FormData()
-
+      const logoData = new FormData()
       if (logoFileBlob.value) {
         logoData.append(
           'company_logo',
-          JSON.stringify({
-            name: logoFileName.value,
-            data: logoFileBlob.value,
-          }),
+          JSON.stringify({ name: logoFileName.value, data: logoFileBlob.value }),
         )
       }
       logoData.append('is_company_logo_removed', isCompanyLogoRemoved.value)
@@ -314,12 +280,12 @@ async function updateCompanyData() {
       logoFileBlob.value = null
       isCompanyLogoRemoved.value = false
     }
-
     isSaving.value = false
   }
   isSaving.value = false
 }
-function removeCompany(id) {
+
+function removeCompany() {
   modalStore.openModal({
     title: t('settings.company_info.are_you_absolutely_sure'),
     componentName: 'DeleteCompanyModal',
