@@ -3,7 +3,9 @@
 
   <BaseDivider class="my-8" />
 
-  <PaymentsTabDefaultFormats />
+  <!-- SOLO asistencia ve “Formatos por defecto” -->
+  <PaymentsTabDefaultFormats v-if="isAsistencia" />
+  <BaseDivider class="my-8" v-if="isAsistencia" />
 
   <BaseDivider class="mt-6 mb-2" />
 
@@ -23,11 +25,17 @@
 <script setup>
 import { computed, reactive, inject } from 'vue'
 import { useCompanyStore } from '@/scripts/admin/stores/company'
+import { useUserStore } from '@/scripts/admin/stores/user'
+
 import PaymentsTabPaymentNumber from './PaymentsTabPaymentNumber.vue'
 import PaymentsTabDefaultFormats from './PaymentsTabDefaultFormats.vue'
 
 const utils = inject('utils')
 const companyStore = useCompanyStore()
+const userStore = useUserStore()
+
+// Solo asistencia puede ver Formatos por defecto
+const isAsistencia = computed(() => userStore.currentUser?.role === 'asistencia')
 
 const paymentSettings = reactive({
   payment_email_attachment: null,
@@ -38,17 +46,10 @@ utils.mergeSettings(paymentSettings, {
 })
 
 const sendAsAttachmentField = computed({
-  get: () => {
-    return paymentSettings.payment_email_attachment === 'YES'
-  },
+  get: () => paymentSettings.payment_email_attachment === 'YES',
   set: async (newValue) => {
     const value = newValue ? 'YES' : 'NO'
-
-    let data = {
-      settings: {
-        payment_email_attachment: value,
-      },
-    }
+    const data = { settings: { payment_email_attachment: value } }
 
     paymentSettings.payment_email_attachment = value
 
