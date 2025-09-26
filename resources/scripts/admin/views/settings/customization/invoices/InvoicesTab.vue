@@ -11,17 +11,21 @@
 
   <BaseDivider class="my-8" />
 
-  <!-- SOLO asistencia ve “Formatos por defecto” -->
+  <!-- “Formatos por defecto” solo asistencia -->
   <InvoicesTabDefaultFormats v-if="isAsistencia" />
   <BaseDivider class="my-8" v-if="isAsistencia" />
 
-  <BaseDivider class="mt-6 mb-2" />
-
-  <ul class="divide-y divide-gray-200">
+  <!-- “Enviar factura como adjunto” solo asistencia -->
+  <BaseDivider class="mt-6 mb-2" v-if="isAsistencia" />
+  <ul class="divide-y divide-gray-200" v-if="isAsistencia">
     <BaseSwitchSection
       v-model="sendAsAttachmentField"
       :title="$t('settings.customization.invoices.invoice_email_attachment')"
-      :description="$t('settings.customization.invoices.invoice_email_attachment_setting_description')"
+      :description="
+        $t(
+          'settings.customization.invoices.invoice_email_attachment_setting_description'
+        )
+      "
     />
   </ul>
 </template>
@@ -39,16 +43,21 @@ const utils = inject('utils')
 const companyStore = useCompanyStore()
 const userStore = useUserStore()
 
-// sólo asistencia
 const isAsistencia = computed(() => userStore.currentUser?.role === 'asistencia')
 
 const invoiceSettings = reactive({
-  invoice_email_attachment: null,
+  // por defecto ACTIVADO
+  invoice_email_attachment: 'YES',
 })
 
 utils.mergeSettings(invoiceSettings, {
   ...companyStore.selectedCompanySettings,
 })
+
+// si no hay valor en BD, mantener YES por defecto
+if (!invoiceSettings.invoice_email_attachment) {
+  invoiceSettings.invoice_email_attachment = 'YES'
+}
 
 const sendAsAttachmentField = computed({
   get: () => invoiceSettings.invoice_email_attachment === 'YES',
@@ -56,10 +65,7 @@ const sendAsAttachmentField = computed({
     const value = newValue ? 'YES' : 'NO'
     const data = { settings: { invoice_email_attachment: value } }
     invoiceSettings.invoice_email_attachment = value
-    await companyStore.updateCompanySettings({
-      data,
-      message: 'general.setting_updated',
-    })
+    await companyStore.updateCompanySettings({ data, message: 'general.setting_updated' })
   },
 })
 </script>
