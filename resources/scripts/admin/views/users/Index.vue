@@ -304,33 +304,31 @@ function refreshTable() {
 }
 
 async function fetchData({ page, filter, sort }) {
-  let data = {
-    display_name: filters.name !== null ? filters.name : '',
-    phone: filters.phone !== null ? filters.phone : '',
-    email: filters.email !== null ? filters.email : '',
+  const data = {
+    display_name: filters.name ?? '',
+    phone: filters.phone ?? '',
+    email: filters.email ?? '',
     orderByField: sort.fieldName || 'created_at',
     orderBy: sort.order || 'desc',
     page,
   }
 
   isFetchingInitialData.value = true
-
-  let response = await usersStore.fetchUsers(data)
-
+  const response = await usersStore.fetchUsers(data)
   isFetchingInitialData.value = false
 
-// Oculta al usuario "asistencia" para cualquiera que NO sea asistencia
+  // Oculta al usuario "asistencia" para cualquiera que NO sea asistencia
   const rows = (response.data?.data || []).filter(u => {
     const role = (u.role || '').toString().toLowerCase()
     return isAsistencia.value ? true : role !== 'asistencia'
   })
-  
+
   return {
-    data: response.data.data,
+    data: rows,
     pagination: {
       totalPages: response.data.meta.last_page,
       currentPage: page,
-      totalCount: response.data.meta.total,
+      totalCount: rows.length,
       limit: 10,
     },
   }
