@@ -26,7 +26,7 @@
           </BaseButton>
 
           <BaseButton
-            v-if="userStore.currentUser.is_owner"
+            v-if="isAsistencia"
             @click="$router.push('users/create')"
           >
             <template #left="slotProps">
@@ -82,7 +82,7 @@
 
       <template #actions>
         <BaseButton
-          v-if="userStore.currentUser.is_owner"
+          v-if="isAsistencia"
           variant="primary-outline"
           @click="$router.push('/admin/users/create')"
         >
@@ -200,6 +200,12 @@ const notificationStore = useNotificationStore()
 const dialogStore = useDialogStore()
 const usersStore = useUsersStore()
 const userStore = useUserStore()
+// Comprobar usuario asistencia
+const isAsistencia = computed(() => {
+  const r = (userStore.currentUser?.role || '').toString().toLowerCase()
+  return r === 'asistencia'
+})
+
 
 const router = useRouter()
 
