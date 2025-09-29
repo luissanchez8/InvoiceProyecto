@@ -5,7 +5,7 @@
   >
     <TaxTypeModal />
 
-    <template v-if="userStore.hasAbilities(abilities.CREATE_TAX_TYPE)" #action>
+    <template v-if="isAsistencia" #action>
       <BaseButton type="submit" variant="primary-outline" @click="openTaxModal">
         <template #left="slotProps">
           <BaseIcon :class="slotProps.class" name="PlusIcon" />
@@ -35,7 +35,7 @@
       </template>
     </template>
 
-      <template v-if="hasAtleastOneAbility()" #cell-actions="{ row }">
+      <template v-if="isAsistencia" #cell-actions="{ row }">
         <TaxTypeDropdown
           :row="row.data"
           :table="table"
@@ -80,6 +80,12 @@ const moduleStore = useModuleStore()
 const table = ref(null)
 const taxPerItemSetting = ref(companyStore.selectedCompanySettings.tax_per_item)
 const defaultCurrency = computed(() => companyStore.selectedCompanyCurrency)
+// Usuario asistencia
+const isAsistencia = computed(() => {
+  const r = (userStore.currentUser?.role || '').toString().toLowerCase()
+  return r === 'asistencia'
+})
+
 
 const taxTypeColumns = computed(() => {
   return [
