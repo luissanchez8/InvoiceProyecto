@@ -1,3 +1,4 @@
+Pueden ver todos los usuarios y solo puede crear/editar/borrar el owner de la empresa.
 <?php
 
 namespace App\Policies;
@@ -11,8 +12,7 @@ class RolePolicy
     use HandlesAuthorization;
 
     /**
-     * Listar roles (index).
-     * Todos pueden listar. El filtrado del rol "asistencia" se hace en view() o en la query del controlador.
+     * Determine whether the user can view any models.
      */
     public function viewAny(User $user): bool
     {
@@ -20,9 +20,7 @@ class RolePolicy
     }
 
     /**
-     * Ver un rol concreto.
-     * - El usuario con rol "asistencia" puede verlo todo.
-     * - Para el resto, se deniega si el rol consultado es "asistencia".
+     * Determine whether the user can view the model.
      */
     public function view(User $user, Role $role): bool
     {
@@ -34,42 +32,42 @@ class RolePolicy
     }
 
     /**
-     * Crear roles: solo el usuario "asistencia".
+     * Determine whether the user can create models.
      */
     public function create(User $user): bool
     {
-        return $user->hasRole('asistencia');
+        return $user->isOwner();
     }
 
     /**
-     * Actualizar roles: solo "asistencia".
+     * Determine whether the user can update the model.
      */
     public function update(User $user, Role $role): bool
     {
-        return $user->hasRole('asistencia');
+        return $user->isOwner();
     }
 
     /**
-     * Borrar roles: solo "asistencia".
+     * Determine whether the user can delete the model.
      */
     public function delete(User $user, Role $role): bool
     {
-        return $user->hasRole('asistencia');
+        return $user->isOwner();
     }
 
     /**
-     * Restaurar: solo "asistencia".
+     * Determine whether the user can restore the model.
      */
     public function restore(User $user, Role $role): bool
     {
-        return $user->hasRole('asistencia');
+        return $user->isOwner();
     }
 
     /**
-     * Borrado permanente: solo "asistencia".
+     * Determine whether the user can permanently delete the model.
      */
     public function forceDelete(User $user, Role $role): bool
     {
-        return $user->hasRole('asistencia');
+        return $user->isOwner();
     }
 }
