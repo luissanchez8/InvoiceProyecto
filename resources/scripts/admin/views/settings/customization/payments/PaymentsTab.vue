@@ -36,13 +36,15 @@ const paymentSettings = reactive({
   payment_email_attachment: null,
 })
 
-utils.mergeSettings(paymentSettings, {
-  ...companyStore.selectedCompanySettings,
-})
+utils.mergeSettings(paymentSettings, { ...companyStore.selectedCompanySettings })
+if (paymentSettings.payment_email_attachment == null) {
+  paymentSettings.payment_email_attachment = 'YES'
+}
 
 // Por defecto ON
 const sendAsAttachmentField = computed({
-  get: () => paymentSettings.payment_email_attachment !== 'NO',
+  // ON por defecto si es null/undefined
+  get: () => (paymentSettings.payment_email_attachment ?? 'YES') === 'YES',
   set: async (newValue) => {
     const value = newValue ? 'YES' : 'NO'
     paymentSettings.payment_email_attachment = value
