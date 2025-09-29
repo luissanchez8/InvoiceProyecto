@@ -314,19 +314,19 @@ export default [
           {
             path: 'file-disk',
             name: 'file-disk',
-            meta: { isOwner: false },
+            meta: { isOwner: true },
             component: FileDisk,
           },
           {
             path: 'backup',
             name: 'backup',
-            meta: { isOwner: false },
+            meta: { isOwner: true },
             component: Backup,
           },
           {
             path: 'update-app',
             name: 'updateapp',
-            meta: { isOwner: false },
+            meta: { isOwner: true },
             component: UpdateApp,
           },
           {
