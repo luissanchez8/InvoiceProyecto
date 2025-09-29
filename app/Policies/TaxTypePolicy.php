@@ -5,76 +5,100 @@ namespace App\Policies;
 use App\Models\TaxType;
 use App\Models\User;
 use Illuminate\Auth\Access\HandlesAuthorization;
-// use Silber\Bouncer\BouncerFacade as Bouncer; // opcional si quieres combinar con abilities
+use Silber\Bouncer\BouncerFacade;
 
 class TaxTypePolicy
 {
     use HandlesAuthorization;
 
     /**
-     * Listar tipos de impuesto.
-     * Cualquier usuario autenticado puede listar (el filtrado por empresa hazlo en la query del controlador).
+     * Determine whether the user can view any models.
+     *
+     * @return mixed
      */
     public function viewAny(User $user): bool
     {
         return $user !== null;
-        // Si quisieras exigir ability además del login:
-        // return $user !== null && Bouncer::can('view-tax-type', TaxType::class);
     }
 
     /**
-     * Ver un tipo concreto: cualquiera autenticado, pero SOLO si pertenece a su empresa.
+     * Determine whether the user can view the model.
+     *
+     * @return mixed
      */
+    /** Ver un impuesto concreto: cualquiera autenticado, pero dentro de su empresa */
     public function view(User $user, TaxType $taxType): bool
     {
         return $user !== null && $user->hasCompany($taxType->company_id);
-        // O combinado con ability:
-        // return $user !== null
-        //     && Bouncer::can('view-tax-type', $taxType)
-        //     && $user->hasCompany($taxType->company_id);
     }
 
     /**
-     * Crear: SOLO rol "asistencia".
+     * Determine whether the user can create models.
+     *
+     * @return mixed
      */
     public function create(User $user): bool
     {
-        return method_exists($user, 'hasRole') && $user->hasRole('asistencia');
-        // O combinado con ability:
-        // return $user->hasRole('asistencia') && Bouncer::can('create-tax-type', TaxType::class);
+        if (BouncerFacade::can('create-tax-type', TaxType::class)) {
+            return true;
+        }
+
+        return false;
     }
 
     /**
-     * Actualizar: SOLO rol "asistencia" y dentro de su empresa.
+     * Determine whether the user can update the model.
+     *
+     * @return mixed
      */
     public function update(User $user, TaxType $taxType): bool
     {
-        return $user->hasRole('asistencia') && $user->hasCompany($taxType->company_id);
-        // O combinado con ability:
-        // return $user->hasRole('asistencia')
-        //     && Bouncer::can('edit-tax-type', $taxType)
-        //     && $user->hasCompany($taxType->company_id);
+        if (BouncerFacade::can('edit-tax-type', $taxType) && $user->hasCompany($taxType->company_id)) {
+            return true;
+        }
+
+        return false;
     }
 
     /**
-     * Borrar: SOLO rol "asistencia" y dentro de su empresa.
+     * Determine whether the user can delete the model.
+     *
+     * @return mixed
      */
     public function delete(User $user, TaxType $taxType): bool
     {
-        return $user->hasRole('asistencia') && $user->hasCompany($taxType->company_id);
-        // O combinado con ability:
-        // return $user->hasRole('asistencia')
-        //     && Bouncer::can('delete-tax-type', $taxType)
-        //     && $user->hasCompany($taxType->company_id);
+        if (BouncerFacade::can('delete-tax-type', $taxType) && $user->hasCompany($taxType->company_id)) {
+            return true;
+        }
+
+        return false;
     }
 
+    /**
+     * Determine whether the user can restore the model.
+     *
+     * @return mixed
+     */
     public function restore(User $user, TaxType $taxType): bool
     {
-        return $this->delete($user, $taxType);
+        if (BouncerFacade::can('delete-tax-type', $taxType) && $user->hasCompany($taxType->company_id)) {
+            return true;
+        }
+
+        return false;
     }
 
+    /**
+     * Determine whether the user can permanently delete the model.
+     *
+     * @return mixed
+     */
     public function forceDelete(User $user, TaxType $taxType): bool
     {
-        return $this->delete($user, $taxType);
+        if (BouncerFacade::can('delete-tax-type', $taxType) && $user->hasCompany($taxType->company_id)) {
+            return true;
+        }
+
+        return false;
     }
 }
