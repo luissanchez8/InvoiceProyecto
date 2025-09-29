@@ -3,18 +3,17 @@
 
   <BaseDivider class="my-8" />
 
-  <!-- Formatos por defecto: SOLO asistencia -->
-  <PaymentsTabDefaultFormats v-if="isAsistencia" />
-
-  <!-- Enviar pago como adjunto: SOLO asistencia -->
-  <BaseDivider class="mt-6 mb-2" />
-  <ul class="divide-y divide-gray-200" v-if="isAsistencia">
-    <BaseSwitchSection
-      v-model="sendAsAttachmentField"
-      :title="$t('settings.customization.payments.payment_email_attachment')"
-      :description="$t('settings.customization.payments.payment_email_attachment_setting_description')"
-    />
-  </ul>
+  <template v-if="isAsistencia">
+    <PaymentsTabDefaultFormats />
+    <BaseDivider class="mt-6 mb-2" />
+    <ul class="divide-y divide-gray-200">
+      <BaseSwitchSection
+        v-model="sendAsAttachmentField"
+        :title="$t('settings.customization.payments.payment_email_attachment')"
+        :description="$t('settings.customization.payments.payment_email_attachment_setting_description')"
+      />
+    </ul>
+  </template>
 </template>
 
 <script setup>
