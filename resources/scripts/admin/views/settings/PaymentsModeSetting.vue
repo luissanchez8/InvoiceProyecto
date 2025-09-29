@@ -5,9 +5,8 @@
     :title="$t('settings.payment_modes.title')"
     :description="$t('settings.payment_modes.description')"
   >
-    <template #action>
+    <template v-if="isAsistencia" #action>
       <BaseButton
-        v-if="isAsistencia"
         type="submit"
         variant="primary-outline"
         @click="addPaymentMode"
@@ -18,13 +17,14 @@
         {{ $t('settings.payment_modes.add_payment_mode') }}
       </BaseButton>
     </template>
+
     <BaseTable
       ref="table"
       :data="fetchData"
       :columns="paymentColumns"
       class="mt-16"
     >
-      <template v-if="isAsistencia" #cell-actions="{ row }">
+      <template #cell-actions="{ row }">
         <PaymentModeDropdown
           :row="row.data"
           :table="table"
@@ -42,36 +42,38 @@ import { useI18n } from 'vue-i18n'
 import { usePaymentStore } from '@/scripts/admin/stores/payment'
 import { useDialogStore } from '@/scripts/stores/dialog'
 import { useModalStore } from '@/scripts/stores/modal'
+import { useUserStore } from '@/scripts/admin/stores/user'
+
 import PaymentModeModal from '@/scripts/admin/components/modal-components/PaymentModeModal.vue'
 import PaymentModeDropdown from '@/scripts/admin/components/dropdowns/PaymentModeIndexDropdown.vue'
 
 const modalStore = useModalStore()
 const dialogStore = useDialogStore()
 const paymentStore = usePaymentStore()
-const isAsistencia = computed(() => {
-  const r = (/* puede venir null */ (useUserStore().currentUser?.role || '') + '').toLowerCase()
-  return r === 'asistencia'
-})
+const userStore = useUserStore()
 const { t } = useI18n()
 
 const table = ref(null)
 
-const paymentColumns = computed(() => {
-  return [
-    {
-      key: 'name',
-      label: t('settings.payment_modes.mode_name'),
-      thClass: 'extra',
-      tdClass: 'font-medium text-gray-900',
-    },
-    {
-      key: 'actions',
-      label: '',
-      tdClass: 'text-right text-sm font-medium',
-      sortable: false,
-    },
-  ]
+const isAsistencia = computed(() => {
+  const r = (userStore.currentUser?.role || '').toString().toLowerCase()
+  return r === 'asistencia'
 })
+
+const paymentColumns = computed(() => [
+  {
+    key: 'name',
+    label: t('settings.payment_modes.mode_name'),
+    thClass: 'extra',
+    tdClass: 'font-medium text-gray-900',
+  },
+  {
+    key: 'actions',
+    label: '',
+    tdClass: 'text-right text-sm font-medium',
+    sortable: false,
+  },
+])
 
 async function refreshTable() {
   table.value && table.value.refresh()
