@@ -7,6 +7,7 @@
   >
     <template #action>
       <BaseButton
+        v-if="isAsistencia"
         type="submit"
         variant="primary-outline"
         @click="addPaymentMode"
@@ -17,14 +18,13 @@
         {{ $t('settings.payment_modes.add_payment_mode') }}
       </BaseButton>
     </template>
-
     <BaseTable
       ref="table"
       :data="fetchData"
       :columns="paymentColumns"
       class="mt-16"
     >
-      <template #cell-actions="{ row }">
+      <template v-if="isAsistencia" #cell-actions="{ row }">
         <PaymentModeDropdown
           :row="row.data"
           :table="table"
@@ -48,6 +48,10 @@ import PaymentModeDropdown from '@/scripts/admin/components/dropdowns/PaymentMod
 const modalStore = useModalStore()
 const dialogStore = useDialogStore()
 const paymentStore = usePaymentStore()
+const isAsistencia = computed(() => {
+  const r = (/* puede venir null */ (useUserStore().currentUser?.role || '') + '').toLowerCase()
+  return r === 'asistencia'
+})
 const { t } = useI18n()
 
 const table = ref(null)
