@@ -40,7 +40,7 @@ const companyStore = useCompanyStore()
 const userStore = useUserStore()
 const utils = inject('utils')
 
-// ✅ Rol desde userStore
+// Rol desde userStore
 const isAsistencia = computed(() =>
   ((userStore.currentUser?.role || '') + '').trim().toLowerCase() === 'asistencia'
 )
@@ -53,7 +53,7 @@ utils.mergeSettings(invoiceSettings, {
   ...companyStore.selectedCompanySettings,
 })
 
-// ✅ ON por defecto si viene vacío
+// ON por defecto si viene vacío
 if (invoiceSettings.invoice_email_attachment == null) {
   invoiceSettings.invoice_email_attachment = 'YES'
 }
