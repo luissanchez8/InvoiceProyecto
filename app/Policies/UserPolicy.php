@@ -9,129 +9,54 @@ class UserPolicy
 {
     use HandlesAuthorization;
 
-    /**
-     * Determine whether the user can view any models.
-     *
-     * @return mixed
-     */
+    /** Cualquiera autenticado puede listar */
     public function viewAny(User $user): bool
     {
-        if ($user->isOwner()) {
-            return true;
-        }
-
-        return false;
+        return $user !== null;
     }
 
-    /**
-     * Determine whether the user can view the model.
-     *
-     * @return mixed
-     */
+    /** Cualquiera autenticado puede ver un usuario */
     public function view(User $user, User $model): bool
     {
-        if ($user->isOwner()) {
-            return true;
-        }
-
-        return false;
+        return $user !== null;
     }
 
-    /**
-     * Determine whether the user can create models.
-     *
-     * @return mixed
-     */
+    /** Solo el rol "asistencia" puede crear (mostrar botón + permitir POST) */
     public function create(User $user): bool
     {
-        if ($user->isOwner()) {
-            return true;
-        }
-
-        return false;
+        return method_exists($user, 'hasRole') && $user->hasRole('asistencia');
     }
 
-    /**
-     * Determine whether the user can update the model.
-     *
-     * @return mixed
-     */
+    /** Mantengo como antes: dueño puede actualizar */
     public function update(User $user, User $model): bool
     {
-        if ($user->isOwner()) {
-            return true;
-        }
-
-        return false;
+        return $user->isOwner();
     }
 
-    /**
-     * Determine whether the user can delete the model.
-     *
-     * @return mixed
-     */
+    /** Mantengo como antes: dueño puede borrar */
     public function delete(User $user, User $model): bool
     {
-        if ($user->isOwner()) {
-            return true;
-        }
-
-        return false;
+        return $user->isOwner();
     }
 
-    /**
-     * Determine whether the user can restore the model.
-     *
-     * @return mixed
-     */
     public function restore(User $user, User $model): bool
     {
-        if ($user->isOwner()) {
-            return true;
-        }
-
-        return false;
+        return $user->isOwner();
     }
 
-    /**
-     * Determine whether the user can permanently delete the model.
-     *
-     * @return mixed
-     */
     public function forceDelete(User $user, User $model): bool
     {
-        if ($user->isOwner()) {
-            return true;
-        }
-
-        return false;
+        return $user->isOwner();
     }
 
-    /**
-     * Determine whether the user can invite the model.
-     *
-     * @return mixed
-     */
-    public function invite(User $user, User $model)
+    /** Invitar usuarios: dueño como antes (si quieres que sea asistencia, me dices) */
+    public function invite(User $user, User $model): bool
     {
-        if ($user->isOwner()) {
-            return true;
-        }
-
-        return false;
+        return $user->isOwner();
     }
 
-    /**
-     * Determine whether the user can delete models.
-     *
-     * @return mixed
-     */
-    public function deleteMultiple(User $user)
+    public function deleteMultiple(User $user): bool
     {
-        if ($user->isOwner()) {
-            return true;
-        }
-
-        return false;
+        return $user->isOwner();
     }
 }
