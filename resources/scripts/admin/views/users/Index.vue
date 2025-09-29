@@ -319,6 +319,12 @@ async function fetchData({ page, filter, sort }) {
 
   isFetchingInitialData.value = false
 
+// Oculta al usuario "asistencia" para cualquiera que NO sea asistencia
+  const rows = (response.data?.data || []).filter(u => {
+    const role = (u.role || '').toString().toLowerCase()
+    return isAsistencia.value ? true : role !== 'asistencia'
+  })
+  
   return {
     data: response.data.data,
     pagination: {
