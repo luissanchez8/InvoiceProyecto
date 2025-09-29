@@ -20,13 +20,18 @@
 <script setup>
 import { computed, reactive, inject } from 'vue'
 import { useCompanyStore } from '@/scripts/admin/stores/company'
+import { useUserStore } from '@/scripts/admin/stores/user'
 import PaymentsTabPaymentNumber from './PaymentsTabPaymentNumber.vue'
 import PaymentsTabDefaultFormats from './PaymentsTabDefaultFormats.vue'
 
 const companyStore = useCompanyStore()
+const userStore = useUserStore()
 const utils = inject('utils')
 
-const isAsistencia = computed(() => companyStore.currentUser?.role === 'asistencia')
+// Coger rol desde userStore
+const isAsistencia = computed(() =>
+  ((userStore.currentUser?.role || '') + '').trim().toLowerCase() === 'asistencia'
+)
 
 const paymentSettings = reactive({
   payment_email_attachment: null,
