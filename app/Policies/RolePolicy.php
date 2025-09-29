@@ -23,11 +23,7 @@ class RolePolicy
      */
     public function view(User $user, Role $role): bool
     {
-        if ($user->hasRole('asistencia')) {
-            return true;
-        }
-
-        return strtolower($role->name) !== 'asistencia';
+        return $user !== null;
     }
 
     /**
