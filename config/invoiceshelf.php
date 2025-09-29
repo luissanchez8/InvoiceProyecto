@@ -223,7 +223,7 @@ return [
             'name' => 'Custom fields',
             'link' => '/admin/settings/custom-fields',
             'icon' => 'CubeIcon',
-            'owner_only' => false,
+            'owner_only' => true,
             'ability' => 'view-custom-field',
             'model' => CustomField::class,
         ],
