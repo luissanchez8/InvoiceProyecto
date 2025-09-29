@@ -1,4 +1,3 @@
-Pueden ver todos los usuarios y solo puede crear/editar/borrar el owner de la empresa.
 <?php
 
 namespace App\Policies;
