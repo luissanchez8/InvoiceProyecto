@@ -1,5 +1,6 @@
 <template>
-  <form @submit.prevent="submitForm">
+  <!-- Solo visible para asistencia -->
+  <form v-if="isAsistencia" @submit.prevent="submitForm">
     <h6 class="text-gray-900 text-lg font-medium">
       {{ $t('settings.customization.payments.default_formats') }}
     </h6>
@@ -28,9 +29,7 @@
     </BaseInputGroup>
 
     <BaseInputGroup
-      :label="
-        $t('settings.customization.payments.from_customer_address_format')
-      "
+      :label="$t('settings.customization.payments.from_customer_address_format')"
       class="mt-6 mb-4"
     >
       <BaseCustomInput
@@ -55,28 +54,21 @@
 </template>
 
 <script setup>
-import { ref, reactive, inject } from 'vue'
+import { ref, reactive, inject, computed } from 'vue'
 import { useCompanyStore } from '@/scripts/admin/stores/company'
+import { useUserStore } from '@/scripts/admin/stores/user'
 
 const companyStore = useCompanyStore()
+const userStore = useUserStore()
 const utils = inject('utils')
 
-const mailFields = ref([
-  'customer',
-  'customerCustom',
-  'company',
-  'payment',
-  'paymentCustom',
-])
+const isAsistencia = computed(() =>
+  ((userStore.currentUser?.role || '') + '').trim().toLowerCase() === 'asistencia'
+)
 
-const customerAddressFields = ref([
-  'billing',
-  'customer',
-  'customerCustom',
-  'paymentCustom',
-])
-
-const companyFields = ref(['company', 'paymentCustom'])
+const mailFields = ref(['customer','customerCustom','company','payment','paymentCustom'])
+const customerAddressFields = ref(['billing','customer','customerCustom','paymentCustom'])
+const companyFields = ref(['company','paymentCustom'])
 
 let isSaving = ref(false)
 
@@ -91,13 +83,10 @@ utils.mergeSettings(formatSettings, {
 })
 
 async function submitForm() {
-  isSaving.value = true
+  if (!isAsistencia.value) return false; // salvaguarda extra
 
-  let data = {
-    settings: {
-      ...formatSettings,
-    },
-  }
+  isSaving.value = true
+  const data = { settings: { ...formatSettings } }
 
   await companyStore.updateCompanySettings({
     data,
@@ -105,7 +94,6 @@ async function submitForm() {
   })
 
   isSaving.value = false
-
   return true
 }
 </script>
