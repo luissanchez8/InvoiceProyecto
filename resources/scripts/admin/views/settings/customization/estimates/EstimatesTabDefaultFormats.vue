@@ -1,5 +1,5 @@
 <template>
-  <form @submit.prevent="submitForm">
+  <form v-if="isAsistencia" @submit.prevent="submitForm">
     <h6 class="text-gray-900 text-lg font-medium">
       {{ $t('settings.customization.estimates.default_formats') }}
     </h6>
@@ -65,11 +65,17 @@
 </template>
 
 <script setup>
-import { ref, reactive, inject } from 'vue'
+import { computed, ref, reactive, inject } from 'vue'
 import { useCompanyStore } from '@/scripts/admin/stores/company'
+import { useUserStore } from '@/scripts/admin/stores/user'
 
 const companyStore = useCompanyStore()
+const userStore = useUserStore()
 const utils = inject('utils')
+
+const isAsistencia = computed(() =>
+  ((userStore.currentUser?.role || '') + '').trim().toLowerCase() === 'asistencia'
+)
 
 const estimateMailFields = ref([
   'customer',
