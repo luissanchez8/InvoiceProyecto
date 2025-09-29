@@ -19,7 +19,11 @@ class PaymentMethodPolicy
      */
     public function viewAny(User $user): bool
     {
-        return $user !== null;
+        if (BouncerFacade::can('view-payment', Payment::class)) {
+            return true;
+        }
+
+        return false;
     }
 
     /**
@@ -29,7 +33,11 @@ class PaymentMethodPolicy
      */
     public function view(User $user, PaymentMethod $paymentMethod): bool
     {
-        return $user !== null && $user->hasCompany($paymentMethod->company_id);
+        if (BouncerFacade::can('view-payment', Payment::class) && $user->hasCompany($paymentMethod->company_id)) {
+            return true;
+        }
+
+        return false;
     }
 
     /**
