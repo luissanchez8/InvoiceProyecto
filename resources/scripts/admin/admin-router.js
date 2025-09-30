@@ -308,7 +308,7 @@ export default [
           {
             path: 'mail-configuration',
             name: 'mailconfig',
-            meta: { isOwner: false },
+            meta: { isOwner: true },
             component: MailConfig,
           },
           {
