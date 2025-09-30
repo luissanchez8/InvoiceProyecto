@@ -260,7 +260,7 @@ export default [
           {
             path: 'notifications',
             name: 'notifications',
-            meta: { isOwner: false },
+            meta: { isOwner: true },
             component: Notifications,
           },
           {
