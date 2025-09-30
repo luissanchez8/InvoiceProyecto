@@ -28,7 +28,7 @@
 </template>
 
 <script setup>
-import { computed, reactive, inject } from 'vue'
+import { computed, reactive, inject, watch } from 'vue'
 import { useCompanyStore } from '@/scripts/admin/stores/company'
 import { useUserStore } from '@/scripts/admin/stores/user'
 import InvoicesTabInvoiceNumber from './InvoicesTabInvoiceNumber.vue'
@@ -40,7 +40,6 @@ const companyStore = useCompanyStore()
 const userStore = useUserStore()
 const utils = inject('utils')
 
-// Rol desde userStore
 const isAsistencia = computed(() =>
   ((userStore.currentUser?.role || '') + '').trim().toLowerCase() === 'asistencia'
 )
@@ -49,18 +48,41 @@ const invoiceSettings = reactive({
   invoice_email_attachment: null,
 })
 
+// Mezcla inicial (si ya está cargado)
 utils.mergeSettings(invoiceSettings, {
   ...companyStore.selectedCompanySettings,
 })
 
-// ON por defecto si viene vacío
-if (invoiceSettings.invoice_email_attachment == null) {
-  invoiceSettings.invoice_email_attachment = 'YES'
-}
+/**
+ * Mantén sincronizado el valor y aplica por defecto 'YES' cuando venga vacío.
+ * Evita que el switch pinte OFF en el primer render.
+ */
+watch(
+  () => companyStore.selectedCompanySettings?.invoice_email_attachment,
+  async (val) => {
+    const normalized = (val ?? '').toString().toUpperCase()
+
+    if (!normalized) {
+      // Forzamos ON localmente
+      invoiceSettings.invoice_email_attachment = 'YES'
+
+      // (Opcional) persiste en BD la primera vez:
+      // await companyStore.updateCompanySettings({
+      //   data: { settings: { invoice_email_attachment: 'YES' } },
+      //   message: 'general.setting_updated',
+      // })
+    } else {
+      invoiceSettings.invoice_email_attachment = normalized
+    }
+  },
+  { immediate: true }
+)
 
 const sendAsAttachmentField = computed({
-  // Considera ON salvo 'NO' explícito
-  get: () => (invoiceSettings.invoice_email_attachment ?? 'YES') === 'YES',
+  // Todo lo que NO sea 'NO' => ON
+  get: () =>
+    String(invoiceSettings.invoice_email_attachment || 'YES')
+      .toUpperCase() !== 'NO',
   set: async (newValue) => {
     const value = newValue ? 'YES' : 'NO'
     invoiceSettings.invoice_email_attachment = value
