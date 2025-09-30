@@ -19,7 +19,7 @@
     <BaseDivider class="mt-6 mb-2" />
     <ul class="divide-y divide-gray-200">
       <BaseSwitchSection
-        v-model="sendAsAttachmentField"
+        v-model="sendAsAttachment"
         :title="$t('settings.customization.invoices.invoice_email_attachment')"
         :description="$t('settings.customization.invoices.invoice_email_attachment_setting_description')"
       />
@@ -28,7 +28,7 @@
 </template>
 
 <script setup>
-import { computed, reactive, inject, watch } from 'vue'
+import { computed, reactive, inject, watch, ref, onMounted } from 'vue'
 import { useCompanyStore } from '@/scripts/admin/stores/company'
 import { useUserStore } from '@/scripts/admin/stores/user'
 import InvoicesTabInvoiceNumber from './InvoicesTabInvoiceNumber.vue'
@@ -53,43 +53,43 @@ utils.mergeSettings(invoiceSettings, {
   ...companyStore.selectedCompanySettings,
 })
 
-/**
- * Mantén sincronizado el valor y aplica por defecto 'YES' cuando venga vacío.
- * Evita que el switch pinte OFF en el primer render.
- */
+/** Booleano fuente de verdad para el switch (por defecto: ON) */
+const sendAsAttachment = ref(true)
+
+/** Sincroniza con settings cuando lleguen; si viene vacío => ON */
 watch(
   () => companyStore.selectedCompanySettings?.invoice_email_attachment,
-  async (val) => {
-    const normalized = (val ?? '').toString().toUpperCase()
-
-    if (!normalized) {
-      // Forzamos ON localmente
-      invoiceSettings.invoice_email_attachment = 'YES'
-
-      // (Opcional) persiste en BD la primera vez:
-      // await companyStore.updateCompanySettings({
-      //   data: { settings: { invoice_email_attachment: 'YES' } },
-      //   message: 'general.setting_updated',
-      // })
-    } else {
-      invoiceSettings.invoice_email_attachment = normalized
-    }
+  (val) => {
+    const normalized = String(val ?? '').toUpperCase()
+    sendAsAttachment.value = normalized === '' ? true : normalized !== 'NO'
+    invoiceSettings.invoice_email_attachment = sendAsAttachment.value ? 'YES' : 'NO'
   },
   { immediate: true }
 )
 
-const sendAsAttachmentField = computed({
-  // Todo lo que NO sea 'NO' => ON
-  get: () =>
-    String(invoiceSettings.invoice_email_attachment || 'YES')
-      .toUpperCase() !== 'NO',
-  set: async (newValue) => {
-    const value = newValue ? 'YES' : 'NO'
-    invoiceSettings.invoice_email_attachment = value
+/** Al cambiar el switch, persiste en BD si difiere */
+watch(
+  sendAsAttachment,
+  async (on) => {
+    const value = on ? 'YES' : 'NO'
+    if (invoiceSettings.invoice_email_attachment !== value) {
+      invoiceSettings.invoice_email_attachment = value
+      await companyStore.updateCompanySettings({
+        data: { settings: { invoice_email_attachment: value } },
+        message: 'general.setting_updated',
+      })
+    }
+  }
+)
+
+/** (Opcional) Guardar 'YES' en BD la primera vez si no había valor */
+onMounted(async () => {
+  const raw = companyStore.selectedCompanySettings?.invoice_email_attachment
+  if (raw == null || raw === '') {
     await companyStore.updateCompanySettings({
-      data: { settings: { invoice_email_attachment: value } },
+      data: { settings: { invoice_email_attachment: 'YES' } },
       message: 'general.setting_updated',
     })
-  },
+  }
 })
 </script>
