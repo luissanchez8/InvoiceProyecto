@@ -253,7 +253,7 @@ return [
             'name' => 'Mail Configuration',
             'link' => '/admin/settings/mail-configuration',
             'icon' => 'EnvelopeIcon',
-            'owner_only' => false,
+            'owner_only' => true,
             'ability' => '',
             'model' => '',
         ],
