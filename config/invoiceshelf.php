@@ -193,7 +193,7 @@ return [
             'name' => 'Notifications',
             'link' => '/admin/settings/notifications',
             'icon' => 'BellIcon',
-            'owner_only' => false,
+            'owner_only' => true,
             'ability' => '',
             'model' => '',
         ],
