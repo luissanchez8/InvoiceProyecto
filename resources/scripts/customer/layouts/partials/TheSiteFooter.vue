@@ -16,12 +16,13 @@
       bg-white
     "
   >
-    Powered by
+    Creado por
     <a
-      href="http://bytefury.com/"
+      href="https://onfactu.com/"
       target="_blank"
       class="pl-1 font-normal text-gray-900"
-      >Bytefury
+      style="font-family: 'Satoshi', sans-serif; font-weight: 700;"
+      >onfactu
     </a>
   </footer>
 </template>

@@ -28,7 +28,7 @@
     {{-- Footer --}}
     @slot('footer')
         @component('mail::footer')
-            Powered by <a class="footer-link" href="https://invoiceshelf.com" target="_blank">InvoiceShelf</a>
+            Creado por <a class="footer-link" href="https://onfactu.com/" target="_blank" style="font-family: 'Satoshi', sans-serif; font-weight: 700;">onfactu</a>
         @endcomponent
     @endslot
 @endcomponent
