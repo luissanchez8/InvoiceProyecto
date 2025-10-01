@@ -48,48 +48,29 @@ const invoiceSettings = reactive({
   invoice_email_attachment: null,
 })
 
-// Mezcla inicial (si ya está cargado)
 utils.mergeSettings(invoiceSettings, {
   ...companyStore.selectedCompanySettings,
 })
 
-/** Booleano fuente de verdad para el switch (por defecto: ON) */
-const sendAsAttachment = ref(true)
-
-/** Sincroniza con settings cuando lleguen; si viene vacío => ON */
-watch(
-  () => companyStore.selectedCompanySettings?.invoice_email_attachment,
-  (val) => {
-    const normalized = String(val ?? '').toUpperCase()
-    sendAsAttachment.value = normalized === '' ? true : normalized !== 'NO'
-    invoiceSettings.invoice_email_attachment = sendAsAttachment.value ? 'YES' : 'NO'
+const sendAsAttachmentField = computed({
+  get: () => {
+    return invoiceSettings.invoice_email_attachment === 'YES'
   },
-  { immediate: true }
-)
+  set: async (newValue) => {
+    const value = newValue ? 'YES' : 'NO'
 
-/** Al cambiar el switch, persiste en BD si difiere */
-watch(
-  sendAsAttachment,
-  async (on) => {
-    const value = on ? 'YES' : 'NO'
-    if (invoiceSettings.invoice_email_attachment !== value) {
-      invoiceSettings.invoice_email_attachment = value
-      await companyStore.updateCompanySettings({
-        data: { settings: { invoice_email_attachment: value } },
-        message: 'general.setting_updated',
-      })
+    let data = {
+      settings: {
+        invoice_email_attachment: value,
+      },
     }
-  }
-)
 
-/** (Opcional) Guardar 'YES' en BD la primera vez si no había valor */
-onMounted(async () => {
-  const raw = companyStore.selectedCompanySettings?.invoice_email_attachment
-  if (raw == null || raw === '') {
+    invoiceSettings.invoice_email_attachment = value
+
     await companyStore.updateCompanySettings({
-      data: { settings: { invoice_email_attachment: 'YES' } },
+      data,
       message: 'general.setting_updated',
     })
-  }
+  },
 })
 </script>
