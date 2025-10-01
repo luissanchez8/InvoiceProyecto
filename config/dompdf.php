@@ -149,7 +149,13 @@ return [
          *
          * @var string
          */
-        'default_font' => 'DejaVu Sans',
+        'default_font' => 'satoshi',
+        'font_family' => [
+            'satoshi' => [
+                'R'  => 'Satoshi-Regular.otf',
+                'B'  => 'Satoshi-Black.otf',
+            ],
+        ],
 
         /**
          * Image DPI setting

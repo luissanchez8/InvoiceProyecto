@@ -1,9 +1,19 @@
 /* Base */
-
+@font-face {
+    font-family: 'Satoshi';
+    font-style: normal;
+    font-weight: normal;
+    src: url("{{ resource_path('static/fonts/Satoshi-Regular.otf') }}") format('opentype');
+}
+@font-face {
+    font-family: 'Satoshi';
+    font-style: normal;
+    font-weight: bold;
+    src: url("{{ resource_path('static/fonts/Satoshi-Black.otf') }}") format('opentype');
+}
 body,
 body *:not(html):not(style):not(br):not(tr):not(code) {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
-        'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol';
+    font-family: 'Satoshi', sans-serif !important;
     box-sizing: border-box;
 }
 

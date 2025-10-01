@@ -1,5 +1,5 @@
 <template>
-  <span style="font-family: sans-serif">{{ formattedAmount }}</span>
+  <span class="font-base">{{ formattedAmount }}</span>
 </template>
 
 <script setup>

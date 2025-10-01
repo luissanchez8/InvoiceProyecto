@@ -7,8 +7,21 @@
 
     <style type="text/css">
         /* -- Base -- */
+        @font-face {
+            font-family: 'Satoshi';
+            font-style: normal;
+            font-weight: normal;
+            src: url("{{ resource_path('static/fonts/Satoshi-Regular.otf') }}") format('opentype');
+        }
+        @font-face {
+            font-family: 'Satoshi';
+            font-style: normal;
+            font-weight: bold;
+            src: url("{{ resource_path('static/fonts/Satoshi-Black.otf') }}") format('opentype');
+        }
+        /* -- Base -- */
         body {
-            font-family: "DejaVu Sans";
+            font-family: 'Satoshi', sans-serif !important;
         }
 
         html {

@@ -8,7 +8,7 @@
   </BaseContentPlaceholders>
   <div
     v-else
-    class="box-border w-full text-sm leading-8 text-left bg-white border border-gray-200 rounded-md min-h-[200px] overflow-hidden"
+    class="box-border w-full text-sm leading-8 text-left bg-white border border-gray-200 rounded-md min-h-[200px] overflow-hidden font-base"
   >
     <div v-if="editor" class="editor-content">
       <div class="flex justify-end p-2 border-b border-gray-200 md:hidden">
@@ -20,7 +20,7 @@
               <EllipsisVerticalIcon class="w-6 h-6 text-gray-600" />
             </div>
           </template>
-          <div class="flex flex-wrap space-x-1">
+          <div class="flex flex-wrap space-x-1 font-base">
             <button
               v-for="button in editorButtons"
               type="button"
@@ -177,6 +177,7 @@ export default {
 
 <style lang="scss">
 .ProseMirror {
+  font-family: 'Satoshi', sans-serif;
   min-height: 200px;
   padding: 8px 12px;
   outline: none;

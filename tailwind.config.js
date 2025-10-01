@@ -64,7 +64,7 @@ export default {
     },
   
     fontFamily: {
-      base: ['Poppins', 'sans-serif'],
+      base: ['Satoshi', 'sans-serif'],
     },
   },
   content: [

@@ -8,43 +8,43 @@
 @tailwind utilities;
 
 @font-face {
-    font-family: "Poppins";
+    font-family: "Satoshi";
     font-style: normal;
     font-weight: 400;
     font-display: swap;
-    src: url("$fonts/Poppins-Black.ttf") format("truetype");
+    src: url("$fonts/Satoshi-Regular.otf") format("truetype");
 }
 
-@font-face {
-    font-family: "Poppins";
-    font-style: normal;
-    font-weight: 300;
-    font-display: swap;
-    src: url("$fonts/Poppins-Light.ttf") format("truetype");
-}
+// @font-face {
+//     font-family: "Poppins";
+//     font-style: normal;
+//     font-weight: 300;
+//     font-display: swap;
+//     src: url("$fonts/Poppins-Light.ttf") format("truetype");
+// }
+
+// @font-face {
+//     font-family: "Poppins";
+//     font-style: normal;
+//     font-weight: 500;
+//     font-display: swap;
+//     src: url("$fonts/Poppins-Medium.ttf") format("truetype");
+// }
+
+// @font-face {
+//     font-family: "Poppins";
+//     font-style: normal;
+//     font-weight: 400;
+//     font-display: swap;
+//     src: url("$fonts/Poppins-Regular.ttf") format("truetype");
+// }
 
 @font-face {
-    font-family: "Poppins";
+    font-family: "Satoshi";
     font-style: normal;
-    font-weight: 500;
+    font-weight: 700;
     font-display: swap;
-    src: url("$fonts/Poppins-Medium.ttf") format("truetype");
-}
-
-@font-face {
-    font-family: "Poppins";
-    font-style: normal;
-    font-weight: 400;
-    font-display: swap;
-    src: url("$fonts/Poppins-Regular.ttf") format("truetype");
-}
-
-@font-face {
-    font-family: "Poppins";
-    font-style: normal;
-    font-weight: 600;
-    font-display: swap;
-    src: url("$fonts/Poppins-SemiBold.ttf") format("truetype");
+    src: url("$fonts/Satoshi-Black.otf") format("truetype");
 }
 
 body {
