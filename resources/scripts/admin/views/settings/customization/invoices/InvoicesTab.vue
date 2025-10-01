@@ -28,7 +28,7 @@
 </template>
 
 <script setup>
-import { computed, reactive, inject } from 'vue'
+import { computed, reactive, inject, watch } from 'vue'
 import { useCompanyStore } from '@/scripts/admin/stores/company'
 import { useUserStore } from '@/scripts/admin/stores/user'
 import InvoicesTabInvoiceNumber from './InvoicesTabInvoiceNumber.vue'
@@ -48,21 +48,27 @@ const invoiceSettings = reactive({
   invoice_email_attachment: null,
 })
 
-// Mezcla desde settings de compañía
-utils.mergeSettings(invoiceSettings, {
-  ...companyStore.selectedCompanySettings,
-})
+// Mezcla inicial desde settings de compañía
+utils.mergeSettings(invoiceSettings, { ...companyStore.selectedCompanySettings })
 
-// Si viene vacío en una instancia nueva, forzamos ON por defecto
-if (invoiceSettings.invoice_email_attachment == null) {
-  invoiceSettings.invoice_email_attachment = 'YES'
-}
+// Si llega vacío/indefinido desde el store, fuerza 'YES' (solo cuando sea null/undefined)
+watch(
+  () => companyStore.selectedCompanySettings?.invoice_email_attachment,
+  (val) => {
+    if (val === null || val === undefined || val === '') {
+      invoiceSettings.invoice_email_attachment = 'YES'
+    } else {
+      invoiceSettings.invoice_email_attachment = String(val).toUpperCase()
+    }
+  },
+  { immediate: true }
+)
 
+// El switch trabaja en booleano, pero persistimos 'YES'/'NO'
 const sendAsAttachmentField = computed({
-  // Todo lo que NO sea 'NO' se considera activado
-  get: () => String(invoiceSettings.invoice_email_attachment ?? 'YES').toUpperCase() !== 'NO',
-  set: async (newValue) => {
-    const value = newValue ? 'YES' : 'NO'
+  get: () => (invoiceSettings.invoice_email_attachment ?? 'YES').toUpperCase() !== 'NO',
+  set: async (checked) => {
+    const value = checked ? 'YES' : 'NO'
     invoiceSettings.invoice_email_attachment = value
     await companyStore.updateCompanySettings({
       data: { settings: { invoice_email_attachment: value } },
