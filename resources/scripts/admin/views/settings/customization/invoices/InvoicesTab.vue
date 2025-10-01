@@ -40,38 +40,32 @@ const companyStore = useCompanyStore()
 const userStore = useUserStore()
 const utils = inject('utils')
 
+// rol desde userStore
 const isAsistencia = computed(() =>
   ((userStore.currentUser?.role || '') + '').trim().toLowerCase() === 'asistencia'
 )
 
-const invoiceSettings = reactive({
-  invoice_email_attachment: null,
+const estimateSettings = reactive({
+  estimate_email_attachment: null,
 })
 
-// Mezcla inicial desde settings de compañía
-utils.mergeSettings(invoiceSettings, { ...companyStore.selectedCompanySettings })
+utils.mergeSettings(estimateSettings, {
+  ...companyStore.selectedCompanySettings,
+})
 
-// Si llega vacío/indefinido desde el store, fuerza 'YES' (solo cuando sea null/undefined)
-watch(
-  () => companyStore.selectedCompanySettings?.invoice_email_attachment,
-  (val) => {
-    if (val === null || val === undefined || val === '') {
-      invoiceSettings.invoice_email_attachment = 'YES'
-    } else {
-      invoiceSettings.invoice_email_attachment = String(val).toUpperCase()
-    }
-  },
-  { immediate: true }
-)
+// ✅ Por defecto ON si viene vacío
+if (estimateSettings.estimate_email_attachment == null) {
+  estimateSettings.estimate_email_attachment = 'YES'
+}
 
-// El switch trabaja en booleano, pero persistimos 'YES'/'NO'
 const sendAsAttachmentField = computed({
-  get: () => (invoiceSettings.invoice_email_attachment ?? 'YES').toUpperCase() !== 'NO',
-  set: async (checked) => {
-    const value = checked ? 'YES' : 'NO'
-    invoiceSettings.invoice_email_attachment = value
+  // ON salvo que sea explícitamente 'NO'
+  get: () => (estimateSettings.estimate_email_attachment ?? 'YES') === 'YES',
+  set: async (newValue) => {
+    const value = newValue ? 'YES' : 'NO'
+    estimateSettings.estimate_email_attachment = value
     await companyStore.updateCompanySettings({
-      data: { settings: { invoice_email_attachment: value } },
+      data: { settings: { estimate_email_attachment: value } },
       message: 'general.setting_updated',
     })
   },
