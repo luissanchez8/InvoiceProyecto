@@ -63,7 +63,7 @@ I
         v-if="!customerLogo"
         class="flex items-center justify-center mt-4 text-gray-500 font-normal"
       >
-        Powered by
+        Creado por
         <a href="https://invoiceshelf.com" target="_blank">
           <img :src="getLogo()" class="h-4 ml-1 mb-1" />
         </a>
