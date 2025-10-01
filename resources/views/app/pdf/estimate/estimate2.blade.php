@@ -90,7 +90,7 @@
             font-size: 24px;
             line-height: 36px;
             text-align: right;
-            font-family: "DejaVu Sans";
+            font-family: "Satoshi";
         }
 
         .estimate-details-container h4 {
