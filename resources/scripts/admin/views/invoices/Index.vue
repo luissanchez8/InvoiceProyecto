@@ -255,6 +255,17 @@
           </div>
         </template>
 
+        <template #cell-verifactu="{ row }">
+          <BaseButton
+            variant="primary-outline"
+            size="sm"
+            :disabled="sendingId === row.data.id"
+            @click="sendToVerifactu(row.data)"
+          >
+            Enviar a Verifactu
+          </BaseButton>
+        </template>
+        
         <!-- Actions -->
         <template v-if="hasAtleastOneAbility()" #cell-actions="{ row }">
           <InvoiceDropdown :row="row.data" :table="table" />
@@ -291,6 +302,8 @@ const utils = inject('$utils')
 const table = ref(null)
 const tableKey = ref(0)
 const showFilters = ref(false)
+const axios = inject('$axios') || window.axios
+const sendingId = ref(null)
 
 const status = ref([
   {
@@ -363,7 +376,14 @@ const invoiceColumns = computed(() => {
       label: t('invoices.total'),
       tdClass: 'font-medium text-gray-900',
     },
-
+    {
+      key: 'verifactu',
+      label: 'Verifactu',
+      tdClass: 'text-center text-sm font-medium',
+      thClass: 'text-center',
+      sortable: false,
+    },
+    
     {
       key: 'actions',
       label: t('invoices.action'),
@@ -555,6 +575,32 @@ function setActiveTab(val) {
     default:
       activeTab.value = t('general.all')
       break
+  }
+}
+async function sendToVerifactu(invoice) {
+  if (!invoice || !invoice.id) return
+
+  try {
+    sendingId.value = invoice.id
+
+    const response = await axios.post(`/api/verifactu/invoices/${invoice.id}`)
+
+    if (response.data && response.data.ok) {
+      notificationStore.showNotification({
+        type: 'success',
+        message: 'Factura enviada a Verifactu correctamente.',
+      })
+    } else {
+      throw new Error(response.data?.error || 'Respuesta no válida desde el servidor')
+    }
+  } catch (error) {
+    console.error('[Verifactu] Error al enviar:', error)
+    notificationStore.showNotification({
+      type: 'error',
+      message: 'No se pudo enviar la factura a Verifactu.',
+    })
+  } finally {
+    sendingId.value = null
   }
 }
 </script>
