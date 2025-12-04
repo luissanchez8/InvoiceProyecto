@@ -6,57 +6,64 @@ use App\Http\Controllers\Controller;
 use App\Models\Invoice;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class VerifactuController extends Controller
 {
-    public function send(Request $request, Invoice $invoice)
+    public function send(Invoice $invoice, Request $request)
     {
-        // 1) Comprobar que Verifactu está activo
-        if (!config('services.verifactu.enabled')) {
-            return response()->json([
-                'ok'    => false,
-                'error' => 'Verifactu no está habilitado',
-            ], 400);
-        }
+        Log::info('VerifactuController::send', [
+            'invoice_id' => $invoice->id,
+        ]);
 
         $endpoint = config('services.verifactu.endpoint');
 
         if (!$endpoint) {
+            Log::error('VERIFACTU_ENDPOINT no está configurado');
             return response()->json([
                 'ok'    => false,
                 'error' => 'VERIFACTU_ENDPOINT no está configurado',
             ], 500);
         }
 
-        $user   = $request->user();
-        $appUrl = config('app.url');
-
-        // 2) Payload mínimo que mandamos a lanzarWeb (/verifactu)
         $payload = [
-            'invoice_id'   => $invoice->id,
-            'invoice_no'   => $invoice->invoice_number,
-            'user_id'      => optional($user)->id,
-            'instance_url' => $appUrl,
-            'test'         => true,
+            'invoice_id'     => $invoice->id,
+            'invoice_number' => $invoice->invoice_number,
+            'date'           => $invoice->invoice_date,
+            'total'          => $invoice->total,
+            'currency'       => $invoice->currency,
+            'customer'       => [
+                'id'    => $invoice->customer?->id,
+                'name'  => $invoice->customer?->name,
+                'email' => $invoice->customer?->email,
+            ],
         ];
 
         try {
-            $response = Http::timeout(5)->post($endpoint, $payload);
+            $resp = Http::timeout(10)->post($endpoint, $payload);
 
-            if (!$response->ok()) {
+            Log::info('Respuesta Verifactu', [
+                'status' => $resp->status(),
+                'body'   => $resp->body(),
+            ]);
+
+            if (!$resp->ok()) {
                 return response()->json([
                     'ok'    => false,
-                    'error' => 'Error HTTP al llamar a Verifactu',
-                    'code'  => $response->status(),
-                    'body'  => $response->body(),
-                ], 502);
+                    'error' => 'Error al enviar a Verifactu',
+                    'code'  => $resp->status(),
+                ], 500);
             }
 
             return response()->json([
-                'ok'   => true,
-                'data' => $response->json(),
+                'ok'       => true,
+                'response' => $resp->json(),
             ]);
         } catch (\Throwable $e) {
+            Log::error('Excepción Verifactu', [
+                'msg' => $e->getMessage(),
+            ]);
+
             return response()->json([
                 'ok'    => false,
                 'error' => $e->getMessage(),
