@@ -132,6 +132,11 @@ Route::get('ping', function () {
     ]);
 })->name('ping');
 
+// Alias sin /v1 para Verifactu (lo que llama el front: /api/verifactu/...)
+Route::middleware(['auth:sanctum', 'company'])->group(function () {
+    Route::post('verifactu/invoices/{invoice}', [VerifactuController::class, 'send']);
+});
+
 // Version 1 endpoints
 // --------------------------------------
 Route::prefix('/v1')->group(function () {
