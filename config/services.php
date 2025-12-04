@@ -54,4 +54,9 @@ return [
         'region' => env('SES_REGION', 'us-east-1'),
     ],
 
+        'verifactu' => [
+        'enabled'  => env('VERIFACTU_ENABLED', false),
+        'endpoint' => env('VERIFACTU_ENDPOINT'),
+    ],
+
 ];
