@@ -583,7 +583,21 @@ async function sendToVerifactu(invoice) {
   try {
     sendingId.value = invoice.id
 
-    const response = await axios.post(`/api/verifactu/invoices/${invoice.id}`)
+    // Payload básico (ajustaremos más adelante si hace falta más info)
+    const payload = {
+      invoice_id: invoice.id,
+      invoice_number: invoice.invoice_number,
+      date: invoice.invoice_date,
+      total: invoice.total,
+      currency: invoice.currency,
+      customer: {
+        id: invoice.customer?.id,
+        name: invoice.customer?.name,
+        email: invoice.customer?.email,
+      },
+    }
+    // Llamamos al lanzador (Node) en el puerto 8085
+    const response = await axios.post('http://146.59.154.226:8085/verifactu', payload)
 
     if (response.data && response.data.ok) {
       notificationStore.showNotification({
