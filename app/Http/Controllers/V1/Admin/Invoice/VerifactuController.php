@@ -58,30 +58,45 @@ class VerifactuController extends Controller
             ],
         ];
 
-        $payload = [
-            // Formato "rico" para el worker y Verifactu
-            'invoiceId'    => $invoice->invoice_number ?? (string) $invoice->id,
-            'invoiceDate'  => $invoiceDate,
-            'invoiceType'  => 'F1', // TODO: si quieres usar otros tipos según el caso
-            'seller'       => $seller,
-            'buyer'        => $buyer,
-            'text'         => $text,
-            'taxItems'     => $taxItems,
+        // Fecha en ISO 8601 (si viene como Carbon)
+$invoiceDate = $invoice->invoice_date instanceof \Carbon\Carbon
+    ? $invoice->invoice_date->toIso8601String()
+    : $invoice->invoice_date;
 
-            // Puedes seguir mandando el payload "simple" para debug si quieres
-            'raw' => [
-                'invoice_id'     => $invoice->id,
-                'invoice_number' => $invoice->invoice_number,
-                'date'           => $invoice->invoice_date,
-                'total'          => $invoice->total,
-                'currency'       => $invoice->currency,
-                'customer'       => [
-                    'id'    => $invoice->customer?->id,
-                    'name'  => $invoice->customer?->name,
-                    'email' => $invoice->customer?->email,
-                ],
-            ],
-        ];
+// De momento hardcodeamos la empresa emisora para probar
+$seller = [
+    'nif'  => 'B00000000',          // PON AQUÍ TU NIF EMPRESA
+    'name' => 'Mi Empresa S.L.',    // PON AQUÍ EL NOMBRE DE TU EMPRESA
+];
+
+// Cliente (buyer)
+$buyer = [
+    'nif'  => $invoice->customer?->tax_number ?? '00000000A', // cambia tax_number al campo real del NIF si es otro
+    'name' => $invoice->customer?->name ?? 'Cliente sin nombre',
+];
+
+// Texto de la factura
+$text = $invoice->notes ?? ('Factura ' . $invoice->invoice_number);
+
+// De momento 1 solo bloque de impuestos “fake” para probar el circuito
+$taxItems = [
+    [
+        'rate'   => 21,                        // provisional
+        'base'   => (float) $invoice->total,   // provisional (sería mejor la base imponible)
+        'amount' => 0.0,                       // provisional (luego lo calculamos bien)
+    ],
+];
+
+// ESTE es el payload que verá el webhook y el worker
+$payload = [
+    'invoiceId'   => $invoice->invoice_number ?? (string) $invoice->id,
+    'invoiceDate' => $invoiceDate,
+    'invoiceType' => 'F1', // tipo estándar, ya lo afinaremos
+    'seller'      => $seller,
+    'buyer'       => $buyer,
+    'text'        => $text,
+    'taxItems'    => $taxItems,
+];
 
         try {
             $resp = Http::timeout(10)->post($endpoint, $payload);
