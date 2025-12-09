@@ -26,48 +26,54 @@ class VerifactuController extends Controller
             ], 500);
         }
 
-        // --- Payload con la forma que espera el webhook / worker ---
+        // ==== VALIDACIÓN: El cliente debe tener NIF/CIF ====
+        $customerNif = $invoice->customer?->tax_number;
+        if (!$customerNif) {
+            return response()->json([
+                'ok' => false,
+                'error' => 'El cliente no tiene NIF/CIF definido. Edítalo antes de enviar a Verifactu.',
+            ], 422);
+        }
 
-        // Fecha en ISO 8601 (si viene como Carbon)
+        // ==== Fecha en ISO ====
         $invoiceDate = $invoice->invoice_date instanceof \Carbon\Carbon
             ? $invoice->invoice_date->toIso8601String()
             : $invoice->invoice_date;
 
-        // Empresa emisora (ajusta estos valores a tu caso real)
+        // ==== Empresa emisora ====
         $seller = [
-            // puedes usar config('app.company_vat') si lo tienes definido en config/app.php
-            'nif'  => config('app.company_vat', 'B00000000'),      
-            'name' => config('app.company_name', 'Mi Empresa S.L.'), 
+            'nif'  => config('app.company_vat', 'B00000000'),
+            'name' => config('app.company_name', 'Mi Empresa S.L.'),
         ];
 
-        // Cliente (buyer) – cambia tax_number al campo real del NIF si es otro
+        // ==== Cliente (buyer) ====
         $buyer = [
-            'nif'  => $invoice->customer?->tax_number ?? '00000000A',
-            'name' => $invoice->customer?->name ?? 'Cliente sin nombre',
+            'nif'       => $customerNif,
+            'name'      => $invoice->customer?->name ?? 'Cliente sin nombre',
+            'countryId' => 'ES',    // 👈 IMPORTANTE: Añadir siempre ES
         ];
 
-        // Texto descriptivo
+        // ==== Texto ====
         $text = $invoice->notes ?? ('Factura ' . $invoice->invoice_number);
 
-        // De momento: 1 bloque de impuestos “fake” para probar el circuito
-        // Luego afinamos base / cuota con las líneas reales de la factura.
+        // ==== Impuestos dummy por ahora ====
         $taxItems = [
             [
-                'rate'   => 21,                        // provisional
-                'base'   => (float) $invoice->total,   // provisional
-                'amount' => 0.0,                       // provisional
+                'rate'   => 21,
+                'base'   => (float) $invoice->total,
+                'amount' => 0.0,
             ],
         ];
 
-        // ESTE es el payload que verá /verifactu (Node) y el worker
+        // ==== Payload final para el webhook ====
         $payload = [
-            'invoiceId'   => $invoice->invoice_number ?? (string) $invoice->id,
-            'invoiceDate' => $invoiceDate,
-            'invoiceType' => 'F1', // tipo estándar, ya lo afinaremos
-            'seller'      => $seller,
-            'buyer'       => $buyer,
-            'text'        => $text,
-            'taxItems'    => $taxItems,
+            'invoiceId'      => $invoice->invoice_number ?? (string) $invoice->id,
+            'invoiceDate'    => $invoiceDate,
+            'invoiceType'    => 'F1',
+            'seller'         => $seller,
+            'buyer'          => $buyer,
+            'text'           => $text,
+            'taxItems'       => $taxItems,
         ];
 
         try {
