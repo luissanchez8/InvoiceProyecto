@@ -26,31 +26,25 @@ class VerifactuController extends Controller
             ], 500);
         }
 
-        // ==== VALIDACIÓN: El cliente debe tener NIF/CIF ====
-        $customerNif = $invoice->customer?->tax_number;
-        if (!$customerNif) {
-            return response()->json([
-                'ok' => false,
-                'error' => 'El cliente no tiene NIF/CIF definido. Edítalo antes de enviar a Verifactu.',
-            ], 422);
-        }
-
         // ==== Fecha en ISO ====
         $invoiceDate = $invoice->invoice_date instanceof \Carbon\Carbon
             ? $invoice->invoice_date->toIso8601String()
             : $invoice->invoice_date;
 
-        // ==== Empresa emisora ====
+        // ==== Empresa emisora (ajusta a tus datos reales) ====
         $seller = [
             'nif'  => config('app.company_vat', 'B00000000'),
             'name' => config('app.company_name', 'Mi Empresa S.L.'),
         ];
 
         // ==== Cliente (buyer) ====
+        // Si tu modelo no tiene tax_number, esto caerá al valor por defecto.
+        $customerNif = $invoice->customer?->tax_number ?? '00000000A';
+
         $buyer = [
             'nif'       => $customerNif,
             'name'      => $invoice->customer?->name ?? 'Cliente sin nombre',
-            'countryId' => 'ES',    // 👈 IMPORTANTE: Añadir siempre ES
+            'countryId' => 'ES',   // 👈 importante para que no pida BuyerCountryID
         ];
 
         // ==== Texto ====
@@ -65,15 +59,15 @@ class VerifactuController extends Controller
             ],
         ];
 
-        // ==== Payload final para el webhook ====
+        // ==== Payload final que ve /verifactu (Node) y el worker ====
         $payload = [
-            'invoiceId'      => $invoice->invoice_number ?? (string) $invoice->id,
-            'invoiceDate'    => $invoiceDate,
-            'invoiceType'    => 'F1',
-            'seller'         => $seller,
-            'buyer'          => $buyer,
-            'text'           => $text,
-            'taxItems'       => $taxItems,
+            'invoiceId'   => $invoice->invoice_number ?? (string) $invoice->id,
+            'invoiceDate' => $invoiceDate,
+            'invoiceType' => 'F1',
+            'seller'      => $seller,
+            'buyer'       => $buyer,
+            'text'        => $text,
+            'taxItems'    => $taxItems,
         ];
 
         try {
