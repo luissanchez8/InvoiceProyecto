@@ -38,13 +38,12 @@ class VerifactuController extends Controller
         ];
 
         // ==== Cliente (buyer) ====
-        // Si tu modelo no tiene tax_number, esto caerá al valor por defecto.
         $customerNif = $invoice->customer?->tax_number ?? '00000000A';
 
         $buyer = [
             'nif'       => $customerNif,
             'name'      => $invoice->customer?->name ?? 'Cliente sin nombre',
-            'countryId' => 'ES',   // 👈 importante para que no pida BuyerCountryID
+            'countryId' => 'ES',
         ];
 
         // ==== Texto ====
@@ -59,7 +58,7 @@ class VerifactuController extends Controller
             ],
         ];
 
-        // ==== Payload final que ve /verifactu (Node) y el worker ====
+        // ==== Payload final para /verifactu (Node) ====
         $payload = [
             'invoiceId'   => $invoice->invoice_number ?? (string) $invoice->id,
             'invoiceDate' => $invoiceDate,
