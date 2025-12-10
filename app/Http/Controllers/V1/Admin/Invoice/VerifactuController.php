@@ -38,7 +38,7 @@ class VerifactuController extends Controller
         ];
 
         // ==== Cliente (buyer) ====
-        $customerNif = $invoice->customer?->tax_number ?? '00000000A';
+        $customerNif = $invoice->customer?->tax_number ?? '00000000T';
 
         $buyer = [
             'nif'       => $customerNif,
