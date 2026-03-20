@@ -22,6 +22,8 @@ use App\Policies\RecurringInvoicePolicy;
 use App\Policies\ReportPolicy;
 use App\Policies\RolePolicy;
 use App\Policies\SettingsPolicy;
+use App\Policies\ProformaInvoicePolicy;
+use App\Policies\DeliveryNotePolicy;
 use App\Policies\UserPolicy;
 use App\Space\InstallUtils;
 use Gate;
@@ -162,6 +164,14 @@ class AppServiceProvider extends ServiceProvider
         Gate::define('delete multiple expenses', [ExpensePolicy::class, 'deleteMultiple']);
         Gate::define('delete multiple payments', [PaymentPolicy::class, 'deleteMultiple']);
         Gate::define('delete multiple recurring invoices', [RecurringInvoicePolicy::class, 'deleteMultiple']);
+
+        // --- Facturas Proforma ---
+        Gate::define('send proforma invoice', [ProformaInvoicePolicy::class, 'send']);
+        Gate::define('delete multiple proforma invoices', [ProformaInvoicePolicy::class, 'deleteMultiple']);
+
+        // --- Albaranes ---
+        Gate::define('send delivery note', [DeliveryNotePolicy::class, 'send']);
+        Gate::define('delete multiple delivery notes', [DeliveryNotePolicy::class, 'deleteMultiple']);
 
         Gate::define('view dashboard', [DashboardPolicy::class, 'view']);
 

@@ -412,8 +412,13 @@ class Estimate extends Model implements HasMedia
 
         $logo = $company->logo_path;
 
+        // Compartir $invoice como alias de $estimate para que invoice4.blade.php
+        // (plantilla universal) funcione con todos los tipos de documento.
+        // También se comparte $is_estimate para que la plantilla ajuste el título.
         view()->share([
             'estimate' => $this,
+            'invoice' => $this,          // Alias para compatibilidad con invoice4
+            'is_estimate' => true,       // Flag para que la plantilla muestre "PRESUPUESTO"
             'customFields' => $customFields,
             'logo' => $logo ?? null,
             'company_address' => $this->getCompanyAddress(),
@@ -423,8 +428,15 @@ class Estimate extends Model implements HasMedia
             'taxes' => $taxes,
         ]);
 
+        // Buscar primero en estimate/; si no existe, buscar en invoice/ (fallback)
         $template = PdfTemplateUtils::findFormattedTemplate('estimate', $estimateTemplate, '');
-        $templatePath = $template['custom'] ? sprintf('pdf_templates::estimate.%s', $estimateTemplate) : sprintf('app.pdf.estimate.%s', $estimateTemplate);
+        if ($template) {
+            $templatePath = $template['custom'] ? sprintf('pdf_templates::estimate.%s', $estimateTemplate) : sprintf('app.pdf.estimate.%s', $estimateTemplate);
+        } else {
+            // Fallback: usar plantilla de invoice (invoice4 es universal)
+            $template = PdfTemplateUtils::findFormattedTemplate('invoice', $estimateTemplate, '');
+            $templatePath = $template['custom'] ? sprintf('pdf_templates::invoice.%s', $estimateTemplate) : sprintf('app.pdf.invoice.%s', $estimateTemplate);
+        }
 
         if (request()->has('preview')) {
             return view($templatePath);

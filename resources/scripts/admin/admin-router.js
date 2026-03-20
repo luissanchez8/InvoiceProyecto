@@ -90,6 +90,22 @@ const InvoiceCreate = () =>
   import('@/scripts/admin/views/invoices/create/InvoiceCreate.vue')
 const InvoiceView = () => import('@/scripts/admin/views/invoices/View.vue')
 
+// Proforma Invoices (Facturas Proforma)
+const ProformaInvoiceIndex = () =>
+  import('@/scripts/admin/views/proforma-invoices/Index.vue')
+const ProformaInvoiceCreate = () =>
+  import('@/scripts/admin/views/proforma-invoices/create/ProformaInvoiceCreate.vue')
+const ProformaInvoiceView = () =>
+  import('@/scripts/admin/views/proforma-invoices/View.vue')
+
+// Delivery Notes (Albaranes)
+const DeliveryNoteIndex = () =>
+  import('@/scripts/admin/views/delivery-notes/Index.vue')
+const DeliveryNoteCreate = () =>
+  import('@/scripts/admin/views/delivery-notes/create/DeliveryNoteCreate.vue')
+const DeliveryNoteView = () =>
+  import('@/scripts/admin/views/delivery-notes/View.vue')
+
 // Recurring Invoice
 const RecurringInvoiceIndex = () =>
   import('@/scripts/admin/views/recurring-invoices/Index.vue')
@@ -446,6 +462,58 @@ export default [
         name: 'invoices.edit',
         meta: { ability: abilities.EDIT_INVOICE },
         component: InvoiceCreate,
+      },
+
+      // Proforma Invoices (Facturas Proforma)
+      {
+        path: 'proforma-invoices',
+        name: 'proformaInvoices.index',
+        meta: { ability: abilities.VIEW_PROFORMA_INVOICE },
+        component: ProformaInvoiceIndex,
+      },
+      {
+        path: 'proforma-invoices/create',
+        name: 'proformaInvoices.create',
+        meta: { ability: abilities.CREATE_PROFORMA_INVOICE },
+        component: ProformaInvoiceCreate,
+      },
+      {
+        path: 'proforma-invoices/:id/view',
+        name: 'proformaInvoices.view',
+        meta: { ability: abilities.VIEW_PROFORMA_INVOICE },
+        component: ProformaInvoiceView,
+      },
+      {
+        path: 'proforma-invoices/:id/edit',
+        name: 'proformaInvoices.edit',
+        meta: { ability: abilities.EDIT_PROFORMA_INVOICE },
+        component: ProformaInvoiceCreate,
+      },
+
+      // Delivery Notes (Albaranes)
+      {
+        path: 'delivery-notes',
+        name: 'deliveryNotes.index',
+        meta: { ability: abilities.VIEW_DELIVERY_NOTE },
+        component: DeliveryNoteIndex,
+      },
+      {
+        path: 'delivery-notes/create',
+        name: 'deliveryNotes.create',
+        meta: { ability: abilities.CREATE_DELIVERY_NOTE },
+        component: DeliveryNoteCreate,
+      },
+      {
+        path: 'delivery-notes/:id/view',
+        name: 'deliveryNotes.view',
+        meta: { ability: abilities.VIEW_DELIVERY_NOTE },
+        component: DeliveryNoteView,
+      },
+      {
+        path: 'delivery-notes/:id/edit',
+        name: 'deliveryNotes.edit',
+        meta: { ability: abilities.EDIT_DELIVERY_NOTE },
+        component: DeliveryNoteCreate,
       },
 
       // Recurring Invoices

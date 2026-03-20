@@ -73,5 +73,19 @@ return [
             'length' => 20,
             'alphabet' => 'ADyWE86Cg7jF23vS0bonXrZ5KLH9puIQ4M1T',
         ],
+
+        // --- Facturas Proforma ---
+        \App\Models\ProformaInvoice::class => [
+            'salt' => \App\Models\ProformaInvoice::class.config('app.key'),
+            'length' => 20,
+            'alphabet' => 'Qw3rT7yU1pLkJ5hG9fDs2aZxCvBnM8N6m4Eo',
+        ],
+
+        // --- Albaranes ---
+        \App\Models\DeliveryNote::class => [
+            'salt' => \App\Models\DeliveryNote::class.config('app.key'),
+            'length' => 20,
+            'alphabet' => 'P9oL3kI7jU2hY5gT8fR1dS4eW6qA0zX1cVbN',
+        ],
     ],
 ];

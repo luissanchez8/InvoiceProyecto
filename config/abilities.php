@@ -2,6 +2,7 @@
 
 use App\Models\Customer;
 use App\Models\CustomField;
+use App\Models\DeliveryNote;
 use App\Models\Estimate;
 use App\Models\ExchangeRateProvider;
 use App\Models\Expense;
@@ -9,6 +10,7 @@ use App\Models\Invoice;
 use App\Models\Item;
 use App\Models\Note;
 use App\Models\Payment;
+use App\Models\ProformaInvoice;
 use App\Models\RecurringInvoice;
 use App\Models\TaxType;
 
@@ -415,6 +417,102 @@ return [
             'depends_on' => [
                 'view-all-notes',
             ],
+        ],
+
+        // =====================================================================
+        // Factura Proforma — Abilities
+        // =====================================================================
+        [
+            'name' => 'view proforma invoice',
+            'ability' => 'view-proforma-invoice',
+            'model' => ProformaInvoice::class,
+        ],
+        [
+            'name' => 'create proforma invoice',
+            'ability' => 'create-proforma-invoice',
+            'model' => ProformaInvoice::class,
+            'depends_on' => [
+                'view-item',
+                'view-proforma-invoice',
+                'view-tax-type',
+                'view-customer',
+                'view-custom-field',
+                'view-all-notes',
+            ],
+        ],
+        [
+            'name' => 'edit proforma invoice',
+            'ability' => 'edit-proforma-invoice',
+            'model' => ProformaInvoice::class,
+            'depends_on' => [
+                'view-item',
+                'view-proforma-invoice',
+                'view-tax-type',
+                'view-customer',
+                'view-custom-field',
+                'view-all-notes',
+            ],
+        ],
+        [
+            'name' => 'delete proforma invoice',
+            'ability' => 'delete-proforma-invoice',
+            'model' => ProformaInvoice::class,
+            'depends_on' => [
+                'view-proforma-invoice',
+            ],
+        ],
+        [
+            'name' => 'send proforma invoice',
+            'ability' => 'send-proforma-invoice',
+            'model' => ProformaInvoice::class,
+        ],
+
+        // =====================================================================
+        // Albarán (Delivery Note) — Abilities
+        // =====================================================================
+        [
+            'name' => 'view delivery note',
+            'ability' => 'view-delivery-note',
+            'model' => DeliveryNote::class,
+        ],
+        [
+            'name' => 'create delivery note',
+            'ability' => 'create-delivery-note',
+            'model' => DeliveryNote::class,
+            'depends_on' => [
+                'view-item',
+                'view-delivery-note',
+                'view-tax-type',
+                'view-customer',
+                'view-custom-field',
+                'view-all-notes',
+            ],
+        ],
+        [
+            'name' => 'edit delivery note',
+            'ability' => 'edit-delivery-note',
+            'model' => DeliveryNote::class,
+            'depends_on' => [
+                'view-item',
+                'view-delivery-note',
+                'view-tax-type',
+                'view-customer',
+                'view-custom-field',
+                'view-all-notes',
+            ],
+        ],
+        [
+            'name' => 'delete delivery note',
+            'ability' => 'delete-delivery-note',
+            'model' => DeliveryNote::class,
+            'depends_on' => [
+                'view-delivery-note',
+            ],
+        ],
+        [
+            'name' => 'send delivery note',
+            'ability' => 'send-delivery-note',
+            'model' => DeliveryNote::class,
         ],
     ],
 ];

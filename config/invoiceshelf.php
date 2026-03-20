@@ -345,6 +345,30 @@ return [
             'model' => Invoice::class,
             'option_key' => 'OPCION_MENU_FACTURAS',
         ],
+        // --- Facturas Proforma (toggle: OPCION_MENU_PROFORMA) ---
+        [
+            'title' => 'navigation.proforma_invoices',
+            'group' => 2,
+            'link' => '/admin/proforma-invoices',
+            'icon' => 'DocumentDuplicateIcon',
+            'name' => 'Proforma Invoices',
+            'owner_only' => false,
+            'ability' => 'view-proforma-invoice',
+            'model' => \App\Models\ProformaInvoice::class,
+            'option_key' => 'OPCION_MENU_PROFORMA',
+        ],
+        // --- Albaranes (toggle: OPCION_MENU_ALBARANES) ---
+        [
+            'title' => 'navigation.delivery_notes',
+            'group' => 2,
+            'link' => '/admin/delivery-notes',
+            'icon' => 'TruckIcon',
+            'name' => 'Delivery Notes',
+            'owner_only' => false,
+            'ability' => 'view-delivery-note',
+            'model' => \App\Models\DeliveryNote::class,
+            'option_key' => 'OPCION_MENU_ALBARANES',
+        ],
         [
             'title' => 'navigation.recurring-invoices',
             'group' => 2,

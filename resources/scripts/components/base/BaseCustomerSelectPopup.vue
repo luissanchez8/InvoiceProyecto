@@ -384,6 +384,8 @@
 import { Popover, PopoverButton, PopoverPanel } from '@headlessui/vue'
 import { useEstimateStore } from '@/scripts/admin/stores/estimate'
 import { useInvoiceStore } from '@/scripts/admin/stores/invoice'
+import { useProformaInvoiceStore } from '@/scripts/admin/stores/proforma-invoice'
+import { useDeliveryNoteStore } from '@/scripts/admin/stores/delivery-note'
 import { useRecurringInvoiceStore } from '@/scripts/admin/stores/recurring-invoice'
 import { useModalStore } from '@/scripts/stores/modal'
 import { useGlobalStore } from '@/scripts/admin/stores/global'
@@ -420,6 +422,8 @@ const estimateStore = useEstimateStore()
 const customerStore = useCustomerStore()
 const globalStore = useGlobalStore()
 const invoiceStore = useInvoiceStore()
+const proformaInvoiceStore = useProformaInvoiceStore()
+const deliveryNoteStore = useDeliveryNoteStore()
 const recurringInvoiceStore = useRecurringInvoiceStore()
 const userStore = useUserStore()
 const routes = useRoute()
@@ -433,6 +437,10 @@ const selectedCustomer = computed(() => {
       return estimateStore.newEstimate.customer
     case 'invoice':
       return invoiceStore.newInvoice.customer
+    case 'proforma-invoice':
+      return proformaInvoiceStore.newProformaInvoice.customer
+    case 'delivery-note':
+      return deliveryNoteStore.newDeliveryNote.customer
     case 'recurring-invoice':
       return recurringInvoiceStore.newRecurringInvoice.customer
     default:
@@ -445,6 +453,10 @@ function resetSelectedCustomer() {
     estimateStore.resetSelectedCustomer()
   } else if (props.type === 'invoice') {
     invoiceStore.resetSelectedCustomer()
+  } else if (props.type === 'proforma-invoice') {
+    proformaInvoiceStore.resetSelectedCustomer()
+  } else if (props.type === 'delivery-note') {
+    deliveryNoteStore.resetSelectedCustomer()
   } else {
     recurringInvoiceStore.resetSelectedCustomer()
   }
@@ -454,6 +466,10 @@ if (props.customerId && props.type === 'estimate') {
   estimateStore.selectCustomer(props.customerId)
 } else if (props.customerId && props.type === 'invoice') {
   invoiceStore.selectCustomer(props.customerId)
+} else if (props.customerId && props.type === 'proforma-invoice') {
+  proformaInvoiceStore.selectCustomer(props.customerId)
+} else if (props.customerId && props.type === 'delivery-note') {
+  deliveryNoteStore.selectCustomer(props.customerId)
 } else {
   if (props.customerId) recurringInvoiceStore.selectCustomer(props.customerId)
 }
@@ -520,6 +536,12 @@ function selectNewCustomer(id, close) {
   } else if (props.type === 'invoice') {
     invoiceStore.getNextNumber(params, true)
     invoiceStore.selectCustomer(id)
+  } else if (props.type === 'proforma-invoice') {
+    proformaInvoiceStore.getNextNumber(params, true)
+    proformaInvoiceStore.selectCustomer(id)
+  } else if (props.type === 'delivery-note') {
+    deliveryNoteStore.getNextNumber(params, true)
+    deliveryNoteStore.selectCustomer(id)
   } else {
     recurringInvoiceStore.selectCustomer(id)
   }

@@ -92,6 +92,14 @@ Route::middleware('pdf-auth')->group(function () {
     // payment pdf
     // -------------------------------------------------
     Route::get('/payments/pdf/{payment:unique_hash}', PaymentPdfController::class);
+
+    // proforma invoice pdf
+    // -------------------------------------------------
+    Route::get('/proforma-invoices/pdf/{proformaInvoice:unique_hash}', \App\Http\Controllers\V1\PDF\ProformaInvoicePdfController::class);
+
+    // delivery note pdf
+    // -------------------------------------------------
+    Route::get('/delivery-notes/pdf/{deliveryNote:unique_hash}', \App\Http\Controllers\V1\PDF\DeliveryNotePdfController::class);
 });
 
 // customer pdf endpoints for invoice, estimate and Payment

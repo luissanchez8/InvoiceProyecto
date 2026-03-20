@@ -606,7 +606,9 @@ export const useEstimateStore = (useWindow = false) => {
                 this.newEstimate.estimate_number = res4.data.nextNumber
               }
 
-              this.setTemplate(this.templates[0].name)
+              // Usar invoice4 por defecto; fallback al primer template
+              let defaultTpl = this.templates.find(t => t.name === 'invoice4')
+              this.setTemplate(defaultTpl ? 'invoice4' : this.templates[0].name)
               this.newEstimate.template_name =
                 userStore.currentUserSettings.default_estimate_template ?
                 userStore.currentUserSettings.default_estimate_template : this.newEstimate.template_name

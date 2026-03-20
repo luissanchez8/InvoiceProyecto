@@ -284,6 +284,26 @@ Route::prefix('/v1')->group(function () {
 
             Route::apiResource('invoices', InvoicesController::class);
 
+            // Proforma Invoices (Facturas Proforma)
+            // -------------------------------------------------
+
+            Route::post('/proforma-invoices/{proforma_invoice}/status', [\App\Http\Controllers\V1\Admin\ProformaInvoice\ChangeProformaInvoiceStatusController::class, '__invoke']);
+
+            Route::post('/proforma-invoices/{proforma_invoice}/convert', [\App\Http\Controllers\V1\Admin\ProformaInvoice\ConvertProformaInvoiceController::class, '__invoke']);
+
+            Route::post('/proforma-invoices/delete', [\App\Http\Controllers\V1\Admin\ProformaInvoice\ProformaInvoicesController::class, 'delete']);
+
+            Route::apiResource('proforma-invoices', \App\Http\Controllers\V1\Admin\ProformaInvoice\ProformaInvoicesController::class);
+
+            // Delivery Notes (Albaranes)
+            // -------------------------------------------------
+
+            Route::post('/delivery-notes/{delivery_note}/status', [\App\Http\Controllers\V1\Admin\DeliveryNote\ChangeDeliveryNoteStatusController::class, '__invoke']);
+
+            Route::post('/delivery-notes/delete', [\App\Http\Controllers\V1\Admin\DeliveryNote\DeliveryNotesController::class, 'delete']);
+
+            Route::apiResource('delivery-notes', \App\Http\Controllers\V1\Admin\DeliveryNote\DeliveryNotesController::class);
+
             // Recurring Invoice
             // -------------------------------------------------
 

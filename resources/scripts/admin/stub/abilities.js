@@ -70,6 +70,20 @@ export default {
   EDIT_EXCHANGE_RATE: 'edit-exchange-rate-provider',
   DELETE_EXCHANGE_RATE: 'delete-exchange-rate-provider',
 
+  // Proforma Invoices (Facturas Proforma)
+  CREATE_PROFORMA_INVOICE: 'create-proforma-invoice',
+  DELETE_PROFORMA_INVOICE: 'delete-proforma-invoice',
+  EDIT_PROFORMA_INVOICE: 'edit-proforma-invoice',
+  VIEW_PROFORMA_INVOICE: 'view-proforma-invoice',
+  SEND_PROFORMA_INVOICE: 'send-proforma-invoice',
+
+  // Delivery Notes (Albaranes)
+  CREATE_DELIVERY_NOTE: 'create-delivery-note',
+  DELETE_DELIVERY_NOTE: 'delete-delivery-note',
+  EDIT_DELIVERY_NOTE: 'edit-delivery-note',
+  VIEW_DELIVERY_NOTE: 'view-delivery-note',
+  SEND_DELIVERY_NOTE: 'send-delivery-note',
+
   // Reports
   VIEW_FINANCIAL_REPORT: 'view-financial-reports',
 

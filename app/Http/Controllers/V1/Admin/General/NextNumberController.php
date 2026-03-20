@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\V1\Admin\General;
 
 use App\Http\Controllers\Controller;
+use App\Models\DeliveryNote;
 use App\Models\Estimate;
 use App\Models\Invoice;
 use App\Models\Payment;
+use App\Models\ProformaInvoice;
 use App\Services\SerialNumberFormatter;
 use Illuminate\Http\Request;
 
@@ -16,7 +18,7 @@ class NextNumberController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
-    public function __invoke(Request $request, Invoice $invoice, Estimate $estimate, Payment $payment)
+    public function __invoke(Request $request, Invoice $invoice, Estimate $estimate, Payment $payment, ProformaInvoice $proformaInvoice, DeliveryNote $deliveryNote)
     {
         $key = $request->key;
         $nextNumber = null;
@@ -42,6 +44,27 @@ class NextNumberController extends Controller
 
                 case 'payment':
                     $nextNumber = $serial->setModel($payment)
+                        ->setModelObject($request->model_id)
+                        ->getNextNumber();
+
+                    break;
+
+                // --- Factura Proforma ---
+                // Soporta ambas keys: 'proforma_invoice' (desde store)
+                // y 'proformainvoice' (desde NumberCustomizer)
+                case 'proforma_invoice':
+                case 'proformainvoice':
+                    $nextNumber = $serial->setModel($proformaInvoice)
+                        ->setModelObject($request->model_id)
+                        ->getNextNumber();
+
+                    break;
+
+                // --- Albarán ---
+                // Soporta: 'delivery_note' (desde store) y 'deliverynote' (desde NumberCustomizer)
+                case 'delivery_note':
+                case 'deliverynote':
+                    $nextNumber = $serial->setModel($deliveryNote)
                         ->setModelObject($request->model_id)
                         ->getNextNumber();
 
