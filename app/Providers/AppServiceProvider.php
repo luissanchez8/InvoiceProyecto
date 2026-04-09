@@ -136,6 +136,8 @@ class AppServiceProvider extends ServiceProvider
 
         Gate::policy(Company::class, CompanyPolicy::class);
         Gate::policy(Address::class, AddressPolicy::class);
+        Gate::policy(\App\Models\ProformaInvoice::class, ProformaInvoicePolicy::class);
+        Gate::policy(\App\Models\DeliveryNote::class, DeliveryNotePolicy::class);
 
         Gate::define('create company', [CompanyPolicy::class, 'create']);
         Gate::define('transfer company ownership', [CompanyPolicy::class, 'transferOwnership']);
