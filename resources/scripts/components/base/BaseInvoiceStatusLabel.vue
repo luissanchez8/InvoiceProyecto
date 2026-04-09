@@ -36,6 +36,14 @@ const labelStatus = computed(() => {
       return t('invoices.partially_paid')
     case 'PAID':
       return t('invoices.paid')
+    case 'ACCEPTED':
+      return t('estimates.accepted')
+    case 'REJECTED':
+      return t('estimates.rejected')
+    case 'DELIVERED':
+      return t('general.delivered')
+    case 'APPROVED':
+      return t('verifactu.approved')
     default:
       return props.status
   }

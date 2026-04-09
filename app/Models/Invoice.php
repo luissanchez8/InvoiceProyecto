@@ -41,6 +41,14 @@ class Invoice extends Model implements HasMedia
 
     public const STATUS_PAID = 'PAID';
 
+    public const STATUS_APPROVED = 'APPROVED';
+
+    public const VERIFACTU_PENDING = 'PENDING';
+
+    public const VERIFACTU_SIGNED = 'SIGNED';
+
+    public const VERIFACTU_ERROR = 'ERROR';
+
     protected $dates = [
         'created_at',
         'updated_at',
@@ -154,6 +162,11 @@ class Invoice extends Model implements HasMedia
         } elseif ($retrospective_edit == 'disable_on_invoice_partial_paid' && ($this->paid_status === Invoice::STATUS_PARTIALLY_PAID || $this->paid_status === Invoice::STATUS_PAID)) {
             $allowed = false;
         } elseif ($retrospective_edit == 'disable_on_invoice_paid' && $this->paid_status === Invoice::STATUS_PAID) {
+            $allowed = false;
+        }
+
+        // Facturas aprobadas en VeriFactu no se pueden editar
+        if ($this->status === self::STATUS_APPROVED || $this->verifactu_status === self::VERIFACTU_PENDING || $this->verifactu_status === self::VERIFACTU_SIGNED) {
             $allowed = false;
         }
 
@@ -579,6 +592,7 @@ class Invoice extends Model implements HasMedia
             'notes' => $this->getNotes(),
             'logo' => $logo ?? null,
             'taxes' => $taxes,
+            'verifactu_qr' => $this->verifactu_qr ?? null,
         ]);
 
         $template = PdfTemplateUtils::findFormattedTemplate('invoice', $invoiceTemplate, '');

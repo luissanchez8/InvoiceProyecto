@@ -12,12 +12,16 @@ import { useI18n } from 'vue-i18n'
 import { debounce } from 'lodash'
 import { useProformaInvoiceStore } from '@/scripts/admin/stores/proforma-invoice'
 import { useDialogStore } from '@/scripts/stores/dialog'
+import { useModalStore } from '@/scripts/stores/modal'
 import { useUserStore } from '@/scripts/admin/stores/user'
+import SendInvoiceModal from '@/scripts/admin/components/modal-components/SendInvoiceModal.vue'
+import ProformaInvoiceDropdown from '@/scripts/admin/components/dropdowns/ProformaInvoiceIndexDropdown.vue'
 import LoadingIcon from '@/scripts/components/icons/LoadingIcon.vue'
 import abilities from '@/scripts/admin/stub/abilities'
 
 const proformaInvoiceStore = useProformaInvoiceStore()
 const dialogStore = useDialogStore()
+const modalStore = useModalStore()
 const userStore = useUserStore()
 const { t } = useI18n()
 const route = useRoute()
@@ -44,7 +48,7 @@ const pageTitle = computed(() => proformaInvoiceData.value?.proforma_invoice_num
 
 const shareableLink = computed(() => {
   if (!proformaInvoiceData.value?.unique_hash) return ''
-  return `/proforma-invoices/pdf/${proformaInvoiceData.value.unique_hash}?preview`
+  return `/proforma-invoices/pdf/${proformaInvoiceData.value.unique_hash}`
 })
 
 const getOrderBy = computed(() => {
@@ -164,6 +168,26 @@ async function onConvertToInvoice() {
   }
 }
 
+async function onSendProformaInvoice() {
+  modalStore.openModal({
+    title: t('general.send') + ' ' + t('proforma_invoice'),
+    componentName: 'SendInvoiceModal',
+    id: proformaInvoiceData.value.id,
+    data: proformaInvoiceData.value,
+    docType: 'proforma_invoice',
+  })
+}
+
+function updateSentProformaInvoice() {
+  let pos = sidebarList.value.findIndex(
+    (item) => item.id === proformaInvoiceData.value.id
+  )
+  if (sidebarList.value[pos]) {
+    sidebarList.value[pos].status = 'SENT'
+    proformaInvoiceData.value.status = 'SENT'
+  }
+}
+
 // --- Inicialización ---
 loadSidebarList()
 loadProformaInvoice()
@@ -171,36 +195,45 @@ onSearched = debounce(onSearched, 500)
 </script>
 
 <template>
+  <SendInvoiceModal @update="updateSentProformaInvoice" />
+
   <BasePage v-if="proformaInvoiceData" class="xl:pl-96 xl:ml-8">
     <!-- Cabecera con botones de acción -->
     <BasePageHeader :title="pageTitle">
       <template #actions>
+        <div class="text-sm mr-3">
+          <BaseButton
+            v-if="proformaInvoiceData.status === 'DRAFT'"
+            variant="primary-outline"
+            @click="onMarkAsSent"
+          >
+            {{ $t('general.mark_as_sent') }}
+          </BaseButton>
+        </div>
+
         <BaseButton
-          v-if="proformaInvoiceData.status === 'DRAFT'"
-          variant="primary-outline"
-          class="mr-3 text-sm"
-          @click="onMarkAsSent"
+          v-if="proformaInvoiceData.status === 'DRAFT' && userStore.hasAbilities(abilities.SEND_PROFORMA_INVOICE)"
+          variant="primary"
+          class="text-sm"
+          @click="onSendProformaInvoice"
         >
-          {{ $t('general.mark_as_sent') }}
+          {{ $t('invoices.send_invoice') }}
         </BaseButton>
 
         <BaseButton
           v-if="proformaInvoiceData.status !== 'REJECTED' && !proformaInvoiceData.converted_invoice_id"
           variant="primary"
-          class="mr-3 text-sm"
+          class="ml-3 text-sm"
           @click="onConvertToInvoice"
         >
           {{ $t('convert_to_invoice') }}
         </BaseButton>
 
-        <router-link
-          v-if="proformaInvoiceData.allow_edit && userStore.hasAbilities(abilities.EDIT_PROFORMA_INVOICE)"
-          :to="`/admin/proforma-invoices/${proformaInvoiceData.id}/edit`"
-        >
-          <BaseButton variant="gray" class="text-sm">
-            {{ $t('general.edit') }}
-          </BaseButton>
-        </router-link>
+        <ProformaInvoiceDropdown
+          class="ml-3"
+          :row="proformaInvoiceData"
+          :load-data="loadSidebarList"
+        />
       </template>
     </BasePageHeader>
 
@@ -250,12 +283,9 @@ onSearched = debounce(onSearched, 500)
               <div class="mt-1 mb-2 text-xs not-italic font-medium leading-5 text-gray-600">
                 {{ item.proforma_invoice_number }}
               </div>
-              <BaseBadge
-                :variant="item.status === 'ACCEPTED' ? 'success' : item.status === 'REJECTED' ? 'danger' : 'primary'"
-                class="px-1 text-xs"
-              >
-                {{ item.status }}
-              </BaseBadge>
+              <BaseInvoiceStatusBadge :status="item.status" class="px-1 text-xs">
+                <BaseInvoiceStatusLabel :status="item.status" />
+              </BaseInvoiceStatusBadge>
             </div>
             <div class="flex-1 whitespace-nowrap right">
               <BaseFormatMoney

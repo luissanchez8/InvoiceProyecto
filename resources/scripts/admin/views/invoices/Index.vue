@@ -1,6 +1,13 @@
 <template>
+  <SendInvoiceModal />
+  <ApproveInvoiceDialog
+    :visible="showApproveDialog"
+    :loading="isApproving"
+    @approve="confirmApproveFromIndex"
+    @save-draft="onApproveSaveDraftFromIndex"
+    @cancel="onApproveCancelFromIndex"
+  />
   <BasePage>
-    <SendInvoiceModal />
     <BasePageHeader :title="$t('invoices.title')">
       <BaseBreadcrumb>
         <BaseBreadcrumbItem :title="$t('general.home')" to="dashboard" />
@@ -255,15 +262,18 @@
           </div>
         </template>
 
-        <template #cell-verifactu="{ row }">
+        <template v-if="verifactuEnabled" #cell-verifactu="{ row }">
           <BaseButton
+            v-if="row.data.status === 'DRAFT'"
             variant="primary-outline"
             size="sm"
-            :disabled="sendingId === row.data.id"
-            @click="sendToVerifactu(row.data)"
+            @click="openApproveDialog(row.data)"
           >
-            Enviar a Verifactu
+            {{ $t('verifactu.approve_invoice') }}
           </BaseButton>
+          <span v-else-if="row.data.status === 'APPROVED'" class="text-green-600 font-medium text-xs">
+            ✓ {{ $t('verifactu.approved') }}
+          </span>
         </template>
         
         <!-- Actions -->
@@ -289,7 +299,9 @@ import { debouncedWatch } from '@vueuse/core'
 import MoonwalkerIcon from '@/scripts/components/icons/empty/MoonwalkerIcon.vue'
 import InvoiceDropdown from '@/scripts/admin/components/dropdowns/InvoiceIndexDropdown.vue'
 import SendInvoiceModal from '@/scripts/admin/components/modal-components/SendInvoiceModal.vue'
+import ApproveInvoiceDialog from '@/scripts/admin/components/modal-components/ApproveInvoiceDialog.vue'
 import BaseInvoiceStatusLabel from "@/scripts/components/base/BaseInvoiceStatusLabel.vue";
+import { useCompanyStore } from '@/scripts/admin/stores/company'
 // Stores
 const invoiceStore = useInvoiceStore()
 const dialogStore = useDialogStore()
@@ -302,8 +314,14 @@ const utils = inject('$utils')
 const table = ref(null)
 const tableKey = ref(0)
 const showFilters = ref(false)
-const axios = inject('$axios') || window.axios
-const sendingId = ref(null)
+const companyStore = useCompanyStore()
+const showApproveDialog = ref(false)
+const approvingInvoice = ref(null)
+const isApproving = ref(false)
+
+const verifactuEnabled = computed(() =>
+  companyStore.selectedCompanySettings.verifactu_enabled === 'YES'
+)
 
 const status = ref([
   {
@@ -376,14 +394,16 @@ const invoiceColumns = computed(() => {
       label: t('invoices.total'),
       tdClass: 'font-medium text-gray-900',
     },
-    {
-      key: 'verifactu',
-      label: 'Verifactu',
-      tdClass: 'text-center text-sm font-medium',
-      thClass: 'text-center',
-      sortable: false,
-    },
-    
+    ...(verifactuEnabled.value
+      ? [{
+          key: 'verifactu',
+          label: '',
+          tdClass: 'text-center text-sm font-medium',
+          thClass: 'text-center',
+          sortable: false,
+        }]
+      : []),
+
     {
       key: 'actions',
       label: t('invoices.action'),
@@ -577,30 +597,39 @@ function setActiveTab(val) {
       break
   }
 }
-async function sendToVerifactu(invoice) {
-  if (!invoice || !invoice.id) return
+function openApproveDialog(invoice) {
+  approvingInvoice.value = invoice
+  showApproveDialog.value = true
+}
 
+async function confirmApproveFromIndex() {
+  if (!approvingInvoice.value) return
+  isApproving.value = true
   try {
-    sendingId.value = invoice.id
-
-    const response = await axios.post(`/api/verifactu/invoices/${invoice.id}`)
-
-    if (response.data && response.data.ok) {
-      notificationStore.showNotification({
-        type: 'success',
-        message: 'Factura enviada a Verifactu correctamente.',
-      })
-    } else {
-      throw new Error(response.data?.error || 'Respuesta no válida desde el servidor')
-    }
-  } catch (error) {
-    console.error('[Verifactu] Error al enviar:', error)
+    await invoiceStore.approveInvoice(approvingInvoice.value.id)
+    notificationStore.showNotification({
+      type: 'success',
+      message: t('verifactu.approved_success'),
+    })
+    showApproveDialog.value = false
+    approvingInvoice.value = null
+    table.value && table.value.refresh()
+  } catch (err) {
     notificationStore.showNotification({
       type: 'error',
-      message: 'No se pudo enviar la factura a Verifactu.',
+      message: t('verifactu.approved_error'),
     })
-  } finally {
-    sendingId.value = null
   }
+  isApproving.value = false
+}
+
+function onApproveSaveDraftFromIndex() {
+  showApproveDialog.value = false
+  approvingInvoice.value = null
+}
+
+function onApproveCancelFromIndex() {
+  showApproveDialog.value = false
+  approvingInvoice.value = null
 }
 </script>

@@ -1,0 +1,130 @@
+<template>
+  <TransitionRoot as="template" :show="visible">
+    <Dialog
+      as="div"
+      static
+      class="fixed inset-0 z-20 overflow-y-auto"
+      :open="visible"
+      @close="onCancel"
+    >
+      <div
+        class="flex items-end justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0"
+      >
+        <TransitionChild
+          as="template"
+          enter="ease-out duration-300"
+          enter-from="opacity-0"
+          enter-to="opacity-100"
+          leave="ease-in duration-200"
+          leave-from="opacity-100"
+          leave-to="opacity-0"
+        >
+          <DialogOverlay
+            class="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75"
+          />
+        </TransitionChild>
+
+        <span
+          class="hidden sm:inline-block sm:align-middle sm:h-screen"
+          aria-hidden="true"
+        >&#8203;</span>
+
+        <TransitionChild
+          as="template"
+          enter="ease-out duration-300"
+          enter-from="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+          enter-to="opacity-100 translate-y-0 sm:scale-100"
+          leave="ease-in duration-200"
+          leave-from="opacity-100 translate-y-0 sm:scale-100"
+          leave-to="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+        >
+          <div
+            class="inline-block px-6 pt-6 pb-6 overflow-hidden text-left align-bottom transition-all bg-white rounded-lg shadow-xl sm:my-8 sm:align-middle sm:max-w-md sm:w-full relative"
+          >
+            <!-- Title -->
+            <div class="text-center">
+              <DialogTitle
+                as="h3"
+                class="text-xl font-semibold leading-6 text-gray-900"
+              >
+                {{ $t('verifactu.before_approve_title') }}
+              </DialogTitle>
+
+              <div class="mt-4">
+                <p class="text-sm text-gray-500 leading-relaxed">
+                  {{ $t('verifactu.before_approve_message') }}
+                </p>
+              </div>
+            </div>
+
+            <!-- Buttons -->
+            <div class="mt-6 flex flex-col items-center gap-3">
+              <BaseButton
+                variant="primary"
+                class="w-full justify-center"
+                :loading="loading"
+                :disabled="loading"
+                @click="onApprove"
+              >
+                {{ $t('verifactu.approve_invoice') }}
+              </BaseButton>
+
+              <button
+                type="button"
+                class="text-sm font-medium text-primary-500 hover:text-primary-600"
+                :disabled="loading"
+                @click="onSaveDraft"
+              >
+                {{ $t('verifactu.save_as_draft') }}
+              </button>
+
+              <button
+                type="button"
+                class="text-sm text-gray-400 hover:text-gray-500"
+                :disabled="loading"
+                @click="onCancel"
+              >
+                {{ $t('general.cancel') }}
+              </button>
+            </div>
+          </div>
+        </TransitionChild>
+      </div>
+    </Dialog>
+  </TransitionRoot>
+</template>
+
+<script setup>
+import {
+  Dialog,
+  DialogOverlay,
+  DialogTitle,
+  TransitionChild,
+  TransitionRoot,
+} from '@headlessui/vue'
+
+defineProps({
+  visible: {
+    type: Boolean,
+    default: false,
+  },
+  loading: {
+    type: Boolean,
+    default: false,
+  },
+})
+
+const emit = defineEmits(['approve', 'save-draft', 'cancel'])
+
+function onApprove() {
+  emit('approve')
+}
+
+function onSaveDraft() {
+  emit('save-draft')
+}
+
+function onCancel() {
+  emit('cancel')
+}
+</script>

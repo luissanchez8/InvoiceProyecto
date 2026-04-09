@@ -63,6 +63,7 @@
         "due": "Debido",
         "draft": "Borrador",
         "sent": "Enviado",
+        "delivered": "Entregado",
         "all": "Todas",
         "select_all": "Seleccionar todo",
         "select_template": "Seleccionar plantilla",
@@ -817,7 +818,7 @@
             "status": "Estado"
         },
         "estimates": {
-            "estimate": "Presupuestar",
+            "estimate": "Presupuesto",
             "estimate_date": "Fecha presupuesto",
             "due_date": "Fecha de vencimiento",
             "estimate_number": "Número de Presupuesto",
@@ -1593,7 +1594,7 @@
         "request_limit_met": "Ha alcanzado el límite de solicitudes.",
         "address_incomplete": "Dirección incompleta"
     },
-    "pdf_estimate_label": "Presupuestar",
+    "pdf_estimate_label": "Presupuesto",
     "pdf_estimate_number": "Número de Presupuesto",
     "pdf_estimate_date": "Fecha presupuesto",
     "pdf_estimate_expire_date": "Fecha de caducidad",
@@ -1679,6 +1680,10 @@
     "mark_as_accepted": "Marcar como aceptada",
     "mark_as_rejected": "Marcar como rechazada",
     "mark_as_delivered": "Marcar como entregado",
+    "convert_to_proforma": "Convertir a proforma",
+    "convert_to_delivery_note": "Convertir a albarán",
+    "clone_proforma": "Clonar proforma",
+    "clone_delivery_note": "Clonar albarán",
     "show_prices": "Mostrar precios",
     "hide_prices": "Ocultar precios",
     "enable_proforma_invoices": "Habilitar facturas proforma",
@@ -1700,5 +1705,19 @@
     "settings.customization.deliverynotes.deliverynote_number_format_description": "Configura el formato de numeración de los albaranes",
     "settings.customization.deliverynotes.preview_deliverynote_number": "Vista previa del número",
     "settings.customization.deliverynotes.deliverynote_settings_updated": "Configuración de albarán actualizada",
-    "general.mark_as_sent": "Marcar como enviado"
+    "general.mark_as_sent": "Marcar como enviado",
+    "verifactu.title": "VeriFactu",
+    "verifactu.enable": "Activar VeriFactu",
+    "verifactu.enable_description": "Habilita el envío automático de facturas a la AEAT a través de VeriFactu.",
+    "verifactu.warning_title": "Atención: Activar VeriFactu",
+    "verifactu.warning_message": "Con VeriFactu activado, cada vez que apruebes una factura se enviará automáticamente a la AEAT. Este proceso es irreversible: una vez aprobada y enviada, la factura no se podrá modificar ni eliminar.",
+    "verifactu.approve_invoice": "Aprobar factura",
+    "verifactu.save_as_draft": "Guardar como borrador",
+    "verifactu.approving": "Aprobando...",
+    "verifactu.approved_success": "Factura aprobada y enviada a VeriFactu correctamente",
+    "verifactu.approved_error": "Error al aprobar la factura en VeriFactu",
+    "verifactu.before_approve_title": "Antes de aprobar",
+    "verifactu.before_approve_message": "Una vez aprobado, el documento no podrá eliminarse ni podrás editar el contacto, la fecha de emisión, el número, los importes o la descripción. En caso de error, podrás anularlo o crear un documento rectificativo.",
+    "verifactu.approved": "Aprobada",
+    "verifactu.pending": "Pendiente de VeriFactu..."
 }

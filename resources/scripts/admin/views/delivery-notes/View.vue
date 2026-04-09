@@ -12,12 +12,16 @@ import { useI18n } from 'vue-i18n'
 import { debounce } from 'lodash'
 import { useDeliveryNoteStore } from '@/scripts/admin/stores/delivery-note'
 import { useDialogStore } from '@/scripts/stores/dialog'
+import { useModalStore } from '@/scripts/stores/modal'
 import { useUserStore } from '@/scripts/admin/stores/user'
+import SendInvoiceModal from '@/scripts/admin/components/modal-components/SendInvoiceModal.vue'
+import DeliveryNoteDropdown from '@/scripts/admin/components/dropdowns/DeliveryNoteIndexDropdown.vue'
 import LoadingIcon from '@/scripts/components/icons/LoadingIcon.vue'
 import abilities from '@/scripts/admin/stub/abilities'
 
 const deliveryNoteStore = useDeliveryNoteStore()
 const dialogStore = useDialogStore()
+const modalStore = useModalStore()
 const userStore = useUserStore()
 const { t } = useI18n()
 const route = useRoute()
@@ -42,7 +46,7 @@ const pageTitle = computed(() => deliveryNoteData.value?.delivery_note_number ||
 
 const shareableLink = computed(() => {
   if (!deliveryNoteData.value?.unique_hash) return ''
-  return `/delivery-notes/pdf/${deliveryNoteData.value.unique_hash}?preview`
+  return `/delivery-notes/pdf/${deliveryNoteData.value.unique_hash}`
 })
 
 const getOrderBy = computed(() => {
@@ -151,41 +155,70 @@ async function onMarkAsDelivered() {
   }
 }
 
+async function onSendDeliveryNote() {
+  modalStore.openModal({
+    title: t('general.send') + ' ' + t('delivery_note'),
+    componentName: 'SendInvoiceModal',
+    id: deliveryNoteData.value.id,
+    data: deliveryNoteData.value,
+    docType: 'delivery_note',
+  })
+}
+
+function updateSentDeliveryNote() {
+  let pos = sidebarList.value.findIndex(
+    (item) => item.id === deliveryNoteData.value.id
+  )
+  if (sidebarList.value[pos]) {
+    sidebarList.value[pos].status = 'SENT'
+    deliveryNoteData.value.status = 'SENT'
+  }
+}
+
 loadSidebarList()
 loadDeliveryNote()
 onSearched = debounce(onSearched, 500)
 </script>
 
 <template>
+  <SendInvoiceModal @update="updateSentDeliveryNote" />
+
   <BasePage v-if="deliveryNoteData" class="xl:pl-96 xl:ml-8">
     <BasePageHeader :title="pageTitle">
       <template #actions>
+        <div class="text-sm mr-3">
+          <BaseButton
+            v-if="deliveryNoteData.status === 'DRAFT'"
+            variant="primary-outline"
+            @click="onMarkAsSent"
+          >
+            {{ $t('general.mark_as_sent') }}
+          </BaseButton>
+        </div>
+
         <BaseButton
-          v-if="deliveryNoteData.status === 'DRAFT'"
-          variant="primary-outline"
-          class="mr-3 text-sm"
-          @click="onMarkAsSent"
+          v-if="deliveryNoteData.status === 'DRAFT' && userStore.hasAbilities(abilities.SEND_DELIVERY_NOTE)"
+          variant="primary"
+          class="text-sm"
+          @click="onSendDeliveryNote"
         >
-          {{ $t('general.mark_as_sent') }}
+          {{ $t('invoices.send_invoice') }}
         </BaseButton>
 
         <BaseButton
           v-if="deliveryNoteData.status === 'SENT'"
           variant="primary"
-          class="mr-3 text-sm"
+          class="ml-3 text-sm"
           @click="onMarkAsDelivered"
         >
           {{ $t('mark_as_delivered') }}
         </BaseButton>
 
-        <router-link
-          v-if="deliveryNoteData.allow_edit && userStore.hasAbilities(abilities.EDIT_DELIVERY_NOTE)"
-          :to="`/admin/delivery-notes/${deliveryNoteData.id}/edit`"
-        >
-          <BaseButton variant="gray" class="text-sm">
-            {{ $t('general.edit') }}
-          </BaseButton>
-        </router-link>
+        <DeliveryNoteDropdown
+          class="ml-3"
+          :row="deliveryNoteData"
+          :load-data="loadSidebarList"
+        />
       </template>
     </BasePageHeader>
 
@@ -233,12 +266,9 @@ onSearched = debounce(onSearched, 500)
               <div class="mt-1 mb-2 text-xs not-italic font-medium leading-5 text-gray-600">
                 {{ item.delivery_note_number }}
               </div>
-              <BaseBadge
-                :variant="item.status === 'DELIVERED' ? 'success' : item.status === 'SENT' ? 'primary' : 'gray'"
-                class="px-1 text-xs"
-              >
-                {{ item.status }}
-              </BaseBadge>
+              <BaseInvoiceStatusBadge :status="item.status" class="px-1 text-xs">
+                <BaseInvoiceStatusLabel :status="item.status" />
+              </BaseInvoiceStatusBadge>
             </div>
             <div class="flex-1 whitespace-nowrap right">
               <BaseFormatMoney

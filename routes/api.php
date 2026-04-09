@@ -48,6 +48,7 @@ use App\Http\Controllers\V1\Admin\Invoice\InvoiceTemplatesController;
 use App\Http\Controllers\V1\Admin\Invoice\SendInvoiceController;
 use App\Http\Controllers\V1\Admin\Invoice\SendInvoicePreviewController;
 use App\Http\Controllers\V1\Admin\Invoice\VerifactuController;
+use App\Http\Controllers\V1\Admin\Invoice\ApproveInvoiceController;
 use App\Http\Controllers\V1\Admin\Item\ItemsController;
 use App\Http\Controllers\V1\Admin\Item\UnitsController;
 use App\Http\Controllers\V1\Admin\Mobile\AuthController;
@@ -132,10 +133,8 @@ Route::get('ping', function () {
     ]);
 })->name('ping');
 
-// Alias sin /v1 para Verifactu (lo que llama el front: /api/verifactu/...)
-Route::middleware(['auth:sanctum', 'company'])->group(function () {
-    Route::post('verifactu/invoices/{invoice}', [VerifactuController::class, 'send']);
-});
+// Webhook VeriFactu — llamado por worker-verifactu.js (sin auth, con token)
+Route::post('webhooks/verifactu', \App\Http\Controllers\V1\Webhook\VerifactuWebhookController::class);
 
 // Version 1 endpoints
 // --------------------------------------
@@ -278,6 +277,8 @@ Route::prefix('/v1')->group(function () {
 
             Route::post('/invoices/{invoice}/status', ChangeInvoiceStatusController::class);
 
+            Route::post('/invoices/{invoice}/approve', ApproveInvoiceController::class);
+
             Route::post('/invoices/delete', [InvoicesController::class, 'delete']);
 
             Route::get('/invoices/templates', InvoiceTemplatesController::class);
@@ -291,6 +292,10 @@ Route::prefix('/v1')->group(function () {
 
             Route::post('/proforma-invoices/{proforma_invoice}/convert', [\App\Http\Controllers\V1\Admin\ProformaInvoice\ConvertProformaInvoiceController::class, '__invoke']);
 
+            Route::post('/proforma-invoices/{proforma_invoice}/clone', [\App\Http\Controllers\V1\Admin\ProformaInvoice\CloneProformaInvoiceController::class, '__invoke']);
+
+            Route::post('/proforma-invoices/{proforma_invoice}/send', [\App\Http\Controllers\V1\Admin\ProformaInvoice\SendProformaInvoiceController::class, '__invoke']);
+
             Route::post('/proforma-invoices/delete', [\App\Http\Controllers\V1\Admin\ProformaInvoice\ProformaInvoicesController::class, 'delete']);
 
             Route::apiResource('proforma-invoices', \App\Http\Controllers\V1\Admin\ProformaInvoice\ProformaInvoicesController::class);
@@ -299,6 +304,10 @@ Route::prefix('/v1')->group(function () {
             // -------------------------------------------------
 
             Route::post('/delivery-notes/{delivery_note}/status', [\App\Http\Controllers\V1\Admin\DeliveryNote\ChangeDeliveryNoteStatusController::class, '__invoke']);
+
+            Route::post('/delivery-notes/{delivery_note}/clone', [\App\Http\Controllers\V1\Admin\DeliveryNote\CloneDeliveryNoteController::class, '__invoke']);
+
+            Route::post('/delivery-notes/{delivery_note}/send', [\App\Http\Controllers\V1\Admin\DeliveryNote\SendDeliveryNoteController::class, '__invoke']);
 
             Route::post('/delivery-notes/delete', [\App\Http\Controllers\V1\Admin\DeliveryNote\DeliveryNotesController::class, 'delete']);
 
@@ -325,6 +334,10 @@ Route::prefix('/v1')->group(function () {
             Route::post('/estimates/{estimate}/status', ChangeEstimateStatusController::class);
 
             Route::post('/estimates/{estimate}/convert-to-invoice', ConvertEstimateController::class);
+
+            Route::post('/estimates/{estimate}/convert-to-proforma', \App\Http\Controllers\V1\Admin\Estimate\ConvertEstimateToProformaController::class);
+
+            Route::post('/estimates/{estimate}/convert-to-delivery-note', \App\Http\Controllers\V1\Admin\Estimate\ConvertEstimateToDeliveryNoteController::class);
 
             Route::get('/estimates/templates', EstimateTemplatesController::class);
 

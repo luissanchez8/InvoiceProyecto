@@ -308,11 +308,47 @@ export const useDeliveryNoteStore = (useWindow = false) => {
         })
       },
 
+      cloneDeliveryNote(data) {
+        return new Promise((resolve, reject) => {
+          axios
+            .post(`/api/v1/delivery-notes/${data.id}/clone`, data)
+            .then((response) => {
+              notificationStore.showNotification({
+                type: 'success',
+                message: 'Albarán clonado correctamente',
+              })
+              resolve(response)
+            })
+            .catch((err) => {
+              handleError(err)
+              reject(err)
+            })
+        })
+      },
+
       markAsSent(data) {
         return new Promise((resolve, reject) => {
           axios.post(`/api/v1/delivery-notes/${data.id}/status`, { status: 'SENT' })
             .then((response) => { resolve(response) })
             .catch((err) => { handleError(err); reject(err) })
+        })
+      },
+
+      sendDeliveryNote(data) {
+        return new Promise((resolve, reject) => {
+          axios
+            .post(`/api/v1/delivery-notes/${data.id}/send`, data)
+            .then((response) => {
+              notificationStore.showNotification({
+                type: 'success',
+                message: 'Albarán enviado correctamente',
+              })
+              resolve(response)
+            })
+            .catch((err) => {
+              handleError(err)
+              reject(err)
+            })
         })
       },
 

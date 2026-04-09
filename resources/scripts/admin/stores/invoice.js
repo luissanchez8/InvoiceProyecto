@@ -348,6 +348,28 @@ export const useInvoiceStore = (useWindow = false) => {
         })
       },
 
+      approveInvoice(id) {
+        return new Promise((resolve, reject) => {
+          axios
+            .post(`/api/v1/invoices/${id}/approve`)
+            .then((response) => {
+              let pos = this.invoices.findIndex(
+                (invoice) => invoice.id === id
+              )
+
+              if (this.invoices[pos]) {
+                this.invoices[pos].status = 'SENT'
+              }
+
+              resolve(response)
+            })
+            .catch((err) => {
+              handleError(err)
+              reject(err)
+            })
+        })
+      },
+
       getNextNumber(params, setState = false) {
         return new Promise((resolve, reject) => {
           axios
@@ -538,12 +560,9 @@ export const useInvoiceStore = (useWindow = false) => {
               }
 
               if (res3.data) {
-                // Usar invoice4 por defecto; fallback al primer template
-                let defaultTpl = this.templates.find(t => t.name === 'invoice4')
-                this.setTemplate(defaultTpl ? 'invoice4' : this.templates[0].name)
-                this.newInvoice.template_name =
-                userStore.currentUserSettings.default_invoice_template ?
-                userStore.currentUserSettings.default_invoice_template : this.newInvoice.template_name
+                // Forzar invoice4 como plantilla universal
+                this.setTemplate('invoice4')
+                this.newInvoice.template_name = 'invoice4'
               }
             }
             if (isEdit) {

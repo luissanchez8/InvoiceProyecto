@@ -5,6 +5,7 @@
   Usa BaseTable con fetchData async (mismo patrón que invoices/Index.vue).
 -->
 <template>
+  <SendInvoiceModal />
   <BasePage>
     <!-- Cabecera con título y botón de crear -->
     <BasePageHeader :title="$t('proforma_invoices')">
@@ -14,6 +15,22 @@
       </BaseBreadcrumb>
 
       <template #actions>
+        <BaseButton
+          v-show="proformaInvoiceStore.proformaInvoiceTotalCount"
+          variant="primary-outline"
+          @click="toggleFilter"
+        >
+          {{ $t('general.filter') }}
+          <template #right="slotProps">
+            <BaseIcon
+              v-if="!showFilters"
+              name="FunnelIcon"
+              :class="slotProps.class"
+            />
+            <BaseIcon v-else name="XMarkIcon" :class="slotProps.class" />
+          </template>
+        </BaseButton>
+
         <router-link to="proforma-invoices/create">
           <BaseButton variant="primary" class="ml-4">
             <template #left="slotProps">
@@ -24,6 +41,62 @@
         </router-link>
       </template>
     </BasePageHeader>
+
+    <!-- Filtros -->
+    <BaseFilterWrapper
+      v-show="showFilters"
+      :row-on-xl="true"
+      @clear="clearFilter"
+    >
+      <BaseInputGroup :label="$t('customers.customer', 1)">
+        <BaseCustomerSelectInput
+          v-model="filters.customer_id"
+          :placeholder="$t('customers.type_or_click')"
+          value-prop="id"
+          label="name"
+        />
+      </BaseInputGroup>
+
+      <BaseInputGroup :label="$t('invoices.status')">
+        <BaseMultiselect
+          v-model="filters.status"
+          :options="statusOptions"
+          searchable
+          :placeholder="$t('general.select_a_status')"
+          @update:modelValue="setActiveTab"
+          @remove="clearStatusSearch()"
+        />
+      </BaseInputGroup>
+
+      <BaseInputGroup :label="$t('general.from')">
+        <BaseDatePicker
+          v-model="filters.from_date"
+          :calendar-button="true"
+          calendar-button-icon="calendar"
+        />
+      </BaseInputGroup>
+
+      <div
+        class="hidden w-8 h-0 mx-4 border border-gray-400 border-solid xl:block"
+        style="margin-top: 1.5rem"
+      />
+
+      <BaseInputGroup :label="$t('general.to')" class="mt-2">
+        <BaseDatePicker
+          v-model="filters.to_date"
+          :calendar-button="true"
+          calendar-button-icon="calendar"
+        />
+      </BaseInputGroup>
+
+      <BaseInputGroup :label="$t('proforma_invoices') + ' Nº'">
+        <BaseInput v-model="filters.proforma_invoice_number">
+          <template #left="slotProps">
+            <BaseIcon name="HashtagIcon" :class="slotProps.class" />
+          </template>
+        </BaseInput>
+      </BaseInputGroup>
+    </BaseFilterWrapper>
 
     <!-- Placeholder si no hay datos -->
     <BaseEmptyPlaceholder
@@ -42,8 +115,8 @@
           <BaseTab :title="$t('general.all')" filter="" />
           <BaseTab :title="$t('general.draft')" filter="DRAFT" />
           <BaseTab :title="$t('general.sent')" filter="SENT" />
-          <BaseTab title="Accepted" filter="ACCEPTED" />
-          <BaseTab title="Rejected" filter="REJECTED" />
+          <BaseTab :title="$t('estimates.accepted')" filter="ACCEPTED" />
+          <BaseTab :title="$t('estimates.rejected')" filter="REJECTED" />
         </BaseTabGroup>
       </div>
 
@@ -53,6 +126,7 @@
         :data="fetchData"
         :columns="proformaColumns"
         :placeholder-count="5"
+        :key="tableKey"
         class="mt-10"
       >
         <!-- Número de proforma (enlace a vista detalle) -->
@@ -77,9 +151,9 @@
 
         <!-- Estado con badge -->
         <template #cell-status="{ row }">
-          <BaseBadge :variant="getStatusColor(row.data.status)">
-            {{ row.data.status }}
-          </BaseBadge>
+          <BaseInvoiceStatusBadge :status="row.data.status" class="px-3 py-1">
+            <BaseInvoiceStatusLabel :status="row.data.status" />
+          </BaseInvoiceStatusBadge>
         </template>
 
         <!-- Total formateado -->
@@ -88,6 +162,11 @@
             :amount="row.data.total"
             :currency="row.data.customer?.currency"
           />
+        </template>
+
+        <!-- Acciones (dropdown 3 puntos) -->
+        <template #cell-actions="{ row }">
+          <ProformaInvoiceDropdown :row="row.data" :table="table" />
         </template>
       </BaseTable>
     </div>
@@ -100,24 +179,42 @@
  * Sigue el patrón exacto de invoices/Index.vue:
  * - fetchData como función async para BaseTable
  * - Tabs de filtro por estado
+ * - Filtros avanzados (cliente, estado, fechas, número)
  * - Columnas con row.data accessor
  */
 import { computed, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useProformaInvoiceStore } from '@/scripts/admin/stores/proforma-invoice'
+import { debouncedWatch } from '@vueuse/core'
+import ProformaInvoiceDropdown from '@/scripts/admin/components/dropdowns/ProformaInvoiceIndexDropdown.vue'
 import ObservatoryIcon from '@/scripts/components/icons/empty/ObservatoryIcon.vue'
+import SendInvoiceModal from '@/scripts/admin/components/modal-components/SendInvoiceModal.vue'
 
 const proformaInvoiceStore = useProformaInvoiceStore()
 const { t } = useI18n()
 
 // Refs locales
 const table = ref(null)
+const tableKey = ref(0)
 const isRequestOngoing = ref(true)
 const activeTab = ref('')
+const showFilters = ref(false)
+
+// Opciones de estado para el multiselect de filtros
+const statusOptions = ref([
+  { label: t('general.draft'), value: 'DRAFT' },
+  { label: t('general.sent'), value: 'SENT' },
+  { label: t('estimates.accepted'), value: 'ACCEPTED' },
+  { label: t('estimates.rejected'), value: 'REJECTED' },
+])
 
 // Filtros reactivos
 let filters = reactive({
+  customer_id: '',
   status: '',
+  from_date: '',
+  to_date: '',
+  proforma_invoice_number: '',
 })
 
 // Mostrar placeholder cuando no hay datos
@@ -144,21 +241,23 @@ const proformaColumns = computed(() => [
     label: 'Total',
     tdClass: 'font-medium text-gray-900',
   },
+  {
+    key: 'actions',
+    label: t('invoices.action'),
+    tdClass: 'text-right text-sm font-medium',
+    thClass: 'text-right',
+    sortable: false,
+  },
 ])
 
-/**
- * Devuelve la variante de color del badge según el estado.
- */
-function getStatusColor(status) {
-  const colors = {
-    DRAFT: 'gray',
-    SENT: 'primary',
-    VIEWED: 'info',
-    ACCEPTED: 'success',
-    REJECTED: 'danger',
-  }
-  return colors[status] || 'gray'
-}
+// Observar cambios en filtros con debounce
+debouncedWatch(
+  filters,
+  () => {
+    setFilters()
+  },
+  { debounce: 500 }
+)
 
 /**
  * Callback async que BaseTable invoca para obtener datos paginados.
@@ -166,7 +265,11 @@ function getStatusColor(status) {
  */
 async function fetchData({ page, filter, sort }) {
   let data = {
+    customer_id: filters.customer_id,
     status: filters.status,
+    from_date: filters.from_date,
+    to_date: filters.to_date,
+    proforma_invoice_number: filters.proforma_invoice_number,
     orderByField: sort.fieldName || 'created_at',
     orderBy: sort.order || 'desc',
     page,
@@ -187,11 +290,62 @@ async function fetchData({ page, filter, sort }) {
   }
 }
 
+function refreshTable() {
+  table.value && table.value.refresh()
+}
+
+function setFilters() {
+  tableKey.value += 1
+  refreshTable()
+}
+
 /** Cambia el filtro de estado al pulsar un tab */
 function setStatusFilter(val) {
   if (activeTab.value == val.title) return
   activeTab.value = val.title
   filters.status = val.filter || ''
-  table.value && table.value.refresh()
+  refreshTable()
+}
+
+/** Sincroniza el tab activo con el valor seleccionado en el multiselect */
+function setActiveTab(val) {
+  switch (val) {
+    case 'DRAFT':
+      activeTab.value = t('general.draft')
+      break
+    case 'SENT':
+      activeTab.value = t('general.sent')
+      break
+    case 'ACCEPTED':
+      activeTab.value = t('estimates.accepted')
+      break
+    case 'REJECTED':
+      activeTab.value = t('estimates.rejected')
+      break
+    default:
+      activeTab.value = t('general.all')
+      break
+  }
+}
+
+function clearStatusSearch() {
+  filters.status = ''
+  refreshTable()
+}
+
+function toggleFilter() {
+  if (showFilters.value) {
+    clearFilter()
+  }
+  showFilters.value = !showFilters.value
+}
+
+function clearFilter() {
+  filters.customer_id = ''
+  filters.status = ''
+  filters.from_date = ''
+  filters.to_date = ''
+  filters.proforma_invoice_number = ''
+  activeTab.value = t('general.all')
 }
 </script>

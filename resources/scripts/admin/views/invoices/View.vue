@@ -1,15 +1,18 @@
 <script setup>
 import { useI18n } from 'vue-i18n'
 import { computed, reactive, ref, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { debounce } from 'lodash'
 
 import { useInvoiceStore } from '@/scripts/admin/stores/invoice'
+import { useCompanyStore } from '@/scripts/admin/stores/company'
 import { useModalStore } from '@/scripts/stores/modal'
 import { useUserStore } from '@/scripts/admin/stores/user'
 import { useDialogStore } from '@/scripts/stores/dialog'
+import { useNotificationStore } from '@/scripts/stores/notification'
 
 import SendInvoiceModal from '@/scripts/admin/components/modal-components/SendInvoiceModal.vue'
+import ApproveInvoiceDialog from '@/scripts/admin/components/modal-components/ApproveInvoiceDialog.vue'
 import InvoiceDropdown from '@/scripts/admin/components/dropdowns/InvoiceIndexDropdown.vue'
 import LoadingIcon from '@/scripts/components/icons/LoadingIcon.vue'
 
@@ -17,15 +20,24 @@ import abilities from '@/scripts/admin/stub/abilities'
 
 const modalStore = useModalStore()
 const invoiceStore = useInvoiceStore()
+const companyStore = useCompanyStore()
 const userStore = useUserStore()
 const dialogStore = useDialogStore()
+const notificationStore = useNotificationStore()
 
 const { t } = useI18n()
 const invoiceData = ref(null)
 const route = useRoute()
+const router = useRouter()
 
 const isMarkAsSent = ref(false)
 const isLoading = ref(false)
+const isApproving = ref(false)
+const showApproveDialog = ref(false)
+
+const verifactuEnabled = computed(() =>
+  companyStore.selectedCompanySettings.verifactu_enabled === 'YES'
+)
 
 const invoiceList = ref(null)
 const currentPageNumber = ref(1)
@@ -102,7 +114,51 @@ async function onSendInvoice(id) {
     componentName: 'SendInvoiceModal',
     id: invoiceData.value.id,
     data: invoiceData.value,
+    docType: 'invoice',
   })
+}
+
+function onApproveInvoice() {
+  showApproveDialog.value = true
+}
+
+async function confirmApprove() {
+  isApproving.value = true
+  try {
+    const response = await invoiceStore.approveInvoice(invoiceData.value.id)
+    // Actualizar datos locales con la respuesta del servidor
+    if (response.data?.data) {
+      invoiceData.value = { ...invoiceData.value, ...response.data.data }
+    } else {
+      invoiceData.value.verifactu_status = 'PENDING'
+    }
+    notificationStore.showNotification({
+      type: 'success',
+      message: t('verifactu.approved_success'),
+    })
+    let pos = invoiceList.value?.findIndex(
+      (inv) => inv.id === invoiceData.value.id
+    )
+    if (pos >= 0 && invoiceList.value[pos]) {
+      invoiceList.value[pos].verifactu_status = 'PENDING'
+    }
+    showApproveDialog.value = false
+  } catch (err) {
+    notificationStore.showNotification({
+      type: 'error',
+      message: t('verifactu.approved_error'),
+    })
+  }
+  isApproving.value = false
+}
+
+function onApproveSaveDraft() {
+  showApproveDialog.value = false
+  router.push('/admin/invoices')
+}
+
+function onApproveCancelled() {
+  showApproveDialog.value = false
 }
 
 function hasActiveUrl(id) {
@@ -230,6 +286,13 @@ onSearched = debounce(onSearched, 500)
 
 <template>
   <SendInvoiceModal @update="updateSentInvoice" />
+  <ApproveInvoiceDialog
+    :visible="showApproveDialog"
+    :loading="isApproving"
+    @approve="confirmApprove"
+    @save-draft="onApproveSaveDraft"
+    @cancel="onApproveCancelled"
+  />
 
   <BasePage v-if="invoiceData" class="xl:pl-96 xl:ml-8">
     <BasePageHeader :title="pageTitle">
@@ -259,6 +322,33 @@ onSearched = debounce(onSearched, 500)
         >
           {{ $t('invoices.send_invoice') }}
         </BaseButton>
+
+        <!-- Approve (VeriFactu) -->
+        <BaseButton
+          v-if="verifactuEnabled && invoiceData.status === 'DRAFT' && !invoiceData.verifactu_status"
+          :loading="isApproving"
+          :disabled="isApproving"
+          variant="primary"
+          class="ml-3 text-sm"
+          @click="onApproveInvoice"
+        >
+          <template #left="slotProps">
+            <BaseIcon
+              v-if="!isApproving"
+              name="CheckCircleIcon"
+              :class="slotProps.class"
+            />
+          </template>
+          {{ $t('verifactu.approve_invoice') }}
+        </BaseButton>
+
+        <!-- VeriFactu pending -->
+        <span
+          v-if="invoiceData.verifactu_status === 'PENDING'"
+          class="ml-3 text-sm text-yellow-600 font-medium"
+        >
+          {{ $t('verifactu.pending') }}
+        </span>
 
         <!-- Record Payment  -->
         <router-link

@@ -442,6 +442,44 @@ export const useEstimateStore = (useWindow = false) => {
         })
       },
 
+      convertToProforma(id) {
+        const notificationStore = useNotificationStore()
+        return new Promise((resolve, reject) => {
+          axios
+            .post(`/api/v1/estimates/${id}/convert-to-proforma`)
+            .then((response) => {
+              notificationStore.showNotification({
+                type: 'success',
+                message: 'Presupuesto convertido a proforma',
+              })
+              resolve(response)
+            })
+            .catch((err) => {
+              handleError(err)
+              reject(err)
+            })
+        })
+      },
+
+      convertToDeliveryNote(id) {
+        const notificationStore = useNotificationStore()
+        return new Promise((resolve, reject) => {
+          axios
+            .post(`/api/v1/estimates/${id}/convert-to-delivery-note`)
+            .then((response) => {
+              notificationStore.showNotification({
+                type: 'success',
+                message: 'Presupuesto convertido a albarán',
+              })
+              resolve(response)
+            })
+            .catch((err) => {
+              handleError(err)
+              reject(err)
+            })
+        })
+      },
+
       searchEstimate(data) {
         return new Promise((resolve, reject) => {
           axios
@@ -606,12 +644,9 @@ export const useEstimateStore = (useWindow = false) => {
                 this.newEstimate.estimate_number = res4.data.nextNumber
               }
 
-              // Usar invoice4 por defecto; fallback al primer template
-              let defaultTpl = this.templates.find(t => t.name === 'invoice4')
-              this.setTemplate(defaultTpl ? 'invoice4' : this.templates[0].name)
-              this.newEstimate.template_name =
-                userStore.currentUserSettings.default_estimate_template ?
-                userStore.currentUserSettings.default_estimate_template : this.newEstimate.template_name
+              // Forzar invoice4 como plantilla universal
+              this.setTemplate('invoice4')
+              this.newEstimate.template_name = 'invoice4'
             }
 
             if (isEdit) {

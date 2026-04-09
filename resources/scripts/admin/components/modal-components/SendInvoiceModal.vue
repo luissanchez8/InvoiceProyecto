@@ -116,6 +116,9 @@ import { useCompanyStore } from '@/scripts/admin/stores/company'
 import { useNotificationStore } from '@/scripts/stores/notification'
 import { useI18n } from 'vue-i18n'
 import { useInvoiceStore } from '@/scripts/admin/stores/invoice'
+import { useProformaInvoiceStore } from '@/scripts/admin/stores/proforma-invoice'
+import { useDeliveryNoteStore } from '@/scripts/admin/stores/delivery-note'
+import { useEstimateStore } from '@/scripts/admin/stores/estimate'
 import { useVuelidate } from '@vuelidate/core'
 import { required, email, helpers } from '@vuelidate/validators'
 import { useMailDriverStore } from '@/scripts/admin/stores/mail-driver'
@@ -124,6 +127,9 @@ const modalStore = useModalStore()
 const companyStore = useCompanyStore()
 const notificationStore = useNotificationStore()
 const invoiceStore = useInvoiceStore()
+const proformaInvoiceStore = useProformaInvoiceStore()
+const deliveryNoteStore = useDeliveryNoteStore()
+const estimateStore = useEstimateStore()
 const mailDriverStore = useMailDriverStore()
 
 const { t } = useI18n()
@@ -143,7 +149,7 @@ const invoiceMailForm = reactive({
   id: null,
   from: null,
   to: null,
-  subject: t('invoices.new_invoice'),
+  subject: null,
   body: null,
 })
 
@@ -156,7 +162,6 @@ const modalData  = computed(() => modalStore.data)
 
 const rules = {
   from: {
-    // aunque esté oculto, validamos que exista y sea email correcto (ya lo rellenamos en setInitialData)
     required: helpers.withMessage(t('validation.required'), required),
     email: helpers.withMessage(t('validation.email_incorrect'), email),
   },
@@ -168,7 +173,6 @@ const rules = {
     required: helpers.withMessage(t('validation.required'), required),
   },
   body: {
-    // lo dejamos requerido; viene del valor por defecto de la empresa
     required: helpers.withMessage(t('validation.required'), required),
   },
 }
@@ -183,11 +187,34 @@ async function setInitialData() {
     invoiceMailForm.from = admin.data.from_mail
   }
   if (modalData.value) {
-    invoiceMailForm.to = modalData.value.customer.email
+    invoiceMailForm.to = modalData.value.customer?.email || ''
   }
 
+  // Asunto personalizado según tipo de documento
+  const docType = modalStore.docType || 'invoice'
+  const docData = modalData.value
+  let subject = ''
+
+  switch (docType) {
+    case 'proforma_invoice':
+      subject = 'Nueva ' + t('proforma_invoice') + ' ' + (docData?.proforma_invoice_number || '')
+      break
+    case 'delivery_note':
+      subject = 'Nuevo ' + t('delivery_note') + ' ' + (docData?.delivery_note_number || '')
+      break
+    case 'estimate':
+      subject = 'Nuevo ' + t('estimates.estimate') + ' ' + (docData?.estimate_number || '')
+      break
+    case 'invoice':
+    default:
+      subject = 'Nueva ' + t('invoices.invoice') + ' ' + (docData?.invoice_number || '')
+      break
+  }
+
+  invoiceMailForm.subject = subject
+
   // cuerpo por defecto de la empresa
-  invoiceMailForm.body = companyStore.selectedCompanySettings.invoice_mail_body
+  invoiceMailForm.body = companyStore.selectedCompanySettings.invoice_mail_body || ' '
 }
 
 async function sendNow() {
@@ -196,7 +223,26 @@ async function sendNow() {
 
   try {
     isLoading.value = true
-    const response = await invoiceStore.sendInvoice(invoiceMailForm)
+
+    const docType = modalStore.docType || 'invoice'
+    let response
+
+    switch (docType) {
+      case 'proforma_invoice':
+        response = await proformaInvoiceStore.sendProformaInvoice(invoiceMailForm)
+        break
+      case 'delivery_note':
+        response = await deliveryNoteStore.sendDeliveryNote(invoiceMailForm)
+        break
+      case 'estimate':
+        response = await estimateStore.sendEstimate(invoiceMailForm)
+        break
+      case 'invoice':
+      default:
+        response = await invoiceStore.sendInvoice(invoiceMailForm)
+        break
+    }
+
     isLoading.value = false
 
     if (response.data?.success) {

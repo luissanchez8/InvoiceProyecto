@@ -408,6 +408,42 @@ export const useProformaInvoiceStore = (useWindow = false) => {
         })
       },
 
+      cloneProformaInvoice(data) {
+        return new Promise((resolve, reject) => {
+          axios
+            .post(`/api/v1/proforma-invoices/${data.id}/clone`, data)
+            .then((response) => {
+              notificationStore.showNotification({
+                type: 'success',
+                message: 'Factura proforma clonada correctamente',
+              })
+              resolve(response)
+            })
+            .catch((err) => {
+              handleError(err)
+              reject(err)
+            })
+        })
+      },
+
+      sendProformaInvoice(data) {
+        return new Promise((resolve, reject) => {
+          axios
+            .post(`/api/v1/proforma-invoices/${data.id}/send`, data)
+            .then((response) => {
+              notificationStore.showNotification({
+                type: 'success',
+                message: 'Factura proforma enviada correctamente',
+              })
+              resolve(response)
+            })
+            .catch((err) => {
+              handleError(err)
+              reject(err)
+            })
+        })
+      },
+
       markAsSent(data) {
         return new Promise((resolve, reject) => {
           axios

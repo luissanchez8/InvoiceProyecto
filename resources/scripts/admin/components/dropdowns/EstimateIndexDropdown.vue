@@ -86,6 +86,30 @@
       {{ $t('estimates.convert_to_invoice') }}
     </BaseDropdownItem>
 
+    <!-- Convert into Proforma  -->
+    <BaseDropdownItem
+      v-if="userStore.hasAbilities(abilities.CREATE_PROFORMA_INVOICE)"
+      @click="convertToProforma(row.id)"
+    >
+      <BaseIcon
+        name="DocumentTextIcon"
+        class="w-5 h-5 mr-3 text-gray-400 group-hover:text-gray-500"
+      />
+      {{ $t('convert_to_proforma') }}
+    </BaseDropdownItem>
+
+    <!-- Convert into Delivery Note  -->
+    <BaseDropdownItem
+      v-if="userStore.hasAbilities(abilities.CREATE_DELIVERY_NOTE)"
+      @click="convertToDeliveryNote(row.id)"
+    >
+      <BaseIcon
+        name="DocumentTextIcon"
+        class="w-5 h-5 mr-3 text-gray-400 group-hover:text-gray-500"
+      />
+      {{ $t('convert_to_delivery_note') }}
+    </BaseDropdownItem>
+
     <!-- Mark as sent  -->
     <BaseDropdownItem
       v-if="
@@ -241,6 +265,50 @@ function convertInToinvoice(id) {
         estimateStore.convertToInvoice(id).then((res) => {
           if (res.data) {
             router.push(`/admin/invoices/${res.data.data.id}/edit`)
+          }
+        })
+      }
+    })
+}
+
+function convertToProforma(id) {
+  dialogStore
+    .openDialog({
+      title: t('general.are_you_sure'),
+      message: t('estimates.confirm_conversion'),
+      yesLabel: t('general.ok'),
+      noLabel: t('general.cancel'),
+      variant: 'primary',
+      hideNoButton: false,
+      size: 'lg',
+    })
+    .then((res) => {
+      if (res) {
+        estimateStore.convertToProforma(id).then((res) => {
+          if (res.data) {
+            router.push(`/admin/proforma-invoices/${res.data.proforma_invoice.id}/edit`)
+          }
+        })
+      }
+    })
+}
+
+function convertToDeliveryNote(id) {
+  dialogStore
+    .openDialog({
+      title: t('general.are_you_sure'),
+      message: t('estimates.confirm_conversion'),
+      yesLabel: t('general.ok'),
+      noLabel: t('general.cancel'),
+      variant: 'primary',
+      hideNoButton: false,
+      size: 'lg',
+    })
+    .then((res) => {
+      if (res) {
+        estimateStore.convertToDeliveryNote(id).then((res) => {
+          if (res.data) {
+            router.push(`/admin/delivery-notes/${res.data.delivery_note.id}/edit`)
           }
         })
       }

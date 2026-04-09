@@ -244,6 +244,7 @@ async function sendInvoice(invoice) {
     componentName: 'SendInvoiceModal',
     id: invoice.id,
     data: invoice,
+    docType: 'invoice',
     variant: 'sm',
   })
 }

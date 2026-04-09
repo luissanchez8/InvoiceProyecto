@@ -202,6 +202,14 @@
                 @endif
             </td>
 
+            {{-- QR VERIFACTU (centro) --}}
+            @if(!empty($verifactu_qr))
+            <td style="text-align: center; vertical-align: middle; width: 120px;">
+                <img src="data:image/png;base64,{{ $verifactu_qr }}" style="width: 90px; height: 90px;" alt="QR VeriFactu" />
+                <div style="font-size: 7px; color: #888; margin-top: 2px;">VeriFactu</div>
+            </td>
+            @endif
+
             {{-- Título dinámico según tipo de documento --}}
             <td class="header-invoice-cell">
                 <div class="header-invoice-title">{{ $docTitle }}</div>

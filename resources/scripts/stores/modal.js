@@ -17,6 +17,7 @@ export const useModalStore = (useWindow = false) => {
       data: null,
       refreshData: null,
       variant: '',
+      docType: '',
     }),
 
     getters: {
@@ -54,6 +55,10 @@ export const useModalStore = (useWindow = false) => {
         if (payload.size) {
           this.size = payload.size
         }
+
+        if (payload.docType) {
+          this.docType = payload.docType
+        }
       },
 
       resetModalData() {
@@ -63,6 +68,7 @@ export const useModalStore = (useWindow = false) => {
         this.id = ''
         this.data = null
         this.refreshData = null
+        this.docType = ''
       },
 
       closeModal() {
