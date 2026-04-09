@@ -101,10 +101,22 @@
     <!-- Placeholder si no hay datos -->
     <BaseEmptyPlaceholder
       v-show="showEmptyScreen"
-      :title="$t('proforma_invoices')"
-      :description="$t('proforma_invoices')"
+      :title="$t('no_proforma_invoices')"
+      :description="$t('list_of_proforma_invoices')"
     >
       <ObservatoryIcon class="mt-5 mb-4" />
+
+      <template #actions>
+        <BaseButton
+          variant="primary-outline"
+          @click="$router.push('/admin/proforma-invoices/create')"
+        >
+          <template #left="slotProps">
+            <BaseIcon name="PlusIcon" :class="slotProps.class" />
+          </template>
+          {{ $t('add_new_proforma_invoice') }}
+        </BaseButton>
+      </template>
     </BaseEmptyPlaceholder>
 
     <!-- Tabla de datos -->

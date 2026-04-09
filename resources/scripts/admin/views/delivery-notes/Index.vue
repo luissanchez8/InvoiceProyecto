@@ -101,10 +101,22 @@
     <!-- Placeholder si no hay datos -->
     <BaseEmptyPlaceholder
       v-show="showEmptyScreen"
-      :title="$t('delivery_notes')"
-      :description="$t('delivery_notes')"
+      :title="$t('no_delivery_notes')"
+      :description="$t('list_of_delivery_notes')"
     >
       <ObservatoryIcon class="mt-5 mb-4" />
+
+      <template #actions>
+        <BaseButton
+          variant="primary-outline"
+          @click="$router.push('/admin/delivery-notes/create')"
+        >
+          <template #left="slotProps">
+            <BaseIcon name="PlusIcon" :class="slotProps.class" />
+          </template>
+          {{ $t('add_new_delivery_note') }}
+        </BaseButton>
+      </template>
     </BaseEmptyPlaceholder>
 
     <!-- Tabla de datos -->
