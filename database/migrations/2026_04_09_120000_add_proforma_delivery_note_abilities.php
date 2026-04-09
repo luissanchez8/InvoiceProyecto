@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Company;
+use App\Models\CompanySetting;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
 use Silber\Bouncer\BouncerFacade;
@@ -46,6 +47,23 @@ return new class extends Migration
                     'entity_id' => $superAdmin->id,
                     'entity_type' => 'roles',
                     'scope' => $company->id,
+                ]);
+            }
+        }
+
+        // Add missing number format settings for existing companies
+        foreach (Company::all() as $company) {
+            $numberFormats = [
+                'proformainvoice_number_format' => '{{SERIES:PRF}}{{DELIMITER:-}}{{SEQUENCE:6}}',
+                'deliverynote_number_format' => '{{SERIES:ALB}}{{DELIMITER:-}}{{SEQUENCE:6}}',
+            ];
+
+            foreach ($numberFormats as $key => $value) {
+                CompanySetting::firstOrCreate([
+                    'option' => $key,
+                    'company_id' => $company->id,
+                ], [
+                    'value' => $value,
                 ]);
             }
         }
