@@ -271,7 +271,7 @@
           >
             {{ $t('verifactu.approve_invoice') }}
           </BaseButton>
-          <span v-else-if="row.data.status === 'APPROVED'" class="text-green-600 font-medium text-xs">
+          <span v-else-if="row.data.status === 'APPROVED'" class="text-[#38d587] font-medium text-xs">
             ✓ {{ $t('verifactu.approved') }}
           </span>
         </template>
