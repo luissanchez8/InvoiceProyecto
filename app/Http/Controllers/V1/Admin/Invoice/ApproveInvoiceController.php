@@ -112,15 +112,15 @@ class ApproveInvoiceController extends Controller
                 'invoice_id' => $invoice->id,
                 'company_id' => $invoice->company_id,
                 'webhook_url' => rtrim(config('app.url'), '/') . '/api/webhooks/verifactu',
-                'webhook_token' => env('VERIFACTU_WEBHOOK_TOKEN', ''),
+                'webhook_token' => config('rabbitmq.verifactu_webhook_token', ''),
             ],
         ];
 
-        $host = env('RABBITMQ_HOST', '127.0.0.1');
-        $port = (int) env('RABBITMQ_PORT', 5672);
-        $user = env('RABBITMQ_USER', 'guest');
-        $password = env('RABBITMQ_PASSWORD', 'guest');
-        $queue = env('RABBITMQ_VERIFACTU_QUEUE', 'verifactu.facturas');
+        $host = config('rabbitmq.host', '127.0.0.1');
+        $port = (int) config('rabbitmq.port', 5672);
+        $user = config('rabbitmq.user', 'guest');
+        $password = config('rabbitmq.password', 'guest');
+        $queue = config('rabbitmq.verifactu_queue', 'verifactu.facturas');
 
         $connection = new AMQPStreamConnection($host, $port, $user, $password);
         $channel = $connection->channel();

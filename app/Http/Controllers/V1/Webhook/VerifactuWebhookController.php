@@ -25,7 +25,7 @@ class VerifactuWebhookController extends Controller
     public function __invoke(Request $request)
     {
         $token = $request->header('X-Verifactu-Token');
-        $expectedToken = env('VERIFACTU_WEBHOOK_TOKEN', '');
+        $expectedToken = config('rabbitmq.verifactu_webhook_token', '');
 
         if (! $expectedToken || $token !== $expectedToken) {
             Log::warning('VeriFactu webhook: token inválido');
