@@ -34,11 +34,14 @@ class VerifactuWebhookController extends Controller
         }
 
         $invoiceId = $request->input('invoice_id');
-        $success = $request->input('success', false);
-        $qrCode = $request->input('qr_code');
-        $signature = $request->input('signature');
+        // Worker envía status='success'/'error', o success=true/false
+        $status = $request->input('status');
+        $success = $status === 'success' || $request->boolean('success');
+        // Worker envía verifactu_qr / verifactu_signature, o qr_code / signature
+        $qrCode = $request->input('verifactu_qr') ?? $request->input('qr_code');
+        $signature = $request->input('verifactu_signature') ?? $request->input('signature');
         $signedAt = $request->input('signed_at');
-        $error = $request->input('error');
+        $error = $request->input('error') ?? $request->input('verifactu_error');
 
         $invoice = Invoice::find($invoiceId);
 
