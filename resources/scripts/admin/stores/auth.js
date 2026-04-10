@@ -54,22 +54,13 @@ export const useAuthStore = (useWindow = false) => {
                 message: 'Logged out successfully.',
               })
 
-              // Limpiar cookies de sesión para evitar 401 al reloguearse
-              document.cookie.split(';').forEach((c) => {
-                document.cookie = c.trim().split('=')[0] + '=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/'
-              })
-
               window.router.push('/login')
+                // resetStore.clearPinia()
               resolve(response)
             })
             .catch((err) => {
-              // Si falla el logout, limpiar cookies igualmente
-              document.cookie.split(';').forEach((c) => {
-                document.cookie = c.trim().split('=')[0] + '=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/'
-              })
-
               handleError(err)
-              window.router.push('/login')
+              window.router.push('/')
               reject(err)
             })
         })
