@@ -48,19 +48,11 @@ export const useAuthStore = (useWindow = false) => {
           axios
             .post('/auth/logout')
             .then((response) => {
-              const notificationStore = useNotificationStore()
-              notificationStore.showNotification({
-                type: 'success',
-                message: 'Logged out successfully.',
-              })
-
-              window.router.push('/login')
-                // resetStore.clearPinia()
+              window.location.href = '/login'
               resolve(response)
             })
             .catch((err) => {
-              handleError(err)
-              window.router.push('/')
+              window.location.href = '/login'
               reject(err)
             })
         })
