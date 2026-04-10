@@ -48,11 +48,28 @@ export const useAuthStore = (useWindow = false) => {
           axios
             .post('/auth/logout')
             .then((response) => {
-              window.location.href = '/login'
+              const notificationStore = useNotificationStore()
+              notificationStore.showNotification({
+                type: 'success',
+                message: 'Logged out successfully.',
+              })
+
+              // Limpiar cookies de sesión para evitar 401 al reloguearse
+              document.cookie.split(';').forEach((c) => {
+                document.cookie = c.trim().split('=')[0] + '=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/'
+              })
+
+              window.router.push('/login')
               resolve(response)
             })
             .catch((err) => {
-              window.location.href = '/login'
+              // Si falla el logout, limpiar cookies igualmente
+              document.cookie.split(';').forEach((c) => {
+                document.cookie = c.trim().split('=')[0] + '=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/'
+              })
+
+              handleError(err)
+              window.router.push('/login')
               reject(err)
             })
         })
