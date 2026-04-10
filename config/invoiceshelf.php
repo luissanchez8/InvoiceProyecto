@@ -345,7 +345,7 @@ return [
             'model' => Invoice::class,
             'option_key' => 'OPCION_MENU_FACTURAS',
         ],
-        // --- Facturas Proforma (toggle: OPCION_MENU_PROFORMA) ---
+        // --- Facturas Proforma (toggle: OPCION_MENU_PROFORMAS) ---
         [
             'title' => 'navigation.proforma_invoices',
             'group' => 2,
@@ -355,7 +355,7 @@ return [
             'owner_only' => false,
             'ability' => 'view-proforma-invoice',
             'model' => \App\Models\ProformaInvoice::class,
-            'option_key' => 'OPCION_MENU_PROFORMA',
+            'option_key' => 'OPCION_MENU_PROFORMAS',
         ],
         // --- Albaranes (toggle: OPCION_MENU_ALBARANES) ---
         [
