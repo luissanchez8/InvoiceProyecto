@@ -1,0 +1,11 @@
+parameters:
+	ignoreErrors:
+		-
+			message: '#Call to an undefined method Pest\\Expectation<string\|null>::toContainFormValue\(\).#'
+			path: tests/*
+		-
+			message: '#Call to an undefined method Pest\\Expectation<string\|null>::toContainFormFile\(\).#'
+			path: tests/*
+		-
+			message: '#Undefined variable: \$this#'
+			path: tests/*
