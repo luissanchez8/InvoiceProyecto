@@ -77,6 +77,28 @@ class AppServiceProvider extends ServiceProvider
             \Illuminate\Support\Facades\Mail::fake();
             \Illuminate\Support\Facades\Notification::fake();
         }
+
+        // Fix: deshabilitar verificación SSL para SMTP (certificado auto-firmado)
+        $this->app->resolving('mail.manager', function ($manager) {
+            $manager->extend('smtp', function ($config) {
+                $transport = new \Symfony\Component\Mailer\Transport\Smtp\EsmtpTransport(
+                    $config['host'] ?? '127.0.0.1',
+                    $config['port'] ?? 587,
+                    false
+                );
+                $transport->setUsername($config['username'] ?? '');
+                $transport->setPassword($config['password'] ?? '');
+                $transport->getStream()->setStreamOptions([
+                    'ssl' => [
+                        'allow_self_signed' => true,
+                        'verify_peer' => false,
+                        'verify_peer_name' => false,
+                    ],
+                ]);
+                return $transport;
+            });
+        });
+        }
     }
 
     /**
@@ -181,6 +203,39 @@ class AppServiceProvider extends ServiceProvider
 
         Gate::define('owner only', [OwnerPolicy::class, 'managedByOwner']);
     }
+
+        // Fix: deshabilitar verificacion SSL para SMTP (certificado auto-firmado)
+        try {
+            $this->app->booted(function () {
+                $mailer = app('mail.manager')->mailer();
+                $transport = $mailer->getSymfonyTransport();
+                if ($transport instanceof \Symfony\Component\Mailer\Transport\Smtp\EsmtpTransport) {
+                    $transport->getStream()->setStreamOptions([
+                        'ssl' => [
+                            'allow_self_signed' => true,
+                            'verify_peer' => false,
+                            'verify_peer_name' => false,
+                        ],
+                    ]);
+                }
+            });
+        } catch (\Throwable $e) {}
+// Fix: deshabilitar verificacion SSL para SMTP (certificado auto-firmado)
+        try {
+            $this->app->booted(function () {
+                $mailer = app('mail.manager')->mailer();
+                $transport = $mailer->getSymfonyTransport();
+                if ($transport instanceof \Symfony\Component\Mailer\Transport\Smtp\EsmtpTransport) {
+                    $transport->getStream()->setStreamOptions([
+                        'ssl' => [
+                            'allow_self_signed' => true,
+                            'verify_peer' => false,
+                            'verify_peer_name' => false,
+                        ],
+                    ]);
+                }
+            });
+        } catch (\Throwable $e) {}
 
     public function bootBroadcast()
     {
