@@ -1,7 +1,5 @@
 <?php
-
 namespace App\Providers;
-
 use App\Bouncer\Scopes\DefaultScope;
 use App\Helpers\AppConfig;
 use App\Models\Company;
@@ -32,78 +30,42 @@ use Illuminate\Support\ServiceProvider;
 use Silber\Bouncer\Database\Models as BouncerModels;
 use Silber\Bouncer\Database\Role;
 use View;
-
 class AppServiceProvider extends ServiceProvider
 {
-    /**
-     * The path to your application's "home" route.
-     *
-     * Typically, users are redirected here after authentication.
-     *
-     * @var string
-     */
     public const HOME = '/admin/dashboard';
-
-    /**
-     * The path to the "customer home" route for your application.
-     *
-     * This is used by Laravel authentication to redirect customers after login.
-     *
-     * @var string
-     */
     public const CUSTOMER_HOME = '/customer/dashboard';
 
-    /**
-     * Bootstrap any application services.
-     */
     public function boot(): void
     {
-
         if (InstallUtils::isDbCreated()) {
             $this->addMenus();
         }
-
         Gate::policy(Role::class, RolePolicy::class);
-
         View::addNamespace('pdf_templates', storage_path('app/templates/pdf'));
-        // Compartir toda la configuración con todas las vistas
         View::share('appConfig', AppConfig::load());
-
         $this->bootAuth();
         $this->bootBroadcast();
-
-        // In demo mode, prevent all outgoing emails and notifications
         if (config('app.env') === 'demo') {
             \Illuminate\Support\Facades\Mail::fake();
             \Illuminate\Support\Facades\Notification::fake();
         }
-
-        // Fix: deshabilitar verificación SSL para SMTP (certificado auto-firmado)
-        $this->app->resolving('mail.manager', function ($manager) {
-            $manager->extend('smtp', function ($config) {
-                $transport = new \Symfony\Component\Mailer\Transport\Smtp\EsmtpTransport(
-                    $config['host'] ?? '127.0.0.1',
-                    $config['port'] ?? 587,
-                    false
-                );
-                $transport->setUsername($config['username'] ?? '');
-                $transport->setPassword($config['password'] ?? '');
-                $transport->getStream()->setStreamOptions([
-                    'ssl' => [
-                        'allow_self_signed' => true,
-                        'verify_peer' => false,
-                        'verify_peer_name' => false,
-                    ],
-                ]);
-                return $transport;
+        try {
+            $this->app->booted(function () {
+                $mailer = app('mail.manager')->mailer();
+                $transport = $mailer->getSymfonyTransport();
+                if ($transport instanceof \Symfony\Component\Mailer\Transport\Smtp\EsmtpTransport) {
+                    $transport->getStream()->setStreamOptions([
+                        'ssl' => [
+                            'allow_self_signed' => true,
+                            'verify_peer' => false,
+                            'verify_peer_name' => false,
+                        ],
+                    ]);
+                }
             });
-        });
-        }
+        } catch (\Throwable $e) {}
     }
 
-    /**
-     * Register any application services.
-     */
     public function register(): void
     {
         BouncerModels::scope(new DefaultScope);
@@ -111,20 +73,16 @@ class AppServiceProvider extends ServiceProvider
 
     public function addMenus()
     {
-        // main menu
         \Menu::make('main_menu', function ($menu) {
             foreach (config('invoiceshelf.main_menu') as $data) {
                 $this->generateMenu($menu, $data);
             }
         });
-
-        // setting menu
         \Menu::make('setting_menu', function ($menu) {
             foreach (config('invoiceshelf.setting_menu') as $data) {
                 $this->generateMenu($menu, $data);
             }
         });
-
         \Menu::make('customer_portal_menu', function ($menu) {
             foreach (config('invoiceshelf.customer_menu') as $data) {
                 $this->generateMenu($menu, $data);
@@ -134,11 +92,9 @@ class AppServiceProvider extends ServiceProvider
 
     public function generateMenu($menu, $data)
     {
-        // Si este item depende de una opción y está deshabilitada, no lo generes
         if (!empty($data['option_key']) && (int) app_cfg($data['option_key'], 0) !== 1) {
             return;
         }
-
         $item = $menu->add($data['title'], $data['link'])
             ->data('icon', $data['icon'])
             ->data('name', $data['name'])
@@ -146,8 +102,6 @@ class AppServiceProvider extends ServiceProvider
             ->data('ability', $data['ability'])
             ->data('model', $data['model'])
             ->data('group', $data['group']);
-
-        // Propaga option_key al item para que el blade pueda saberlo (opcional pero útil)
         if (!empty($data['option_key'])) {
             $item->data('option_key', $data['option_key']);
         }
@@ -155,18 +109,14 @@ class AppServiceProvider extends ServiceProvider
 
     public function bootAuth()
     {
-
         Gate::policy(Company::class, CompanyPolicy::class);
         Gate::policy(Address::class, AddressPolicy::class);
         Gate::policy(\App\Models\ProformaInvoice::class, ProformaInvoicePolicy::class);
         Gate::policy(\App\Models\DeliveryNote::class, DeliveryNotePolicy::class);
-
         Gate::define('create company', [CompanyPolicy::class, 'create']);
         Gate::define('transfer company ownership', [CompanyPolicy::class, 'transferOwnership']);
         Gate::define('delete company', [CompanyPolicy::class, 'delete']);
-
         Gate::define('manage modules', [ModulesPolicy::class, 'manageModules']);
-
         Gate::define('manage settings', [SettingsPolicy::class, 'manageSettings']);
         Gate::define('manage company', [SettingsPolicy::class, 'manageCompany']);
         Gate::define('manage backups', [SettingsPolicy::class, 'manageBackups']);
@@ -175,11 +125,9 @@ class AppServiceProvider extends ServiceProvider
         Gate::define('manage pdf config', [SettingsPolicy::class, 'managePDFConfig']);
         Gate::define('manage notes', [NotePolicy::class, 'manageNotes']);
         Gate::define('view notes', [NotePolicy::class, 'viewNotes']);
-
         Gate::define('send invoice', [InvoicePolicy::class, 'send']);
         Gate::define('send estimate', [EstimatePolicy::class, 'send']);
         Gate::define('send payment', [PaymentPolicy::class, 'send']);
-
         Gate::define('delete multiple items', [ItemPolicy::class, 'deleteMultiple']);
         Gate::define('delete multiple customers', [CustomerPolicy::class, 'deleteMultiple']);
         Gate::define('delete multiple users', [UserPolicy::class, 'deleteMultiple']);
@@ -188,54 +136,14 @@ class AppServiceProvider extends ServiceProvider
         Gate::define('delete multiple expenses', [ExpensePolicy::class, 'deleteMultiple']);
         Gate::define('delete multiple payments', [PaymentPolicy::class, 'deleteMultiple']);
         Gate::define('delete multiple recurring invoices', [RecurringInvoicePolicy::class, 'deleteMultiple']);
-
-        // --- Facturas Proforma ---
         Gate::define('send proforma invoice', [ProformaInvoicePolicy::class, 'send']);
         Gate::define('delete multiple proforma invoices', [ProformaInvoicePolicy::class, 'deleteMultiple']);
-
-        // --- Albaranes ---
         Gate::define('send delivery note', [DeliveryNotePolicy::class, 'send']);
         Gate::define('delete multiple delivery notes', [DeliveryNotePolicy::class, 'deleteMultiple']);
-
         Gate::define('view dashboard', [DashboardPolicy::class, 'view']);
-
         Gate::define('view report', [ReportPolicy::class, 'viewReport']);
-
         Gate::define('owner only', [OwnerPolicy::class, 'managedByOwner']);
     }
-
-        // Fix: deshabilitar verificacion SSL para SMTP (certificado auto-firmado)
-        try {
-            $this->app->booted(function () {
-                $mailer = app('mail.manager')->mailer();
-                $transport = $mailer->getSymfonyTransport();
-                if ($transport instanceof \Symfony\Component\Mailer\Transport\Smtp\EsmtpTransport) {
-                    $transport->getStream()->setStreamOptions([
-                        'ssl' => [
-                            'allow_self_signed' => true,
-                            'verify_peer' => false,
-                            'verify_peer_name' => false,
-                        ],
-                    ]);
-                }
-            });
-        } catch (\Throwable $e) {}
-// Fix: deshabilitar verificacion SSL para SMTP (certificado auto-firmado)
-        try {
-            $this->app->booted(function () {
-                $mailer = app('mail.manager')->mailer();
-                $transport = $mailer->getSymfonyTransport();
-                if ($transport instanceof \Symfony\Component\Mailer\Transport\Smtp\EsmtpTransport) {
-                    $transport->getStream()->setStreamOptions([
-                        'ssl' => [
-                            'allow_self_signed' => true,
-                            'verify_peer' => false,
-                            'verify_peer_name' => false,
-                        ],
-                    ]);
-                }
-            });
-        } catch (\Throwable $e) {}
 
     public function bootBroadcast()
     {
