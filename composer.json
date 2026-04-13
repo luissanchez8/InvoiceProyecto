@@ -15,7 +15,7 @@
         "dragonmantank/cron-expression": "^v3.4",
         "gotenberg/gotenberg-php": "^2.8",
         "guzzlehttp/guzzle": "^7.9",
-        "nwidart/laravel-modules": "^12.0",
+        "invoiceshelf/modules": "^1.0.0",
         "jasonmccreary/laravel-test-assertions": "^v2.4",
         "laravel/framework": "^12.0",
         "laravel/helpers": "^1.7",
