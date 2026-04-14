@@ -77,7 +77,7 @@ async function saveConfig() {
   isSaving.value = true
   try {
     await axios.put('/api/v1/app-config', {
-      configs: configs.value.map(c => ({ key: c.key, value: String(c.value) })),
+      configs: configs.value.map(c => ({ key: c.key, value: c.key.startsWith('OPCION_MENU_') ? (c.value === true || c.value === '1' || c.value === 'true' ? '1' : '0') : String(c.value) })),
     })
     notificationStore.showNotification({ type: 'success', message: 'Configuración guardada correctamente' })
   } catch (err) {
