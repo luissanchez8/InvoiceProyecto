@@ -91,7 +91,7 @@
                 />
                 <BaseIcon
                   v-else
-                  name="ExclamationIcon"
+                  name="ExclamationTriangleIcon"
                   class="w-6 h-6 text-red-600"
                   aria-hidden="true"
                 />

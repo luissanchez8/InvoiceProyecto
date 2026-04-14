@@ -9,7 +9,7 @@
       <div class="flex">
         <div class="shrink-0">
           <BaseIcon
-            name="ExclamationIcon"
+            name="ExclamationTriangleIcon"
             class="h-5 w-5 text-yellow-400"
             aria-hidden="true"
           />
