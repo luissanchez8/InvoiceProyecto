@@ -69,7 +69,7 @@
                 notification.title
                   ? notification.title
                   : success
-                  ? 'Success!'
+                  ? '¡Correcto!'
                   : 'Error'
               }}
             </p>
