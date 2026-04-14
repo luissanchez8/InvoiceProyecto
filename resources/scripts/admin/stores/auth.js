@@ -51,7 +51,7 @@ export const useAuthStore = (useWindow = false) => {
               const notificationStore = useNotificationStore()
               notificationStore.showNotification({
                 type: 'success',
-                message: 'Logged out successfully.',
+                message: 'Sesión cerrada correctamente',
               })
 
               window.router.push('/login')

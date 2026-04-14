@@ -114,7 +114,7 @@ async function onSubmit() {
 
     notificationStore.showNotification({
       type: 'success',
-      message: 'Logged in successfully.',
+      message: 'Sesión iniciada correctamente',
     })
   } catch (error) {
     isLoading.value = false

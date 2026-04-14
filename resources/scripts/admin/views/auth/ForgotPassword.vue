@@ -78,7 +78,7 @@ async function onSubmit(e) {
       if (res.data) {
         notificationStore.showNotification({
           type: 'success',
-          message: 'Mail sent successfully',
+          message: 'Correo enviado correctamente',
         })
       }
       isSent.value = true

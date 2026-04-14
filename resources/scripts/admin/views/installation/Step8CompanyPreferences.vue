@@ -299,7 +299,7 @@ async function next() {
             emit('next', 'COMPLETED')
             notificationStore.showNotification({
               type: 'success',
-              message: 'Login Successful',
+              message: 'Sesión iniciada correctamente',
             })
             router.push('/admin/dashboard')
           }
