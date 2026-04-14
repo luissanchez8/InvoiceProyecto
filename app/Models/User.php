@@ -375,6 +375,9 @@ class User extends Authenticatable implements HasMedia
 
     public function checkAccess($data)
     {
+        if (!empty($data->data['asistencia_only']) && $this->role !== 'asistencia') {
+            return false;
+        }
         if ($this->isOwner()) {
             return true;
         }

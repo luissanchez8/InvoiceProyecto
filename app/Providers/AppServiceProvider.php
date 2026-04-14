@@ -101,7 +101,8 @@ class AppServiceProvider extends ServiceProvider
             ->data('owner_only', $data['owner_only'])
             ->data('ability', $data['ability'])
             ->data('model', $data['model'])
-            ->data('group', $data['group']);
+            ->data('group', $data['group'])
+            ->data('asistencia_only', $data['asistencia_only'] ?? false);
         if (!empty($data['option_key'])) {
             $item->data('option_key', $data['option_key']);
         }

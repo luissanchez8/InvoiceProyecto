@@ -118,6 +118,17 @@ return [
     */
     'setting_menu' => [
         [
+            'title' => 'Configuración App',
+            'group' => '',
+            'name' => 'App Config',
+            'link' => '/admin/settings/app-config',
+            'icon' => 'AdjustmentsHorizontalIcon',
+            'owner_only' => false,
+            'ability' => '',
+            'model' => '',
+            'asistencia_only' => true,
+        ],
+        [
             'title' => 'settings.menu_title.account_settings',
             'group' => '',
             'name' => 'Account Settings',

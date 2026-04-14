@@ -59,6 +59,9 @@ const RolesSettings = () =>
 const PDFGenerationSettings = () =>
   import('@/scripts/admin/views/settings/PDFGenerationSetting.vue')
 
+const AppConfigSetting = () =>
+  import('@/scripts/admin/views/settings/AppConfigSetting.vue')
+
 // Items
 const ItemsIndex = () => import('@/scripts/admin/views/items/Index.vue')
 const ItemCreate = () => import('@/scripts/admin/views/items/Create.vue')
@@ -348,8 +351,23 @@ export default [
           {
             path: 'pdf-generation',
             name: 'pdf.generation',
+          },
+          {
+            path: 'app-config',
+            name: 'app.config',
+            component: AppConfigSetting,
             meta: { isOwner: true },
+          },
+          {
+            path: 'app-config',
+            name: 'app.config',
+            component: AppConfigSetting,
             component: PDFGenerationSettings,
+          },
+          {
+            path: 'app-config',
+            name: 'app.config',
+            component: AppConfigSetting,
           },
         ],
       },
