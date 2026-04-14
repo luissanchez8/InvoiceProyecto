@@ -32,6 +32,6 @@ class EstimateViewedMail extends Mailable
     {
         return $this->from(config('mail.from.address'), config('mail.from.name'))
             ->subject(__('notification_view_estimate'))
-            ->markdown('emails.viewed.estimate', ['data', $this->data]);
+            ->markdown('emails.viewed.estimate', ['data' => $this->data]);
     }
 }

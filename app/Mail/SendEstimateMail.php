@@ -49,7 +49,7 @@ class SendEstimateMail extends Mailable
 
         $mailContent = $this->from($this->data['from'], config('mail.from.name'))
             ->subject($this->data['subject'])
-            ->markdown('emails.send.estimate', ['data', $this->data]);
+            ->markdown('emails.send.estimate', ['data' => $this->data]);
 
         if ($this->data['attach']['data']) {
             $mailContent->attachData(
