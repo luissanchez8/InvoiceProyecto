@@ -141,7 +141,7 @@ const pageHeading = computed(() => {
     return window.login_page_heading
   }
 
-  return 'Simple Invoicing for Individuals Small Businesses'
+  return 'Facturación sencilla para autónomos y pymes'
 })
 
 const pageDescription = computed(() => {
@@ -149,14 +149,14 @@ const pageDescription = computed(() => {
     return window.login_page_description
   }
 
-  return 'InvoiceShelf helps you track expenses, record payments & generate beautiful invoices & estimates.'
+  return 'Onfactu te ayuda a gestionar gastos, registrar pagos y generar facturas y presupuestos.'
 })
 
 const copyrightText = computed(() => {
   if (window.copyright_text) {
     return window.copyright_text
   }
-  return 'Copyright @ IDEOLOGIX MEDIA DOOEL.'
+  return 'Copyright © Onfactu ' + new Date().getFullYear()
 })
 
 const loginPageLogo = computed(() => {
