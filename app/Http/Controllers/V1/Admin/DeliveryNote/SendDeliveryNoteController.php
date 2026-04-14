@@ -18,6 +18,7 @@ class SendDeliveryNoteController extends Controller
 
         $data = $request->all();
         $data['invoice'] = $delivery_note->toArray();
+        $data['invoice']['invoice_number'] = $delivery_note->delivery_note_number;
         $data['customer'] = $delivery_note->customer->toArray();
         $data['company'] = Company::find($delivery_note->company_id);
 

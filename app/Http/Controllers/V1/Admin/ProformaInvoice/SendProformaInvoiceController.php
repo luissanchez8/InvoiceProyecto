@@ -18,6 +18,7 @@ class SendProformaInvoiceController extends Controller
 
         $data = $request->all();
         $data['invoice'] = $proforma_invoice->toArray();
+        $data['invoice']['invoice_number'] = $proforma_invoice->proforma_invoice_number;
         $data['customer'] = $proforma_invoice->customer->toArray();
         $data['company'] = Company::find($proforma_invoice->company_id);
 
