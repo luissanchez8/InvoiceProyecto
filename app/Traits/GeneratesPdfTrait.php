@@ -184,4 +184,11 @@ trait GeneratesPdfTrait
 
         return $str;
     }
+
+    public function getEmailString($body)
+    {
+        $values = array_merge($this->getFieldsArray(), $this->getExtraFields());
+        $body = strtr($body, $values);
+        return preg_replace('/{(.*?)}/', '', $body);
+    }
 }
