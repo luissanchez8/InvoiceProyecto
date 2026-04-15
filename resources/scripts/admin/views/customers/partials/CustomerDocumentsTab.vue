@@ -38,11 +38,9 @@
                 <span v-else class="font-medium">{{ row.number_label }}</span>
               </td>
               <td class="px-4 py-3 text-sm">
-                <BaseBadge
-                  :bg-color="statusColor(row.status)"
-                  :label="row.status"
-                  class="px-3 py-1"
-                />
+                <BaseInvoiceStatusBadge :status="row.status" class="px-3 py-1">
+                  <BaseInvoiceStatusLabel :status="row.status" />
+                </BaseInvoiceStatusBadge>
               </td>
               <td class="px-4 py-3 text-sm font-medium text-gray-900 text-right">
                 <BaseFormatMoney :amount="row.total || row.amount || 0" :currency="row.currency" />
@@ -101,22 +99,6 @@ const columns = [
   { key: 'status', label: 'Estado' },
   { key: 'total', label: 'Total' },
 ]
-
-function statusColor(status) {
-  const colors = {
-    DRAFT: '#6B7280',
-    SENT: '#F59E0B',
-    VIEWED: '#3B82F6',
-    COMPLETED: '#10B981',
-    ACCEPTED: '#10B981',
-    REJECTED: '#EF4444',
-    OVERDUE: '#EF4444',
-    PAID: '#10B981',
-    UNPAID: '#EF4444',
-    PARTIALLY_PAID: '#F59E0B',
-  }
-  return colors[(status || '').toUpperCase()] || '#6B7280'
-}
 
 async function loadPage(page = 1) {
   isLoading.value = true
