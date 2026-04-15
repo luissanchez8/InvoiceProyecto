@@ -84,6 +84,7 @@ export default [
         path: 'payments/:id/view',
         component: PaymentView,
         name: 'customer.payments.view',
+      },
       {
         path: 'proforma-invoices',
         component: ProformaInvoice,
