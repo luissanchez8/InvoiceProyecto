@@ -24,25 +24,10 @@ export default [
     component: LayoutLogin,
     meta: { redirectIfAuthenticated: true },
     children: [
-      {
-        path: '',
-        component: Login,
-      },
-      {
-        path: 'login',
-        component: Login,
-        name: 'customer.login',
-      },
-      {
-        path: 'forgot-password',
-        component: ForgotPassword,
-        name: 'customer.forgot-password',
-      },
-      {
-        path: 'reset/password/:token',
-        component: ResetPassword,
-        name: 'customer.reset-password',
-      },
+      { path: '', component: Login },
+      { path: 'login', component: Login, name: 'customer.login' },
+      { path: 'forgot-password', component: ForgotPassword, name: 'customer.forgot-password' },
+      { path: 'reset/password/:token', component: ResetPassword, name: 'customer.reset-password' },
     ],
   },
   {
@@ -50,97 +35,24 @@ export default [
     component: LayoutBasic,
     meta: { requiresAuth: true },
     children: [
-      {
-        path: 'dashboard',
-        component: Dashboard,
-        name: 'customer.dashboard',
-      },
-      {
-        path: 'invoices',
-        component: Invoice,
-        name: 'invoices.dashboard',
-      },
-      {
-        path: 'invoices/:id/view',
-        component: InvoiceView,
-        name: 'customer.invoices.view',
-      },
-      {
-        path: 'estimates',
-        component: Estimate,
-        name: 'estimates.dashboard',
-      },
-      {
-        path: 'estimates/:id/view',
-        component: EstimateView,
-        name: 'customer.estimates.view',
-      },
-      {
-        path: 'payments',
-        component: Payment,
-        name: 'payments.dashboard',
-      },
-      {
-        path: 'payments/:id/view',
-        component: PaymentView,
-        name: 'customer.payments.view',
-      },
-      {
-        path: 'proforma-invoices',
-        component: ProformaInvoice,
-        name: 'customer.proforma-invoices',
-      },
-      {
-        path: 'proforma-invoices/:id/view',
-        component: ProformaInvoiceView,
-        name: 'customer.proforma-invoices.view',
-      },
-      {
-        path: 'delivery-notes',
-        component: DeliveryNote,
-        name: 'customer.delivery-notes',
-      },
-      {
-        path: 'delivery-notes/:id/view',
-        component: DeliveryNoteView,
-        name: 'customer.delivery-notes.view',
-      },
-      },
-      {
-        path: 'proforma-invoices',
-        component: ProformaInvoice,
-        name: 'customer.proforma-invoices',
-      },
-      {
-        path: 'proforma-invoices/:id/view',
-        component: ProformaInvoiceView,
-        name: 'customer.proforma-invoices.view',
-      },
-      {
-        path: 'delivery-notes',
-        component: DeliveryNote,
-        name: 'customer.delivery-notes',
-      },
-      {
-        path: 'delivery-notes/:id/view',
-        component: DeliveryNoteView,
-        name: 'customer.delivery-notes.view',
-      },
+      { path: 'dashboard', component: Dashboard, name: 'customer.dashboard' },
+      { path: 'invoices', component: Invoice, name: 'invoices.dashboard' },
+      { path: 'invoices/:id/view', component: InvoiceView, name: 'customer.invoices.view' },
+      { path: 'estimates', component: Estimate, name: 'estimates.dashboard' },
+      { path: 'estimates/:id/view', component: EstimateView, name: 'customer.estimates.view' },
+      { path: 'payments', component: Payment, name: 'payments.dashboard' },
+      { path: 'payments/:id/view', component: PaymentView, name: 'customer.payments.view' },
+      { path: 'proforma-invoices', component: ProformaInvoice, name: 'customer.proforma-invoices' },
+      { path: 'proforma-invoices/:id/view', component: ProformaInvoiceView, name: 'customer.proforma-invoices.view' },
+      { path: 'delivery-notes', component: DeliveryNote, name: 'customer.delivery-notes' },
+      { path: 'delivery-notes/:id/view', component: DeliveryNoteView, name: 'customer.delivery-notes.view' },
       {
         path: 'settings',
         component: SettingIndex,
         name: 'customer',
         children: [
-          {
-            path: 'customer-profile',
-            component: CustomerProfile,
-            name: 'customer.profile',
-          },
-          {
-            path: 'address-info',
-            component: AddressInfo,
-            name: 'customer.address.info',
-          },
+          { path: 'customer-profile', component: CustomerProfile, name: 'customer.profile' },
+          { path: 'address-info', component: AddressInfo, name: 'customer.address.info' },
         ],
       },
     ],
