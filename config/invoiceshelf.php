@@ -478,6 +478,7 @@ return [
             'owner_only' => false,
             'group' => '',
             'model' => '',
+            'option_key' => 'OPCION_MENU_FACTURAS',
         ],
         [
             'title' => 'navigation.estimates',
@@ -488,6 +489,7 @@ return [
             'ability' => '',
             'group' => '',
             'model' => '',
+            'option_key' => 'OPCION_MENU_PRESUPUESTOS',
         ],
         [
             'title' => 'navigation.payments',
@@ -498,6 +500,7 @@ return [
             'ability' => '',
             'group' => '',
             'model' => '',
+            'option_key' => 'OPCION_MENU_PAGOS',
         ],
         [
             'title' => 'navigation.proforma_invoices',
