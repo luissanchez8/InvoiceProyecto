@@ -119,8 +119,8 @@
           </BaseDropdown>
 
           <BaseButton class="ml-1" variant="white" @click="sortData">
-            <BaseIcon v-if="getOrderBy" name="SortAscendingIcon" class="h-5" />
-            <BaseIcon v-else name="SortDescendingIcon" class="h-5" />
+            <BaseIcon v-if="getOrderBy" name="BarsArrowUpIcon" class="h-5" />
+            <BaseIcon v-else name="BarsArrowDownIcon" class="h-5" />
           </BaseButton>
         </div>
       </div>
