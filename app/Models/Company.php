@@ -103,8 +103,48 @@ class Company extends Model implements HasMedia
     }
 
     public function invoices(): HasMany
+
+    public function proformaInvoices(): HasMany
     {
+        return $this->hasMany(\App\Models\ProformaInvoice::class);
+    }
+
+    public function deliveryNotes(): HasMany
+    {
+        return $this->hasMany(\App\Models\DeliveryNote::class);
+    }
+    {
+
+    public function proformaInvoices(): HasMany
+    {
+        return $this->hasMany(\App\Models\ProformaInvoice::class);
+    }
+
+    public function deliveryNotes(): HasMany
+    {
+        return $this->hasMany(\App\Models\DeliveryNote::class);
+    }
         return $this->hasMany(Invoice::class);
+
+    public function proformaInvoices(): HasMany
+    {
+        return $this->hasMany(\App\Models\ProformaInvoice::class);
+    }
+
+    public function deliveryNotes(): HasMany
+    {
+        return $this->hasMany(\App\Models\DeliveryNote::class);
+    }
+    }
+
+    public function proformaInvoices(): HasMany
+    {
+        return $this->hasMany(\App\Models\ProformaInvoice::class);
+    }
+
+    public function deliveryNotes(): HasMany
+    {
+        return $this->hasMany(\App\Models\DeliveryNote::class);
     }
 
     public function expenses(): HasMany

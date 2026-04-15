@@ -2,7 +2,6 @@
 namespace App\Http\Controllers\V1\Customer\DeliveryNote;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Customer\InvoiceResource;
-use App\Models\Company;
 use App\Models\DeliveryNote;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -24,10 +23,9 @@ class DeliveryNotesController extends Controller
                     ->where('customer_id', $customerId)->count(),
             ]]);
     }
-    public function show(Company $company, $id)
+    public function show(Request $request, $company, $id)
     {
-        $deliveryNote = $company->deliveryNotes()
-            ->where('customer_id', Auth::guard('customer')->id())
+        $deliveryNote = DeliveryNote::where('customer_id', Auth::guard('customer')->id())
             ->where('id', $id)
             ->first();
         if (! $deliveryNote) {
