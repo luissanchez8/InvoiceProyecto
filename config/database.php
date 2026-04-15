@@ -32,6 +32,20 @@ return [
             'schema' => 'public',
             'sslmode' => 'prefer',
         ],
+
+        'stripe' => [
+            'driver' => 'pgsql',
+            'host' => env('DB_HOST', '127.0.0.1'),
+            'port' => env('DB_PORT', '5432'),
+            'database' => env('STRIPE_DB_NAME', 'users_onfactu_stripe'),
+            'username' => env('STRIPE_DB_USER', env('DB_USERNAME', 'forge')),
+            'password' => env('STRIPE_DB_PASS', env('DB_PASSWORD', '')),
+            'charset' => 'utf8',
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'schema' => 'public',
+            'sslmode' => 'prefer',
+        ],
     ],
 
     'migrations' => [

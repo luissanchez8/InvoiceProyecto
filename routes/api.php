@@ -590,4 +590,5 @@ Route::get('/cron', CronJobController::class)->middleware('cron-job');
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/v1/app-config', [\App\Http\Controllers\V1\Admin\Settings\AppConfigController::class, 'index']);
     Route::put('/v1/app-config', [\App\Http\Controllers\V1\Admin\Settings\AppConfigController::class, 'update']);
+    Route::get('/v1/app-config/plan-from-stripe', [\App\Http\Controllers\V1\Admin\Settings\AppConfigController::class, 'planFromStripe']);
 });

@@ -3,6 +3,7 @@ namespace App\Http\Controllers\V1\Admin\Settings;
 use App\Http\Controllers\Controller;
 use App\Models\AppConfig;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 class AppConfigController extends Controller
 {
     public function index(Request $request)
@@ -31,5 +32,55 @@ class AppConfigController extends Controller
             AppConfig::updateOrCreate(['key' => $config['key']], ['value' => $config['value']]);
         }
         return response()->json(['success' => true, 'message' => 'Configuracion actualizada']);
+    }
+
+    /**
+     * Consulta la BD de Stripe para obtener el plan del usuario admin de esta instancia.
+     * Busca por email del admin (primer usuario, role super admin) en users_onfactu_stripe.
+     */
+    public function planFromStripe(Request $request)
+    {
+        $user = $request->user();
+        if ($user->role !== 'asistencia') {
+            return response()->json(['error' => 'No autorizado'], 403);
+        }
+
+        // Obtener email del admin (primer usuario con role super admin)
+        $admin = DB::table('users')
+            ->where('role', 'super admin')
+            ->orderBy('id')
+            ->first();
+
+        if (!$admin) {
+            return response()->json(['ok' => false, 'error' => 'No se encontró usuario admin'], 404);
+        }
+
+        try {
+            $stripeUser = DB::connection('stripe')
+                ->table('users')
+                ->whereRaw('LOWER(email) = ?', [strtolower($admin->email)])
+                ->first();
+
+            if (!$stripeUser) {
+                return response()->json([
+                    'ok' => false,
+                    'error' => 'No se encontró el email en la BD de Stripe',
+                    'admin_email' => $admin->email,
+                ]);
+            }
+
+            return response()->json([
+                'ok' => true,
+                'admin_email' => $admin->email,
+                'plan_id' => $stripeUser->plan_id ?? null,
+                'plan_interval' => $stripeUser->plan_interval ?? null,
+                'plan_status' => $stripeUser->plan_status ?? null,
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'ok' => false,
+                'error' => 'Error al conectar con la BD de Stripe: ' . $e->getMessage(),
+            ], 500);
+        }
     }
 }
