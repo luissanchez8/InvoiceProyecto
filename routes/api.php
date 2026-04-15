@@ -561,6 +561,14 @@ Route::prefix('/v1')->group(function () {
 
             Route::get('payments/{id}', [CustomerPaymentsController::class, 'show']);
 
+            // Proformas (portal cliente)
+            Route::get('proforma-invoices', [AppHttpControllersV1CustomerProformaInvoiceProformaInvoicesController::class, 'index']);
+            Route::get('proforma-invoices/{id}', [AppHttpControllersV1CustomerProformaInvoiceProformaInvoicesController::class, 'show']);
+
+            // Albaranes (portal cliente)
+            Route::get('delivery-notes', [AppHttpControllersV1CustomerDeliveryNoteDeliveryNotesController::class, 'index']);
+            Route::get('delivery-notes/{id}', [AppHttpControllersV1CustomerDeliveryNoteDeliveryNotesController::class, 'show']);
+
             Route::get('/payment-method', PaymentMethodController::class);
 
             Route::get('expenses', [CustomerExpensesController::class, 'index']);

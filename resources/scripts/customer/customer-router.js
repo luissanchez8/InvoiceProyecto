@@ -10,6 +10,10 @@ const Estimate = () => import('@/scripts/customer/views/estimates/Index.vue')
 const EstimateView = () => import('@/scripts/customer/views/estimates/View.vue')
 const Payment = () => import('@/scripts/customer/views/payments/Index.vue')
 const PaymentView = () => import('@/scripts/customer/views/payments/View.vue')
+const ProformaInvoice = () => import('@/scripts/customer/views/proforma-invoices/Index.vue')
+const ProformaInvoiceView = () => import('@/scripts/customer/views/proforma-invoices/View.vue')
+const DeliveryNote = () => import('@/scripts/customer/views/delivery-notes/Index.vue')
+const DeliveryNoteView = () => import('@/scripts/customer/views/delivery-notes/View.vue')
 const SettingIndex = () => import('@/scripts/customer/views/settings/SettingsIndex.vue')
 const CustomerProfile = () => import('@/scripts/customer/views/settings/CustomerSettings.vue')
 const AddressInfo = () => import('@/scripts/customer/views/settings/AddressInformation.vue')
@@ -80,6 +84,46 @@ export default [
         path: 'payments/:id/view',
         component: PaymentView,
         name: 'customer.payments.view',
+      {
+        path: 'proforma-invoices',
+        component: ProformaInvoice,
+        name: 'customer.proforma-invoices',
+      },
+      {
+        path: 'proforma-invoices/:id/view',
+        component: ProformaInvoiceView,
+        name: 'customer.proforma-invoices.view',
+      },
+      {
+        path: 'delivery-notes',
+        component: DeliveryNote,
+        name: 'customer.delivery-notes',
+      },
+      {
+        path: 'delivery-notes/:id/view',
+        component: DeliveryNoteView,
+        name: 'customer.delivery-notes.view',
+      },
+      },
+      {
+        path: 'proforma-invoices',
+        component: ProformaInvoice,
+        name: 'customer.proforma-invoices',
+      },
+      {
+        path: 'proforma-invoices/:id/view',
+        component: ProformaInvoiceView,
+        name: 'customer.proforma-invoices.view',
+      },
+      {
+        path: 'delivery-notes',
+        component: DeliveryNote,
+        name: 'customer.delivery-notes',
+      },
+      {
+        path: 'delivery-notes/:id/view',
+        component: DeliveryNoteView,
+        name: 'customer.delivery-notes.view',
       },
       {
         path: 'settings',

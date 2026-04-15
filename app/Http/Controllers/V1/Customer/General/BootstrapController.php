@@ -22,6 +22,10 @@ class BootstrapController extends Controller
         $customer = Auth::guard('customer')->user();
 
         foreach (\Menu::get('customer_portal_menu')->items->toArray() as $data) {
+                // Filtrar por option_key (opciones del plan)
+                if (!empty($data->data['option_key']) && (int) app_cfg($data->data['option_key'], 0) !== 1) {
+                    continue;
+                }
             if ($customer) {
                 $menu[] = [
                     'title' => $data->title,
