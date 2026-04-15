@@ -196,7 +196,7 @@ Route::prefix('/v1')->group(function () {
         
         Route::post('verifactu/invoices/{invoice}', [VerifactuController::class, 'send']);
         
-        Route::middleware(['bouncer'])->group(function () {
+        Route::middleware(['bouncer', 'check-menu'])->group(function () {
 
             // Bootstrap
             // ----------------------------------
@@ -542,7 +542,7 @@ Route::prefix('/v1')->group(function () {
         // Invoices, Estimates, Payments and Expenses endpoints
         // -------------------------------------------------------
 
-        Route::middleware(['auth:customer', 'customer-portal'])->group(function () {
+        Route::middleware(['auth:customer', 'customer-portal', 'check-menu'])->group(function () {
             Route::get('/bootstrap', CustomerBootstrapController::class);
 
             Route::get('/dashboard', CustomerDashboardController::class);

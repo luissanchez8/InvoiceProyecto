@@ -47,6 +47,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'auth' => \App\Http\Middleware\Authenticate::class,
             'bindings' => \Illuminate\Routing\Middleware\SubstituteBindings::class,
             'bouncer' => \App\Http\Middleware\ScopeBouncer::class,
+            'check-menu' => \App\Http\Middleware\CheckMenuOption::class,
             'company' => \App\Http\Middleware\CompanyMiddleware::class,
             'cron-job' => \App\Http\Middleware\CronJobMiddleware::class,
             'customer' => \App\Http\Middleware\CustomerRedirectIfAuthenticated::class,

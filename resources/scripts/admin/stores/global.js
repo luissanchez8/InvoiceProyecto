@@ -31,6 +31,9 @@ export const useGlobalStore = (useWindow = false) => {
       mainMenu: [],
       settingMenu: [],
 
+      // Opciones de menú deshabilitadas (segmentos de ruta: 'invoices', 'estimates', etc.)
+      disabledMenuOptions: [],
+
       // Boolean Flags
       isAppLoaded: false,
       isSidebarOpen: false,
@@ -57,6 +60,7 @@ export const useGlobalStore = (useWindow = false) => {
 
               this.mainMenu = response.data.main_menu
               this.settingMenu = response.data.setting_menu
+              this.disabledMenuOptions = response.data.disabled_menu_options || []
 
               this.config = response.data.config
               this.globalSettings = response.data.global_settings

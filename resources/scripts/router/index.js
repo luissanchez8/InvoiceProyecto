@@ -21,7 +21,23 @@ router.beforeEach((to, from, next) => {
   const userStore = useUserStore()
   const globalStore = useGlobalStore()
   let ability = to.meta.ability
-  const { isAppLoaded } = globalStore
+  const { isAppLoaded, disabledMenuOptions } = globalStore
+
+  // Bloquear rutas deshabilitadas por plan (admin y customer)
+  if (isAppLoaded && disabledMenuOptions && disabledMenuOptions.length) {
+    const path = to.path || ''
+    for (const segment of disabledMenuOptions) {
+      if (path.includes('/' + segment)) {
+        // Redirigir al dashboard correspondiente
+        if (path.includes('/customer/')) {
+          next({ name: 'customer.dashboard' })
+        } else {
+          next({ name: 'dashboard' })
+        }
+        return
+      }
+    }
+  }
 
   if (ability && isAppLoaded && to.meta.requiresAuth) {
     if (userStore.hasAbilities(ability)) {

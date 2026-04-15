@@ -59,6 +59,23 @@ class BootstrapController extends Controller
             'copyright_text',
         ]);
 
+        // Opciones de menú deshabilitadas (para bloquear rutas en el frontend)
+        $menuOptionKeys = [
+            'OPCION_MENU_FACTURAS' => 'invoices',
+            'OPCION_MENU_PRESUPUESTOS' => 'estimates',
+            'OPCION_MENU_PROFORMAS' => 'proforma-invoices',
+            'OPCION_MENU_ALBARANES' => 'delivery-notes',
+            'OPCION_MENU_FRA_RECURRENTE' => 'recurring-invoices',
+            'OPCION_MENU_PAGOS' => 'payments',
+            'OPCION_MENU_GASTOS' => 'expenses',
+        ];
+        $disabledMenuOptions = [];
+        foreach ($menuOptionKeys as $configKey => $routeSegment) {
+            if ((int) app_cfg($configKey, 1) !== 1) {
+                $disabledMenuOptions[] = $routeSegment;
+            }
+        }
+
         return response()->json([
             'current_user' => new UserResource($current_user),
             'current_user_settings' => $current_user_settings,
@@ -72,6 +89,7 @@ class BootstrapController extends Controller
             'main_menu' => $main_menu,
             'setting_menu' => $setting_menu,
             'modules' => Module::where('enabled', true)->pluck('name'),
+            'disabled_menu_options' => $disabledMenuOptions,
         ]);
     }
 }

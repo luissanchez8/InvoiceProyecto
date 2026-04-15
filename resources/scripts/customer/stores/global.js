@@ -14,7 +14,8 @@ export const useGlobalStore = defineStore({
     currentUser: null,
     companySlug: '',
     mainMenu: null,
-    enabledModules: []
+    enabledModules: [],
+    disabledMenuOptions: [],
   }),
 
   actions: {
@@ -29,12 +30,20 @@ export const useGlobalStore = defineStore({
             this.mainMenu = response.data.meta.menu
             this.currency = response.data.data.currency
             this.enabledModules = response.data.meta.modules
+            this.disabledMenuOptions = response.data.meta.disabled_menu_options || []
             Object.assign(userStore.userForm, response.data.data)
 
             if(typeof global.locale !== 'string') {
               global.locale.value =
                 response.data.meta.current_company_language || 'en'
             }
+
+            // Propagar disabledMenuOptions al store global admin para el router guard
+            try {
+              const { useGlobalStore: useAdminGlobalStore } = require('@/scripts/admin/stores/global')
+              const adminGlobal = useAdminGlobalStore()
+              adminGlobal.disabledMenuOptions = this.disabledMenuOptions
+            } catch (_) {}
 
             this.isAppLoaded = true
             resolve(response)
