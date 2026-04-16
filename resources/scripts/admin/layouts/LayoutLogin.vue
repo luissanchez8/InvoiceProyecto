@@ -11,13 +11,11 @@
         class="onf-login-brand"
       />
 
-      <!-- Card con logo cliente + formulario -->
+      <!-- Card con formulario -->
       <div class="onf-login-card">
-        <!-- Logo cliente -->
-        <div class="onf-login-client-logo">
-          <MainLogo v-if="!loginPageLogo" />
+        <!-- Logo cliente (solo si la empresa ha subido uno personalizado) -->
+        <div v-if="loginPageLogo" class="onf-login-client-logo">
           <img
-            v-else
             :src="loginPageLogo"
             alt="Logo Cliente"
           />
@@ -49,7 +47,6 @@
 
 <script setup>
 import NotificationRoot from '@/scripts/components/notifications/NotificationRoot.vue'
-import MainLogo from '@/scripts/components/icons/MainLogo.vue'
 import { computed } from 'vue'
 
 const pageHeading = computed(() => {
