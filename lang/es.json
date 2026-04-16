@@ -47,7 +47,7 @@
         "delete": "Eliminar",
         "edit": "Editar",
         "view": "Ver",
-        "add_new_item": "Agregar un Nuevo Artículo",
+        "add_new_item": "Agregar nuevo artículo",
         "clear_all": "Limpiar todo",
         "showing": "Mostrando",
         "of": "de",
@@ -271,7 +271,7 @@
         "save_item": "Guardar artículo",
         "update_item": "Actualizar elemento",
         "item": "Artículo | Artículos",
-        "add_new_item": "Agregar ítem nuevo",
+        "add_new_item": "Agregar nuevo artículo",
         "new_item": "Nuevo artículo",
         "edit_item": "Editar elemento",
         "no_items": "¡Aún no hay artículos!",
@@ -784,7 +784,7 @@
         "update_report": "Informe de actualización",
         "report": "Informe | Informes",
         "profit_loss": {
-            "profit_loss": "Pérdida de beneficios",
+            "profit_loss": "Pérdidas y ganancias",
             "to_date": "Hasta la fecha",
             "from_date": "A partir de la fecha",
             "date_range": "Seleccionar rango de fechas"

@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="utf-8">
-    <title>{{ app_cfg('NOMBRE_EMPRESA', config('app.name')) }}</title>
+    <title>{{ app_cfg('NOMBRE_EMPRESA', config('app.name')) }} - Onfactu</title>
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <link rel="apple-touch-icon" sizes="180x180" href="/favicons/apple-touch-icon.png">
     <link rel="icon" type="image/png" sizes="32x32" href="/favicons/favicon-32x32.png">
