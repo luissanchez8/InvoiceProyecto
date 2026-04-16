@@ -243,3 +243,50 @@ Users belong to multiple companies via `user_company` pivot table. Each company 
 - `config/modules.php` — Module system (nwidart/laravel-modules): paths, generators, activator
 - `config/pdf.php` — PDF driver config (gotenberg or dompdf)
 - `config/installer.php` — PHP 8.2 requirement, required extensions (exif, pdo, bcmath, openssl, mbstring, json, xml, fileinfo, zip, curl, sqlite3), directory permissions
+- `config/database.php` — Includes extra `stripe` connection to query users_onfactu_stripe DB for plan info
+
+## Onfactu-specific customizations
+
+This is a fork of InvoiceShelf deployed as instances in Onfactu Pro. Each instance runs in Docker with its own PostgreSQL database. Several customizations have been added on top of the base InvoiceShelf:
+
+### Proforma Invoices & Delivery Notes (MEJORAS.md)
+
+New document types added: `proforma_invoices` and `delivery_notes` tables with their own controllers, models, resources, views, PDF templates, and both admin and customer portal support. Each follows the same patterns as `Invoice`/`Estimate`.
+
+### Menu Options Toggle System (`app_config` table)
+
+The `app_config` DB table stores instance-level settings. Menu items in `config/invoiceshelf.php` use `option_key` to toggle visibility based on the user's plan. Helper: `app_cfg($key, $default)` in `app/Support/appcfg.php`.
+
+Current toggles: `OPCION_MENU_FACTURAS`, `OPCION_MENU_PRESUPUESTOS`, `OPCION_MENU_PROFORMAS`, `OPCION_MENU_ALBARANES`, `OPCION_MENU_FRA_RECURRENTE`, `OPCION_MENU_PAGOS`, `OPCION_MENU_GASTOS`.
+
+### Asistencia Panel
+
+A special user role `asistencia` (email: `asistencia@onfactu.com`) has access to **Settings → App Config** where it can toggle menu options, edit config values, and query the contracted plan from the Stripe DB in real time. Endpoints:
+
+- `GET /api/v1/app-config` — List all config
+- `PUT /api/v1/app-config` — Update configs
+- `GET /api/v1/app-config/plan-from-stripe` — Query Stripe DB by admin email
+
+See `app/Http/Controllers/V1/Admin/Settings/AppConfigController.php` and `resources/scripts/admin/views/settings/AppConfigSetting.vue`.
+
+### Multi-layer Security for Disabled Routes
+
+When a menu option is disabled in `app_config`, access is blocked at 4 layers:
+1. **Sidebar admin** — `AppServiceProvider::generateMenu()` filters by `option_key`
+2. **Customer portal menu** — `CustomerBootstrapController` filters by `option_key`
+3. **Frontend router** — `router.beforeEach` redirects to dashboard if path contains a disabled segment
+4. **Backend API** — `CheckMenuOption` middleware returns 403 (applied to `bouncer` and `auth:customer` groups)
+
+The frontend gets `disabled_menu_options: string[]` from bootstrap endpoints and stores them in `globalStore.disabledMenuOptions`.
+
+### Customer View with Tabs (admin)
+
+`/admin/customers/:id/view` shows tabs: Dashboard (chart) + Invoices + Estimates + Payments + Proforma Invoices + Delivery Notes + Expenses. Each tab filters by `customer_id`. Tabs respect `disabledMenuOptions`. See `resources/scripts/admin/views/customers/View.vue` + `partials/CustomerDocumentsTab.vue`.
+
+### VeriFactu Integration
+
+Invoice model has verifactu fields (hash, qr_code_path, status). A Node.js worker (`worker-verifactu.js` in the Onfactu Pro repo) consumes a RabbitMQ queue and sends invoices to AEAT.
+
+### Spanish translations
+
+Language is set to `es` by default. Key translation keys are prefixed with `pdf_invoice_`, `pdf_proforma_invoice_`, `pdf_delivery_note_`, `navigation.*`, `settings.customization.*`. Many UI texts are hardcoded Spanish for Onfactu branding. Never change `Onfactu` to `OnFactu` (capital F is wrong).

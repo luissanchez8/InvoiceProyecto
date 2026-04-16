@@ -409,3 +409,104 @@ Añadida la clave `general.mark_as_sent` a ambos archivos de idioma:
 - Claves compartidas entre tipos de documento: usar prefijo `general.*`
 - Claves específicas de un tipo: usar prefijo `{tipo}s.*` (ej: `invoices.mark_as_sent`)
 - Antes de añadir una clave nueva, verificar que no exista ya con otro prefijo
+
+---
+
+## Mejora 3: Panel de Asistencia
+
+**Fecha:** 2026-04-15
+
+### Motivación
+
+El rol `asistencia` (soporte de Onfactu) necesita un panel donde pueda configurar opciones de la instancia sin tocar la BD directamente: activar/desactivar secciones del menú según el plan del cliente, y consultar qué plan tiene contratado.
+
+### Archivos creados
+
+| Archivo | Descripción |
+|---------|-------------|
+| `app/Http/Controllers/V1/Admin/Settings/AppConfigController.php` | Controlador con endpoints `index`, `update`, `planFromStripe`. Solo accesible para `role = 'asistencia'`. |
+| `resources/scripts/admin/views/settings/AppConfigSetting.vue` | Vista con 3 secciones: plan contratado + botón consulta, toggles de menú, otros ajustes. |
+
+### Archivos modificados
+
+| Archivo | Cambio |
+|---------|--------|
+| `routes/api.php` | Rutas GET/PUT `/v1/app-config` y GET `/v1/app-config/plan-from-stripe` |
+| `config/database.php` | Añadida conexión `stripe` para consultar `users_onfactu_stripe` |
+| `resources/scripts/admin/admin-router.js` | Ruta `/admin/settings/app-config` con flag `asistencia_only` |
+| `app/Providers/AppServiceProvider.php` | `generateMenu()` propaga `asistencia_only` |
+
+### Notas técnicas
+
+- Los toggles usan propiedad `.enabled` (boolean) separada del `.value` (string) porque `BaseSwitch` solo acepta Boolean. Conversión `'1'` ↔ `true` al cargar/guardar.
+- La conexión `stripe` usa `onfactu_atenea_user` como fallback de credenciales (no `invoiceshelf` que no tiene acceso a esa BD).
+- El botón "Consultar plan" busca por email del admin (primer user con role `super admin`) en `users_onfactu_stripe`.
+
+---
+
+## Mejora 4: Seguridad multicapa para opciones de menú
+
+**Fecha:** 2026-04-15
+
+### Motivación
+
+Cuando una opción de menú se desactivaba en `app_config`, el enlace del sidebar desaparecía pero la ruta seguía siendo accesible escribiendo la URL directamente. Esto es un fallo de seguridad: un cliente con plan Essential podía acceder a Pagos o Gastos escribiendo la URL manualmente.
+
+### Archivos creados
+
+| Archivo | Descripción |
+|---------|-------------|
+| `app/Http/Middleware/CheckMenuOption.php` | Middleware que devuelve 403 si el path contiene un segmento deshabilitado según `app_cfg()` |
+
+### Archivos modificados
+
+| Archivo | Cambio |
+|---------|--------|
+| `bootstrap/app.php` | Registrado alias `check-menu` |
+| `routes/api.php` | Middleware aplicado a grupos `bouncer` (admin) y `auth:customer,customer-portal` (customer) |
+| `config/invoiceshelf.php` | Eliminadas entradas duplicadas de proformas/albaranes en `main_menu` + añadido `option_key` en customer_menu (facturas, presupuestos, pagos) |
+| `app/Http/Controllers/V1/Admin/General/BootstrapController.php` | Añadido `disabled_menu_options` a la respuesta |
+| `app/Http/Controllers/V1/Customer/General/BootstrapController.php` | Igual para customer |
+| `resources/scripts/admin/stores/global.js` | Campo `disabledMenuOptions` en state |
+| `resources/scripts/customer/stores/global.js` | Idem + propagación al store admin para el router guard |
+| `resources/scripts/router/index.js` | Guard que redirige al dashboard si la ruta es deshabilitada |
+
+### Mapeo ruta → app_config
+
+```
+invoices           → OPCION_MENU_FACTURAS
+estimates          → OPCION_MENU_PRESUPUESTOS
+proforma-invoices  → OPCION_MENU_PROFORMAS
+delivery-notes     → OPCION_MENU_ALBARANES
+recurring-invoices → OPCION_MENU_FRA_RECURRENTE
+payments           → OPCION_MENU_PAGOS
+expenses           → OPCION_MENU_GASTOS
+```
+
+---
+
+## Mejora 5: Vista de cliente con pestañas (admin)
+
+**Fecha:** 2026-04-15
+
+### Motivación
+
+La vista `/admin/customers/:id/view` solo mostraba una gráfica. No se podían ver los documentos asociados a ese cliente sin ir a cada sección por separado y filtrar. Se añaden pestañas para ver todo agrupado.
+
+### Archivos creados
+
+| Archivo | Descripción |
+|---------|-------------|
+| `resources/scripts/admin/views/customers/partials/CustomerDocumentsTab.vue` | Componente genérico que recibe `customerId`, `docType`, `viewRoute` y muestra una tabla paginada con los documentos de ese tipo filtrados por cliente. Usa `BaseInvoiceStatusBadge` + `BaseInvoiceStatusLabel` para los estados. |
+
+### Archivos modificados
+
+| Archivo | Cambio |
+|---------|--------|
+| `resources/scripts/admin/views/customers/View.vue` | Reescrito para añadir sistema de pestañas: Dashboard + Facturas + Presupuestos + Pagos + Proformas + Albaranes + Gastos. Las pestañas se filtran automáticamente por `disabledMenuOptions` del store global. |
+
+### Notas técnicas
+
+- Los controladores existentes (`InvoicesController`, etc.) ya soportan el filtro `?customer_id=X` via `applyFilters` — no se crean endpoints nuevos.
+- La gráfica original se mantiene intacta en la pestaña "Dashboard".
+- Los estados se muestran como texto (ENVIADO, BORRADOR, PAGADO) usando los componentes Base ya existentes, igual que en el portal de cliente.
