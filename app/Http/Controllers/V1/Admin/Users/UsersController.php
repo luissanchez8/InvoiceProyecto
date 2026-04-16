@@ -22,9 +22,17 @@ class UsersController extends Controller
 
         $limit = $request->has('limit') ? $request->limit : 10;
 
-        $users = User::applyFilters($request->all())
-            ->latest()
-            ->paginate($limit);
+        $currentUser = $request->user();
+        $isAsistencia = $currentUser && $currentUser->role === 'asistencia';
+
+        $query = User::applyFilters($request->all());
+
+        // Ocultar el usuario de Asistencia para cualquier usuario que NO sea Asistencia
+        if (!$isAsistencia) {
+            $query->where('role', '<>', 'asistencia');
+        }
+
+        $users = $query->latest()->paginate($limit);
 
         return UserResource::collection($users)
             ->additional(['meta' => [
