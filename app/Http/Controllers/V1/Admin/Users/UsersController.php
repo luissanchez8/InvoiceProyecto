@@ -22,10 +22,7 @@ class UsersController extends Controller
 
         $limit = $request->has('limit') ? $request->limit : 10;
 
-        $user = $request->user();
-
         $users = User::applyFilters($request->all())
-            ->where('id', '<>', $user->id)
             ->latest()
             ->paginate($limit);
 

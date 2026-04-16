@@ -87,7 +87,7 @@ const props = defineProps({
   optionGroupClass: {
     type: String,
     default:
-      'h-4 w-4 mt-0.5 cursor-pointer rounded-full border flex items-center justify-center',
+      'h-4 w-4 mt-0.5 cursor-pointer rounded-full border flex-shrink-0 flex items-center justify-center',
   },
   optionGroupLabelClass: {
     type: String,
