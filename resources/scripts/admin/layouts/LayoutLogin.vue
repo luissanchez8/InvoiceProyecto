@@ -1,128 +1,48 @@
 <template>
-  <div class="grid h-screen grid-cols-12 overflow-y-hidden bg-gray-100">
+  <div class="onf-login-wrapper">
     <NotificationRoot />
 
-    <div
-      class="
-        flex
-        items-center
-        justify-center
-        w-full
-        max-w-sm
-        col-span-12
-        p-4
-        mx-auto
-        text-gray-900
-        md:p-8 md:col-span-6
-        lg:col-span-4
-        flex-2
-        md:pb-48 md:pt-40
-      "
-    >
-      <div class="w-full">
-        <MainLogo
-          v-if="!loginPageLogo"
-          class="block w-48 h-auto max-w-full mb-32 text-primary-500"
-        />
-
-        <img
-          v-else
-          :src="loginPageLogo"
-          class="block w-48 h-auto max-w-full mb-32 text-primary-500"
-        />
-
-        <router-view />
-
-        <div
-          class="
-            pt-24
-            mt-0
-            text-sm
-            not-italic
-            font-medium
-            leading-relaxed
-            text-left text-gray-400
-            md:pt-40
-          "
-        >
-          <p class="mb-3">
-            {{ copyrightText }}
-            {{ new Date().getFullYear() }}
-          </p>
-        </div>
-      </div>
-    </div>
-    <div
-      class="
-        relative
-        flex-col
-        items-center
-        justify-center
-        hidden
-        w-full
-        h-full
-        pl-10
-        bg-no-repeat bg-cover
-        md:col-span-6
-        lg:col-span-8
-        md:flex
-        content-box
-        overflow-hidden
-      "
-    >
-      <LoginBackground class="absolute h-full w-full" />
-
-      <LoginPlanetCrater
-        class="absolute z-10 top-0 right-0 h-[300px] w-[420px]"
+    <!-- Columna izquierda: logo + formulario -->
+    <div class="onf-login-left">
+      <!-- Logo Onfactu -->
+      <img
+        src="/images/logo-onfactu.png"
+        alt="Onfactu"
+        class="onf-login-brand"
       />
 
-      <LoginBackgroundOverlay class="absolute h-full w-full right-[7.5%]" />
+      <!-- Card con logo cliente + formulario -->
+      <div class="onf-login-card">
+        <!-- Logo cliente -->
+        <div class="onf-login-client-logo">
+          <MainLogo v-if="!loginPageLogo" />
+          <img
+            v-else
+            :src="loginPageLogo"
+            alt="Logo Cliente"
+          />
+        </div>
 
-      <div class="md:pl-10 xl:pl-0 relative z-50 w-7/12 xl:w-5/12 xl:w-5/12">
-        <h1
-          class="
-            hidden
-            mb-3
-            text-3xl
-            leading-normal
-            text-left text-white
-            xl:text-5xl xl:leading-tight
-            md:none
-            lg:block
-          "
-        >
+        <!-- Formulario (lo inyecta el router) -->
+        <router-view />
+      </div>
+
+      <!-- Copyright -->
+      <p class="onf-login-copyright">
+        {{ copyrightText }}
+      </p>
+    </div>
+
+    <!-- Columna derecha: imagen de fondo + texto -->
+    <div class="onf-login-right">
+      <div class="onf-login-right-overlay">
+        <h1 class="onf-login-heading">
           {{ pageHeading }}
         </h1>
-        <p
-          class="
-            hidden
-            text-sm
-            not-italic
-            font-normal
-            leading-normal
-            text-left text-gray-100
-            xl:text-base xl:leading-6
-            md:none
-            lg:block
-          "
-        >
+        <p v-if="pageDescription" class="onf-login-description">
           {{ pageDescription }}
         </p>
       </div>
-
-      <LoginBottomVector
-        class="
-          absolute
-          z-50
-          w-full
-          bg-no-repeat
-          content-bottom
-          h-[15vw]
-          lg:h-[22vw]
-          right-[32%]
-          bottom-0
-        "
-      />
     </div>
   </div>
 </template>
@@ -130,26 +50,20 @@
 <script setup>
 import NotificationRoot from '@/scripts/components/notifications/NotificationRoot.vue'
 import MainLogo from '@/scripts/components/icons/MainLogo.vue'
-import LoginBackground from '@/scripts/components/svg/LoginBackground.vue'
-import LoginPlanetCrater from '@/scripts/components/svg/LoginPlanetCrater.vue'
-import LoginBottomVector from '@/scripts/components/svg/LoginBottomVector.vue'
-import LoginBackgroundOverlay from '@/scripts/components/svg/LoginBackgroundOverlay.vue'
-import { computed, ref } from 'vue'
+import { computed } from 'vue'
 
 const pageHeading = computed(() => {
   if (window.login_page_heading) {
     return window.login_page_heading
   }
-
-  return 'Facturación sencilla para autónomos y pymes'
+  return 'Facturación electrónica simple. Sin complicaciones'
 })
 
 const pageDescription = computed(() => {
   if (window.login_page_description) {
     return window.login_page_description
   }
-
-  return 'Onfactu te ayuda a gestionar gastos, registrar pagos y generar facturas y presupuestos.'
+  return ''
 })
 
 const copyrightText = computed(() => {
@@ -163,10 +77,131 @@ const loginPageLogo = computed(() => {
   if (window.login_page_logo) {
     return window.login_page_logo
   }
-
   return false
 })
 </script>
 
-<style lang="scss" scoped>
+<style scoped>
+.onf-login-wrapper {
+  display: flex;
+  min-height: 100vh;
+  width: 100%;
+  background-color: #f6f7f8;
+}
+
+/* ─── Columna izquierda ─── */
+.onf-login-left {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  background-color: #f6f7f8;
+  min-width: 0;
+}
+
+.onf-login-brand {
+  max-width: 220px;
+  height: auto;
+  margin-bottom: 2.5rem;
+}
+
+.onf-login-card {
+  width: 100%;
+  max-width: 420px;
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 2rem 2rem 2.25rem;
+  box-shadow: 0 4px 24px rgba(15, 23, 42, 0.05);
+}
+
+.onf-login-client-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f6f7f8;
+  border-radius: 10px;
+  height: 70px;
+  margin-bottom: 1.5rem;
+}
+
+.onf-login-client-logo :deep(img),
+.onf-login-client-logo :deep(svg) {
+  max-height: 50px;
+  max-width: 180px;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+}
+
+.onf-login-copyright {
+  margin-top: 2.5rem;
+  font-size: 0.8125rem;
+  color: #94a3b8;
+  text-align: center;
+}
+
+/* ─── Columna derecha (imagen de fondo) ─── */
+.onf-login-right {
+  flex: 1;
+  position: relative;
+  display: none;
+  background-image: url('/images/saas-bg.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  min-height: 100vh;
+  overflow: hidden;
+}
+
+.onf-login-right-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2.5rem;
+  text-align: center;
+}
+
+.onf-login-heading {
+  color: #ffffff;
+  font-size: clamp(1.75rem, 2.8vw, 2.75rem);
+  font-weight: 700;
+  line-height: 1.2;
+  max-width: 700px;
+  margin: 0;
+  text-shadow: 0 2px 16px rgba(0, 0, 0, 0.35);
+}
+
+.onf-login-description {
+  color: #e2e8f0;
+  font-size: 1rem;
+  line-height: 1.5;
+  max-width: 560px;
+  margin: 1.25rem 0 0;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
+}
+
+/* ─── Responsive ─── */
+@media (min-width: 768px) {
+  .onf-login-right {
+    display: block;
+  }
+}
+
+@media (max-width: 767px) {
+  .onf-login-wrapper {
+    flex-direction: column;
+  }
+  .onf-login-left {
+    padding: 1.5rem;
+  }
+  .onf-login-brand {
+    max-width: 180px;
+    margin-bottom: 1.5rem;
+  }
+}
 </style>
