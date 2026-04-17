@@ -97,6 +97,7 @@ const companyStore = useCompanyStore()
 const { t } = useI18n()
 
 globalStore.downloadReport = downloadReport
+globalStore.downloadExcel = downloadExcel
 
 const dateRange = reactive([
   {
@@ -257,5 +258,10 @@ function downloadReport() {
   setTimeout(() => {
     url.value = dateRangeUrl.value
   }, 200)
+}
+
+function downloadExcel() {
+  const excelUrl = `/reports/excel/profit-loss/${getSelectedCompany.value.unique_hash}?from_date=${moment(formData.from_date).format('YYYY-MM-DD')}&to_date=${moment(formData.to_date).format('YYYY-MM-DD')}`
+  window.open(excelUrl)
 }
 </script>

@@ -40,6 +40,7 @@ export const useGlobalStore = (useWindow = false) => {
       areCurrenciesLoading: false,
 
       downloadReport: null,
+      downloadExcel: null,
     }),
 
     getters: {

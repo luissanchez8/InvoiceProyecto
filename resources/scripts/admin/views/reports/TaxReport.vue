@@ -94,6 +94,7 @@ import { useGlobalStore } from '@/scripts/admin/stores/global'
 const globalStore = useGlobalStore()
 
 globalStore.downloadReport = downloadReport
+globalStore.downloadExcel = downloadExcel
 
 const { t } = useI18n()
 
@@ -260,5 +261,10 @@ function downloadReport() {
   setTimeout(() => {
     url.value = dateRangeUrl.value
   }, 200)
+}
+
+function downloadExcel() {
+  const excelUrl = `/reports/excel/tax-summary/${getSelectedCompany.value.unique_hash}?from_date=${moment(formData.from_date).format('YYYY-MM-DD')}&to_date=${moment(formData.to_date).format('YYYY-MM-DD')}`
+  window.open(excelUrl)
 }
 </script>

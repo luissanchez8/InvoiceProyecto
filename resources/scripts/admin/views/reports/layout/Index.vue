@@ -16,6 +16,12 @@
           </template>
           {{ $t('reports.download_pdf') }}
         </BaseButton>
+        <BaseButton variant="primary-outline" class="ml-2" @click="onDownloadExcel">
+          <template #left="slotProps">
+            <BaseIcon name="ArrowDownTrayIcon" :class="slotProps.class" />
+          </template>
+          Descargar Excel
+        </BaseButton>
       </template>
     </BasePageHeader>
 
@@ -61,5 +67,9 @@ const globalStore = useGlobalStore()
 
 function onDownload() {
   globalStore.downloadReport()
+}
+
+function onDownloadExcel() {
+  globalStore.downloadExcel()
 }
 </script>

@@ -70,6 +70,10 @@ Route::middleware('auth:sanctum')->prefix('reports')->group(function () {
     // ----------------------------------
     Route::get('/profit-loss/{hash}', ProfitLossReportController::class);
 
+    // export to Excel (CSV)
+    // ----------------------------------
+    Route::get('/excel/{type}/{hash}', \App\Http\Controllers\V1\Admin\Report\ExcelReportController::class);
+
     // download expense receipt
     // -------------------------------------------------
     Route::get('/expenses/{expense}/download-receipt', DownloadReceiptController::class);
