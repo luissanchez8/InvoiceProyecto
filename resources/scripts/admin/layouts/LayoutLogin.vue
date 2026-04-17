@@ -6,7 +6,7 @@
     <div class="onf-login-left">
       <!-- Logo Onfactu -->
       <img
-        src="/images/logo-onfactu-2.png"
+        src="/images/logo-onfactu.png"
         alt="Onfactu"
         class="onf-login-brand"
       />
