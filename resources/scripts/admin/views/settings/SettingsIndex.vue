@@ -37,7 +37,13 @@
             class="py-3"
           >
             <template #icon>
-              <BaseIcon :name="menuItem.icon"></BaseIcon>
+              <img
+                v-if="menuItem.custom_icon"
+                :src="menuItem.custom_icon"
+                :alt="$t(menuItem.title)"
+                class="w-5 h-5"
+              />
+              <BaseIcon v-else :name="menuItem.icon"></BaseIcon>
             </template>
           </BaseListItem>
         </BaseList>

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Capa_1" data-name="Capa 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48.98 42.82">
+  <defs>
+    <style>
+      .cls-1 {
+        isolation: isolate;
+      }
+
+      .cls-2 {
+        fill: none;
+        stroke: #070322;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        stroke-width: 4px;
+      }
+    </style>
+  </defs>
+  <g class="cls-1">
+    <path id="Trazado_62" data-name="Trazado 62" class="cls-2" d="M8.26,30.26L33.68,5.62l7.04,6.65-25.71,24.93h-6.76v-6.94Z"/>
+  </g>
+</svg>
