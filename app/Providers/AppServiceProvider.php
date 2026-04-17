@@ -106,6 +106,9 @@ class AppServiceProvider extends ServiceProvider
         if (!empty($data['option_key'])) {
             $item->data('option_key', $data['option_key']);
         }
+        if (!empty($data['custom_icon'])) {
+            $item->data('custom_icon', $data['custom_icon']);
+        }
     }
 
     public function bootAuth()
