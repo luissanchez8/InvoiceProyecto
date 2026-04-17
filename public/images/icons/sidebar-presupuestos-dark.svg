@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Capa_1" data-name="Capa 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48.98 42.82">
+  <defs>
+    <style>
+      .cls-1 {
+        fill: none;
+        stroke-width: 3.59px;
+      }
+
+      .cls-1, .cls-2 {
+        stroke: #070322;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+
+      .cls-2 {
+        fill: #fff;
+        stroke-width: 3.74px;
+      }
+    </style>
+  </defs>
+  <g id="euro-square-svgrepo-com">
+    <path id="Trazado_35" data-name="Trazado 35" class="cls-1" d="M5.83,22.69c0-14.39,3.09-17.47,17.47-17.47s17.47,3.09,17.47,17.47-3.08,17.47-17.47,17.47-17.47-3.08-17.47-17.47Z"/>
+  </g>
+  <path id="Trazado_62" data-name="Trazado 62" class="cls-2" d="M17.77,21.92L37.64,2.66l5.5,5.2-20.09,19.49h-5.29v-5.42Z"/>
+</svg>

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Capa_1" data-name="Capa 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 94.71 82.8">
+  <defs>
+    <style>
+      .cls-1 {
+        fill: #eaeaec;
+        stroke: #38d587;
+      }
+
+      .cls-1, .cls-2 {
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        stroke-width: 3px;
+      }
+
+      .cls-2 {
+        fill: none;
+        stroke: #070322;
+      }
+    </style>
+  </defs>
+  <path id="Trazado_35" data-name="Trazado 35" class="cls-2" d="M11.69,43.85c0-27.5,5.9-33.4,33.4-33.4s33.4,5.9,33.4,33.4-5.89,33.4-33.4,33.4-33.4-5.89-33.4-33.4Z"/>
+  <path id="Trazado_62" data-name="Trazado 62" class="cls-1" d="M34.5,42.37L72.49,5.55l10.52,9.94-38.41,37.25h-10.1v-10.36Z"/>
+</svg>

@@ -65,7 +65,14 @@
                 ]"
                 @click="globalStore.setSidebarVisibility(false)"
               >
+                <img
+                  v-if="item.custom_icon"
+                  :src="hasActiveUrl(item.link) && item.custom_icon_active ? item.custom_icon_active : item.custom_icon"
+                  :alt="$t(item.title)"
+                  class="mr-4 shrink-0 h-5 w-5"
+                />
                 <BaseIcon
+                  v-else
                   :name="item.icon"
                   :class="[hasActiveUrl(item.link) ? 'text-primary-500' : 'text-gray-400', 'mr-4 shrink-0 h-5 w-5']"
                 />
@@ -109,7 +116,14 @@
             'cursor-pointer px-0 pl-6 py-3 group flex items-center border-l-4 border-solid text-sm not-italic font-medium transition-colors',
           ]"
         >
+          <img
+            v-if="item.custom_icon"
+            :src="hasActiveUrl(item.link) && item.custom_icon_active ? item.custom_icon_active : item.custom_icon"
+            :alt="$t(item.title)"
+            class="mr-4 shrink-0 h-5 w-5"
+          />
           <BaseIcon
+            v-else
             :name="item.icon"
             :class="[
               hasActiveUrl(item.link) ? 'text-[#070322]' : 'text-white/70 group-hover:text-white',

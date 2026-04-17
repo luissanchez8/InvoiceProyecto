@@ -23,6 +23,9 @@ trait GeneratesMenuTrait
                 if (!empty($data->data['custom_icon'])) {
                     $item['custom_icon'] = $data->data['custom_icon'];
                 }
+                if (!empty($data->data['custom_icon_active'])) {
+                    $item['custom_icon_active'] = $data->data['custom_icon_active'];
+                }
                 $new_items[] = $item;
             }
         }
