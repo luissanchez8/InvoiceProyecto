@@ -13,14 +13,6 @@
 
       <!-- Card con formulario -->
       <div class="onf-login-card">
-        <!-- Logo cliente (solo si la empresa ha subido uno personalizado) -->
-        <div v-if="loginPageLogo" class="onf-login-client-logo">
-          <img
-            :src="loginPageLogo"
-            alt="Logo Cliente"
-          />
-        </div>
-
         <!-- Formulario (lo inyecta el router) -->
         <router-view />
       </div>
@@ -111,25 +103,6 @@ const loginPageLogo = computed(() => {
   border-radius: 16px;
   padding: 2rem 2rem 2.25rem;
   box-shadow: 0 4px 24px rgba(15, 23, 42, 0.05);
-}
-
-.onf-login-client-logo {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #f6f7f8;
-  border-radius: 10px;
-  height: 70px;
-  margin-bottom: 1.5rem;
-}
-
-.onf-login-client-logo :deep(img),
-.onf-login-client-logo :deep(svg) {
-  max-height: 50px;
-  max-width: 180px;
-  width: auto;
-  height: auto;
-  object-fit: contain;
 }
 
 .onf-login-copyright {
