@@ -116,10 +116,13 @@ class AppConfigController extends Controller
 
             // Mapear plan_id a nombre legible
             $planNames = [
-                'price_1TE65XIDvd7prBStNslGwhBJ' => 'Pro Mensual',
-                'price_1TE66tIDvd7prBStdBLIqspz' => 'Pro Anual',
+                'pro' => 'Onfactu Pro',
+                'plus' => 'Onfactu Plus',
+                'advanced' => 'Onfactu Advanced',
+                'price_1TE65XIDvd7prBStNslGwhBJ' => 'Onfactu Pro',
+                'price_1TE66tIDvd7prBStdBLIqspz' => 'Onfactu Pro',
             ];
-            $planName = $planNames[$stripeUser->plan_id] ?? ('Plan ' . ($stripeUser->plan_interval ?? ''));
+            $planName = $planNames[$stripeUser->plan_id] ?? ('Onfactu ' . ucfirst($stripeUser->plan_id ?? ''));
 
             // URL del portal de Stripe
             $portalUrl = 'https://pagos.onfactu.com/api/stripe/portal.php?email=' . urlencode($admin->email);
