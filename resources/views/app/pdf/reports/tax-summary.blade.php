@@ -35,9 +35,10 @@
         }
 
         .heading-text {
+
             font-weight: bold;
             font-size: 24px;
-            color: #5851D8;
+            color: #070322;
             width: 100%;
             text-align: left;
             padding: 0px;
@@ -98,7 +99,7 @@
         }
 
         .tax-total-table {
-            border-top: 1px solid #EAF1FB;
+            border-top: 1px solid #e5e7eb;
             width: 100%;
         }
 
@@ -124,7 +125,7 @@
             width: 100%;
             margin-top: 40px;
             padding: 15px 20px;
-            background: #F9FBFF;
+            background: #f0faf4;
             box-sizing: border-box;
         }
 
@@ -145,7 +146,7 @@
             font-weight: bold;
             font-size: 20px;
             line-height: 21px;
-            color: #5851D8;
+            color: #38d587;
         }
     </style>
 
