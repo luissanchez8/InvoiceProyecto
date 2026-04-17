@@ -368,6 +368,8 @@ return [
             'group' => 2,
             'link' => '/admin/delivery-notes',
             'icon' => 'TruckIcon',
+            'custom_icon' => '/images/icons/sidebar-albaranes.svg',
+            'custom_icon_active' => '/images/icons/sidebar-albaranes-dark.svg',
             'name' => 'Delivery Notes',
             'owner_only' => false,
             'ability' => 'view-delivery-note',

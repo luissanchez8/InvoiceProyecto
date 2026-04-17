@@ -1,7 +1,7 @@
 <template>
   <div class="flex flex-col items-center justify-center h-screen">
     <img
-      src="/images/logo-onfactu.png"
+      src="/images/logo-onfactu-2.png"
       alt="Onfactu"
       class="onfactu-loader-logo"
     />
