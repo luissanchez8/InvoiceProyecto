@@ -53,12 +53,13 @@
             </div>
 
             <nav v-for="menu in globalStore.menuGroups" :key="menu" class="mt-5 space-y-1">
-              <router-link
+              <component
+                :is="item.external ? 'a' : 'router-link'"
                 v-for="item in menu"
                 :key="item.name"
-                :to="item.link"
+                v-bind="item.external ? { href: item.link, target: '_blank' } : { to: item.link }"
                 :class="[
-                  hasActiveUrl(item.link)
+                  !item.external && hasActiveUrl(item.link)
                     ? 'bg-[#38d587] text-[#070322] border-[#38d587]'
                     : 'text-white border-transparent hover:bg-white/10 hover:text-white',
                   'cursor-pointer px-0 pl-6 py-3 group flex items-center border-l-4 border-solid text-sm not-italic font-medium transition-colors',
@@ -67,7 +68,7 @@
               >
                 <img
                   v-if="item.custom_icon"
-                  :src="hasActiveUrl(item.link) && item.custom_icon_active ? item.custom_icon_active : item.custom_icon"
+                  :src="!item.external && hasActiveUrl(item.link) && item.custom_icon_active ? item.custom_icon_active : item.custom_icon"
                   :alt="$t(item.title)"
                   class="mr-4 shrink-0 h-5 w-5"
                 />
@@ -77,7 +78,7 @@
                   :class="[hasActiveUrl(item.link) ? 'text-primary-500' : 'text-gray-400', 'mr-4 shrink-0 h-5 w-5']"
                 />
                 {{ $t(item.title) }}
-              </router-link>
+              </component>
             </nav>
           </div>
 
@@ -105,12 +106,13 @@
     <!-- Menú principal (con scroll) -->
     <div class="flex-1 overflow-y-auto pb-4">
       <div v-for="menu in globalStore.menuGroups" :key="menu" class="p-0 m-0 mt-6 list-none">
-        <router-link
+        <component
+          :is="item.external ? 'a' : 'router-link'"
           v-for="item in menu"
           :key="item"
-          :to="item.link"
+          v-bind="item.external ? { href: item.link, target: '_blank' } : { to: item.link }"
           :class="[
-            hasActiveUrl(item.link)
+            !item.external && hasActiveUrl(item.link)
               ? 'bg-[#38d587] text-[#070322] border-[#38d587]'
               : 'text-white border-transparent hover:bg-white/10 hover:text-white',
             'cursor-pointer px-0 pl-6 py-3 group flex items-center border-l-4 border-solid text-sm not-italic font-medium transition-colors',
@@ -118,7 +120,7 @@
         >
           <img
             v-if="item.custom_icon"
-            :src="hasActiveUrl(item.link) && item.custom_icon_active ? item.custom_icon_active : item.custom_icon"
+            :src="!item.external && hasActiveUrl(item.link) && item.custom_icon_active ? item.custom_icon_active : item.custom_icon"
             :alt="$t(item.title)"
             class="mr-4 shrink-0 h-5 w-5"
           />
@@ -131,7 +133,7 @@
             ]"
           />
           {{ $t(item.title) }}
-        </router-link>
+        </component>
       </div>
     </div>
 

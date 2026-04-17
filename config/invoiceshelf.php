@@ -488,6 +488,19 @@ return [
             'ability' => '',
             'model' => '',
         ],
+        [
+            'title' => 'navigation.support',
+            'group' => 3,
+            'link' => 'https://onfactu.com/soporte',
+            'icon' => 'QuestionMarkCircleIcon',
+            'custom_icon' => '/images/icons/sidebar-soporte.svg',
+            'custom_icon_active' => '/images/icons/sidebar-soporte-dark.svg',
+            'name' => 'Support',
+            'owner_only' => false,
+            'ability' => '',
+            'model' => '',
+            'external' => true,
+        ],
     ])),
 
     /*

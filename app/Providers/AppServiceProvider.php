@@ -112,6 +112,9 @@ class AppServiceProvider extends ServiceProvider
         if (!empty($data['custom_icon_active'])) {
             $item->data('custom_icon_active', $data['custom_icon_active']);
         }
+        if (!empty($data['external'])) {
+            $item->data('external', true);
+        }
     }
 
     public function bootAuth()
