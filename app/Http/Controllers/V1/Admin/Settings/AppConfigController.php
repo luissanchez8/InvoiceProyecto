@@ -83,4 +83,59 @@ class AppConfigController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Devuelve info básica del plan para mostrar en el sidebar.
+     * Accesible para cualquier usuario logueado.
+     */
+    public function myPlan(Request $request)
+    {
+        // Obtener email del admin de esta instancia
+        $admin = DB::table('users')
+            ->where('role', 'super admin')
+            ->orderBy('id')
+            ->first();
+
+        if (!$admin) {
+            return response()->json(['ok' => false, 'plan_name' => 'Sin plan']);
+        }
+
+        try {
+            $stripeUser = DB::connection('stripe')
+                ->table('users')
+                ->whereRaw('LOWER(email) = ?', [strtolower($admin->email)])
+                ->first();
+
+            if (!$stripeUser || !$stripeUser->plan_id) {
+                return response()->json([
+                    'ok' => true,
+                    'plan_name' => 'Sin plan',
+                    'portal_url' => null,
+                ]);
+            }
+
+            // Mapear plan_id a nombre legible
+            $planNames = [
+                'price_1TE65XIDvd7prBStNslGwhBJ' => 'Pro Mensual',
+                'price_1TE66tIDvd7prBStdBLIqspz' => 'Pro Anual',
+            ];
+            $planName = $planNames[$stripeUser->plan_id] ?? ('Plan ' . ($stripeUser->plan_interval ?? ''));
+
+            // URL del portal de Stripe
+            $portalUrl = 'https://pagos.onfactu.com/api/stripe/portal.php?email=' . urlencode($admin->email);
+
+            return response()->json([
+                'ok' => true,
+                'plan_name' => $planName,
+                'plan_status' => $stripeUser->plan_status ?? null,
+                'portal_url' => $portalUrl,
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'ok' => false,
+                'plan_name' => 'Sin plan',
+                'portal_url' => null,
+            ]);
+        }
+    }
 }

@@ -102,6 +102,20 @@
               </router-link>
             </nav>
           </div>
+
+          <!-- MOBILE: Sección inferior -->
+          <div class="onf-sidebar-bottom">
+            <div v-if="planName" class="onf-sidebar-plan">
+              <span class="onf-sidebar-plan-label">{{ planName }}</span>
+              <a v-if="portalUrl" :href="portalUrl" target="_blank" class="onf-sidebar-plan-link">
+                Gestionar suscripción
+              </a>
+            </div>
+            <button class="onf-sidebar-logout" @click="logout">
+              <BaseIcon name="ArrowLeftOnRectangleIcon" class="w-4 h-4 mr-2" />
+              Cerrar sesión
+            </button>
+          </div>
         </div>
       </TransitionChild>
       <div class="shrink-0 w-14">
@@ -116,7 +130,6 @@
       hidden
       w-56
       h-screen
-      pb-32
       overflow-y-auto
       bg-[#070322]
       xl:w-64
@@ -124,40 +137,58 @@
       pt-16
     "
   >
-    <div
-      v-for="menu in globalStore.menuGroups"
-      :key="menu"
-      class="p-0 m-0 mt-6 list-none"
-    >
-      <router-link
-        v-for="item in menu"
-        :key="item"
-        :to="item.link"
-        :class="[
-          hasActiveUrl(item.link)
-            ? 'bg-[#38d587] text-[#070322] border-[#38d587]'
-            : 'text-white border-transparent hover:bg-white/10 hover:text-white',
-          'cursor-pointer px-0 pl-6 py-3 group flex items-center border-l-4 border-solid text-sm not-italic font-medium transition-colors',
-        ]"
+    <!-- Menú principal (con scroll) -->
+    <div class="flex-1 overflow-y-auto pb-4">
+      <div
+        v-for="menu in globalStore.menuGroups"
+        :key="menu"
+        class="p-0 m-0 mt-6 list-none"
       >
-        <BaseIcon
-          :name="item.icon"
+        <router-link
+          v-for="item in menu"
+          :key="item"
+          :to="item.link"
           :class="[
             hasActiveUrl(item.link)
-              ? 'text-[#070322] '
-              : 'text-white/70 group-hover:text-white',
-            'mr-4 shrink-0 h-5 w-5 ',
+              ? 'bg-[#38d587] text-[#070322] border-[#38d587]'
+              : 'text-white border-transparent hover:bg-white/10 hover:text-white',
+            'cursor-pointer px-0 pl-6 py-3 group flex items-center border-l-4 border-solid text-sm not-italic font-medium transition-colors',
           ]"
-        />
+        >
+          <BaseIcon
+            :name="item.icon"
+            :class="[
+              hasActiveUrl(item.link)
+                ? 'text-[#070322] '
+                : 'text-white/70 group-hover:text-white',
+              'mr-4 shrink-0 h-5 w-5 ',
+            ]"
+          />
 
-        {{ $t(item.title) }}
-      </router-link>
+          {{ $t(item.title) }}
+        </router-link>
+      </div>
+    </div>
+
+    <!-- DESKTOP: Sección inferior fija -->
+    <div class="onf-sidebar-bottom">
+      <div v-if="planName" class="onf-sidebar-plan">
+        <span class="onf-sidebar-plan-label">{{ planName }}</span>
+        <a v-if="portalUrl" :href="portalUrl" target="_blank" class="onf-sidebar-plan-link">
+          Gestionar suscripción
+        </a>
+      </div>
+      <button class="onf-sidebar-logout" @click="logout">
+        <BaseIcon name="ArrowLeftOnRectangleIcon" class="w-4 h-4 mr-2" />
+        Cerrar sesión
+      </button>
     </div>
   </div>
 </template>
 
 <script setup>
 import MainLogo from '@/scripts/components/icons/MainLogo.vue'
+import axios from 'axios'
 
 import {
   Dialog,
@@ -166,13 +197,87 @@ import {
   TransitionRoot,
 } from '@headlessui/vue'
 
-import { useRoute } from 'vue-router'
+import { ref, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useGlobalStore } from '@/scripts/admin/stores/global'
+import { useAuthStore } from '@/scripts/admin/stores/auth'
 
 const route = useRoute()
+const router = useRouter()
 const globalStore = useGlobalStore()
+const authStore = useAuthStore()
+
+const planName = ref('')
+const portalUrl = ref('')
 
 function hasActiveUrl(url) {
   return route.path.indexOf(url) > -1
 }
+
+async function logout() {
+  await authStore.logout()
+  router.push('/admin/login')
+}
+
+onMounted(async () => {
+  try {
+    const res = await axios.get('/api/v1/app-config/my-plan')
+    if (res.data?.ok) {
+      planName.value = res.data.plan_name || ''
+      portalUrl.value = res.data.portal_url || ''
+    }
+  } catch (e) {
+    // Silenciar error — el sidebar funciona sin plan
+  }
+})
 </script>
+
+<style scoped>
+.onf-sidebar-bottom {
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 0.75rem 1.25rem;
+  flex-shrink: 0;
+}
+
+.onf-sidebar-plan {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 0.5rem;
+}
+
+.onf-sidebar-plan-label {
+  color: #38d587;
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.onf-sidebar-plan-link {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.75rem;
+  text-decoration: none;
+  margin-top: 0.125rem;
+  transition: color 0.15s;
+}
+
+.onf-sidebar-plan-link:hover {
+  color: #ffffff;
+}
+
+.onf-sidebar-logout {
+  display: flex;
+  align-items: center;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.5rem 0;
+  width: 100%;
+  transition: color 0.15s;
+}
+
+.onf-sidebar-logout:hover {
+  color: #ffffff;
+}
+</style>

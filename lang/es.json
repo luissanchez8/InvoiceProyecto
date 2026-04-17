@@ -1023,7 +1023,7 @@
                 "preview_invoice_number": "Previsualizar número de factura",
                 "due_date": "Fecha de vencimiento",
                 "due_date_description": "Especifique cómo se establece automáticamente la fecha de vencimiento cuando crea una factura.",
-                "due_date_days": "FactuDra vence después de días",
+                "due_date_days": "Factura vence después de días",
                 "set_due_date_automatically": "Establecer fecha de vencimiento automáticamente",
                 "set_due_date_automatically_description": "Habilite esto si desea establecer la fecha de vencimiento automáticamente cuando crea una nueva factura.",
                 "default_formats": "Formatos por defecto",
