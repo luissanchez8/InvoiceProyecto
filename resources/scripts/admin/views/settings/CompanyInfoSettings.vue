@@ -54,14 +54,9 @@
           />
         </BaseInputGroup>
 
-        <!-- Provincia (antes Estado) -->
-        <BaseInputGroup :label="'Provincia'">
-          <BaseInput v-model="companyForm.address.state" name="state" type="text" />
-        </BaseInputGroup>
-
-        <!-- Ciudad -->
-        <BaseInputGroup :label="$t('settings.company_info.city')">
-          <BaseInput v-model="companyForm.address.city" type="text" />
+        <!-- Dirección -->
+        <BaseInputGroup :label="$t('settings.company_info.address')">
+          <BaseTextarea v-model="companyForm.address.address_street_1" rows="2" />
         </BaseInputGroup>
 
         <!-- Código Postal -->
@@ -69,23 +64,19 @@
           <BaseInput v-model="companyForm.address.zip" />
         </BaseInputGroup>
 
-        <!-- Dirección -->
-        <div>
-          <BaseInputGroup :label="$t('settings.company_info.address')">
-            <BaseTextarea v-model="companyForm.address.address_street_1" rows="2" />
-          </BaseInputGroup>
+        <!-- Ciudad -->
+        <BaseInputGroup :label="$t('settings.company_info.city')">
+          <BaseInput v-model="companyForm.address.city" type="text" />
+        </BaseInputGroup>
 
-          <BaseTextarea
-            v-model="companyForm.address.address_street_2"
-            rows="2"
-            :row="2"
-            class="mt-2"
-          />
-        </div>
+        <!-- Provincia -->
+        <BaseInputGroup :label="'Provincia'">
+          <BaseInput v-model="companyForm.address.state" name="state" type="text" />
+        </BaseInputGroup>
 
         <div class="space-y-6">
-          <!-- CIF (antes Número de identificación fiscal) -->
-          <BaseInputGroup :label="'CIF'">
+          <!-- NIF/CIF -->
+          <BaseInputGroup :label="'NIF/CIF'">
             <BaseInput v-model="companyForm.tax_id" type="text" />
           </BaseInputGroup>
 

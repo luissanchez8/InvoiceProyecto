@@ -192,7 +192,7 @@
     "customers": {
         "title": "Clientes",
         "prefix": "Prefijo",
-        "tax_id": "ID del Impuesto",
+        "tax_id": "NIF/CIF",
         "add_customer": "Agregar cliente",
         "contacts_list": "Lista de clientes",
         "name": "Nombre",
@@ -920,7 +920,7 @@
         "company_info": {
             "company_info": "Información de la compañía",
             "company_name": "Nombre de Empresa",
-            "tax_id": "Número de identificación fiscal",
+            "tax_id": "NIF/CIF",
             "vat_id": "Número de IVA",
             "company_logo": "Logo de la compañía",
             "section_description": "Información sobre su empresa que se mostrará en las facturas, presupuestos y otros documentos creados por InvoiceShelf.",
@@ -1635,7 +1635,7 @@
     "pdf_ship_to": "Enviar a,",
     "pdf_received_from": "Recibido de:",
     "pdf_tax_label": "Impuesto",
-    "pdf_tax_id": "ID de impuesto",
+    "pdf_tax_id": "NIF/CIF",
     "pdf_vat_id": "ID  de IVA",
     "pdf_amount_paid": "Importe pagado",
     "pdf_amount_due": "Importe pendiente",
