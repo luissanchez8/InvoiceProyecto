@@ -13,13 +13,17 @@ trait GeneratesMenuTrait
 
         foreach ($items as $data) {
             if ($user->checkAccess($data)) {
-                $new_items[] = [
+                $item = [
                     'title' => $data->title,
                     'link' => $data->link->path['url'],
                     'icon' => $data->data['icon'],
                     'name' => $data->data['name'],
                     'group' => $data->data['group'],
                 ];
+                if (!empty($data->data['custom_icon'])) {
+                    $item['custom_icon'] = $data->data['custom_icon'];
+                }
+                $new_items[] = $item;
             }
         }
 
