@@ -24,6 +24,10 @@
     @vite('resources/scripts/main.js')
     
     <!-- Chatway Live Chat -->
+    <style>
+      body.hide-chatway #chatway_widget_trigger,
+      body.hide-chatway #chatway_widget_app { display: none !important; }
+    </style>
     <script id="chatway" async="true" src="https://cdn.chatway.app/widget.js?id=TcoUMByh5EpS"></script>
 </head>
 
