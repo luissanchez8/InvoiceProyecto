@@ -39,7 +39,7 @@ export default class InvoiceShelf {
 
     const i18n = createI18n({
       legacy: false,
-      locale: 'en',
+      locale: 'es',
       fallbackLocale: 'en',
       globalInjection: true,
       messages: this.messages,
