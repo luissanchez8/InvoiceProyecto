@@ -1,6 +1,7 @@
 <script setup>
 import { useI18n } from 'vue-i18n'
-import { computed, reactive, ref, watch } from 'vue'
+import axios from 'axios'
+import { computed, reactive, ref, watch, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { debounce } from 'lodash'
 
@@ -34,6 +35,40 @@ const isMarkAsSent = ref(false)
 const isLoading = ref(false)
 const isApproving = ref(false)
 const showApproveDialog = ref(false)
+let verifactuPollTimer = null
+
+// Polling VeriFactu: consulta el estado cada 3s hasta que cambie
+function startVerifactuPolling(invoiceId) {
+  stopVerifactuPolling()
+  verifactuPollTimer = setInterval(async () => {
+    try {
+      const res = await axios.get(`/api/v1/invoices/${invoiceId}`)
+      const inv = res.data?.data
+      if (inv && inv.status === 'APPROVED') {
+        invoiceData.value = { ...invoiceData.value, ...inv }
+        let pos = invoiceList.value?.findIndex((i) => i.id === invoiceId)
+        if (pos >= 0 && invoiceList.value[pos]) {
+          invoiceList.value[pos].status = 'APPROVED'
+          invoiceList.value[pos].verifactu_status = inv.verifactu_status
+        }
+        notificationStore.showNotification({
+          type: 'success',
+          message: 'Factura aprobada por VeriFactu',
+        })
+        stopVerifactuPolling()
+      }
+    } catch (e) {}
+  }, 3000)
+}
+
+function stopVerifactuPolling() {
+  if (verifactuPollTimer) {
+    clearInterval(verifactuPollTimer)
+    verifactuPollTimer = null
+  }
+}
+
+onUnmounted(() => stopVerifactuPolling())
 
 const verifactuEnabled = computed(() =>
   companyStore.selectedCompanySettings.verifactu_enabled === 'YES'
@@ -143,6 +178,8 @@ async function confirmApprove() {
       invoiceList.value[pos].verifactu_status = 'PENDING'
     }
     showApproveDialog.value = false
+    // Iniciar polling para detectar cuando VeriFactu responda
+    startVerifactuPolling(invoiceData.value.id)
   } catch (err) {
     notificationStore.showNotification({
       type: 'error',
@@ -249,6 +286,10 @@ async function loadInvoice() {
   let response = await invoiceStore.fetchInvoice(route.params.id)
   if (response.data) {
     invoiceData.value = { ...response.data.data }
+    // Si la factura está pendiente de VeriFactu, iniciar polling
+    if (invoiceData.value.verifactu_status === 'PENDING') {
+      startVerifactuPolling(invoiceData.value.id)
+    }
   }
 }
 
@@ -345,9 +386,13 @@ onSearched = debounce(onSearched, 500)
         <!-- VeriFactu pending -->
         <span
           v-if="invoiceData.verifactu_status === 'PENDING'"
-          class="ml-3 text-sm text-yellow-600 font-medium"
+          class="ml-3 text-sm text-yellow-600 font-medium flex items-center"
         >
-          {{ $t('verifactu.pending') }}
+          <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-yellow-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          Enviando a VeriFactu...
         </span>
 
         <!-- Record Payment  -->
