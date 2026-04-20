@@ -53,22 +53,22 @@
             </div>
 
             <nav v-for="menu in globalStore.menuGroups" :key="menu" class="mt-5 space-y-1">
-              <component
-                :is="item.external ? 'a' : 'router-link'"
+              <a
                 v-for="item in menu"
                 :key="item.name"
-                v-bind="item.external ? { href: item.link, target: '_blank' } : { to: item.link }"
+                :href="item.action ? '#' : (item.external ? item.link : undefined)"
+                :target="item.external && !item.action ? '_blank' : undefined"
                 :class="[
-                  !item.external && hasActiveUrl(item.link)
+                  !item.external && !item.action && hasActiveUrl(item.link)
                     ? 'bg-[#38d587] text-[#070322] border-[#38d587]'
                     : 'text-white border-transparent hover:bg-white/10 hover:text-white',
-                  'cursor-pointer px-0 pl-6 py-3 group flex items-center border-l-4 border-solid text-sm not-italic font-medium transition-colors',
+                  'cursor-pointer px-0 pl-6 py-3 group flex items-center border-l-4 border-solid text-sm not-italic font-medium transition-colors no-underline',
                 ]"
-                @click="globalStore.setSidebarVisibility(false)"
+                @click.prevent="handleMenuClick(item); globalStore.setSidebarVisibility(false)"
               >
                 <img
                   v-if="item.custom_icon"
-                  :src="!item.external && hasActiveUrl(item.link) && item.custom_icon_active ? item.custom_icon_active : item.custom_icon"
+                  :src="!item.action && !item.external && hasActiveUrl(item.link) && item.custom_icon_active ? item.custom_icon_active : item.custom_icon"
                   :alt="$t(item.title)"
                   class="mr-4 shrink-0 h-5 w-5"
                 />
@@ -78,7 +78,7 @@
                   :class="[hasActiveUrl(item.link) ? 'text-primary-500' : 'text-gray-400', 'mr-4 shrink-0 h-5 w-5']"
                 />
                 {{ $t(item.title) }}
-              </component>
+              </a>
             </nav>
           </div>
 
@@ -106,21 +106,22 @@
     <!-- Menú principal (con scroll) -->
     <div class="flex-1 overflow-y-auto pb-4">
       <div v-for="menu in globalStore.menuGroups" :key="menu" class="p-0 m-0 mt-6 list-none">
-        <component
-          :is="item.external ? 'a' : 'router-link'"
+        <a
           v-for="item in menu"
-          :key="item"
-          v-bind="item.external ? { href: item.link, target: '_blank' } : { to: item.link }"
+          :key="item.name"
+          :href="item.action ? '#' : (item.external ? item.link : undefined)"
+          :target="item.external && !item.action ? '_blank' : undefined"
           :class="[
-            !item.external && hasActiveUrl(item.link)
+            !item.external && !item.action && hasActiveUrl(item.link)
               ? 'bg-[#38d587] text-[#070322] border-[#38d587]'
               : 'text-white border-transparent hover:bg-white/10 hover:text-white',
-            'cursor-pointer px-0 pl-6 py-3 group flex items-center border-l-4 border-solid text-sm not-italic font-medium transition-colors',
+            'cursor-pointer px-0 pl-6 py-3 group flex items-center border-l-4 border-solid text-sm not-italic font-medium transition-colors no-underline',
           ]"
+          @click.prevent="handleMenuClick(item)"
         >
           <img
             v-if="item.custom_icon"
-            :src="!item.external && hasActiveUrl(item.link) && item.custom_icon_active ? item.custom_icon_active : item.custom_icon"
+            :src="!item.action && !item.external && hasActiveUrl(item.link) && item.custom_icon_active ? item.custom_icon_active : item.custom_icon"
             :alt="$t(item.title)"
             class="mr-4 shrink-0 h-5 w-5"
           />
@@ -133,7 +134,7 @@
             ]"
           />
           {{ $t(item.title) }}
-        </component>
+        </a>
       </div>
     </div>
 
@@ -163,11 +164,12 @@ import {
 } from '@headlessui/vue'
 
 import { ref, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useGlobalStore } from '@/scripts/admin/stores/global'
 import { useAuthStore } from '@/scripts/admin/stores/auth'
 
 const route = useRoute()
+const router = useRouter()
 const globalStore = useGlobalStore()
 const authStore = useAuthStore()
 
@@ -176,6 +178,25 @@ const portalUrl = ref('')
 
 function hasActiveUrl(url) {
   return route.path.indexOf(url) > -1
+}
+
+function handleMenuClick(item) {
+  if (item.action === 'open-chatway') {
+    // Abrir widget Chatway
+    const chatwayEl = document.getElementById('chatway-app') || document.querySelector('[id^="chatway"]')
+    if (chatwayEl) {
+      const openBtn = chatwayEl.querySelector('button') || chatwayEl.querySelector('[class*="open"]')
+      if (openBtn) openBtn.click()
+    }
+    // Fallback: intentar API global de Chatway
+    if (window.Chatway) window.Chatway.open()
+    return
+  }
+  if (item.external) {
+    window.open(item.link, '_blank')
+    return
+  }
+  router.push(item.link)
 }
 
 async function logout() {

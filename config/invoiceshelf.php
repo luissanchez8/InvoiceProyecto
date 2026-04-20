@@ -368,8 +368,8 @@ return [
             'group' => 2,
             'link' => '/admin/delivery-notes',
             'icon' => 'TruckIcon',
-            'custom_icon' => '/images/icons/sidebar-albaranes.png',
-            'custom_icon_active' => '/images/icons/sidebar-albaranes-dark.png',
+            'custom_icon' => '/images/icons/sidebar-albaranes.svg',
+            'custom_icon_active' => '/images/icons/sidebar-albaranes-dark.svg',
             'name' => 'Delivery Notes',
             'owner_only' => false,
             'ability' => 'view-delivery-note',
@@ -491,7 +491,7 @@ return [
         [
             'title' => 'navigation.support',
             'group' => 3,
-            'link' => 'https://onfactu.com/soporte',
+            'link' => '#soporte',
             'icon' => 'QuestionMarkCircleIcon',
             'custom_icon' => '/images/icons/sidebar-soporte.svg',
             'custom_icon_active' => '/images/icons/sidebar-soporte-dark.svg',
@@ -499,7 +499,7 @@ return [
             'owner_only' => false,
             'ability' => '',
             'model' => '',
-            'external' => true,
+            'action' => 'open-chatway',
         ],
     ])),
 

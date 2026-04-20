@@ -115,6 +115,9 @@ class AppServiceProvider extends ServiceProvider
         if (!empty($data['external'])) {
             $item->data('external', true);
         }
+        if (!empty($data['action'])) {
+            $item->data('action', $data['action']);
+        }
     }
 
     public function bootAuth()

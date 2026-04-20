@@ -29,6 +29,9 @@ trait GeneratesMenuTrait
                 if (!empty($data->data['external'])) {
                     $item['external'] = true;
                 }
+                if (!empty($data->data['action'])) {
+                    $item['action'] = $data->data['action'];
+                }
                 $new_items[] = $item;
             }
         }
