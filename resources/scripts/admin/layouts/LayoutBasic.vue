@@ -60,7 +60,7 @@ onMounted(() => {
       res.data.current_company_settings.bulk_exchange_rate_configured === 'NO'
     ) {
       exchangeRateStore.fetchBulkCurrencies().then((res) => {
-        if (res.data.currencies.length) {
+        if (res.data.currencies && res.data.currencies.length) {
           modalStore.openModal({
             componentName: 'ExchangeRateBulkUpdateModal',
             size: 'sm',

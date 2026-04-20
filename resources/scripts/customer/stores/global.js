@@ -49,6 +49,11 @@ export const useGlobalStore = defineStore({
             resolve(response)
           })
           .catch((err) => {
+            // Si no hay sesión (401), redirigir al login del customer
+            if (err.response && err.response.status === 401) {
+              window.location.href = `/${data}/customer/login`
+              return
+            }
             handleError(err)
             reject(err)
           })
