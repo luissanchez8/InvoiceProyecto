@@ -56,27 +56,29 @@ onMounted(() => {
       router.push({ name: 'account.settings' })
     }
 
-    if (
-      res.data.current_company_settings.bulk_exchange_rate_configured === 'NO'
-    ) {
-      exchangeRateStore.fetchBulkCurrencies().then((res) => {
-        if (res.data.currencies && res.data.currencies.length) {
-          modalStore.openModal({
-            componentName: 'ExchangeRateBulkUpdateModal',
-            size: 'sm',
-          })
-        } else {
-          let data = {
-            settings: {
-              bulk_exchange_rate_configured: 'YES',
-            },
+    try {
+      if (
+        res.data?.current_company_settings?.bulk_exchange_rate_configured === 'NO'
+      ) {
+        exchangeRateStore.fetchBulkCurrencies().then((res) => {
+          if (res?.data?.currencies?.length) {
+            modalStore.openModal({
+              componentName: 'ExchangeRateBulkUpdateModal',
+              size: 'sm',
+            })
+          } else {
+            let data = {
+              settings: {
+                bulk_exchange_rate_configured: 'YES',
+              },
+            }
+            companyStore.updateCompanySettings({
+              data,
+            })
           }
-          companyStore.updateCompanySettings({
-            data,
-          })
-        }
-      })
-    }
+        }).catch(() => {})
+      }
+    } catch (e) {}
   })
 })
 </script>
