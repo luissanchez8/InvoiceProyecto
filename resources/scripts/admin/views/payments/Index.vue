@@ -78,7 +78,7 @@
       :title="$t('payments.no_payments')"
       :description="$t('payments.list_of_payments')"
     >
-      <CapsuleIcon class="mt-5 mb-4" />
+      <img src="/images/icons/empty-pagos.svg" class="mt-5 mb-4 w-24 h-24" alt="Pagos" />
 
       <template
         v-if="userStore.hasAbilities(abilities.CREATE_PAYMENT)"

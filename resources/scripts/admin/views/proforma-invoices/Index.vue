@@ -104,7 +104,7 @@
       :title="$t('no_proforma_invoices')"
       :description="$t('list_of_proforma_invoices')"
     >
-      <ObservatoryIcon class="mt-5 mb-4" />
+      <img src="/images/icons/proformas-grande.svg" class="mt-5 mb-4 w-24 h-24" alt="Proformas" />
 
       <template #actions>
         <BaseButton

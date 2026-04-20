@@ -92,7 +92,7 @@
       :title="$t('recurring_invoices.no_invoices')"
       :description="$t('recurring_invoices.list_of_invoices')"
     >
-      <MoonwalkerIcon class="mt-5 mb-4" />
+      <img src="/images/icons/empty-facturas-recurrentes.svg" class="mt-5 mb-4 w-24 h-24" alt="Facturas recurrentes" />
 
       <template
         v-if="userStore.hasAbilities(abilities.CREATE_RECURRING_INVOICE)"

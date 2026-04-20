@@ -90,7 +90,7 @@
       :title="$t('expenses.no_expenses')"
       :description="$t('expenses.list_of_expenses')"
     >
-      <UFOIcon class="mt-5 mb-4" />
+      <img src="/images/icons/empty-gastos.svg" class="mt-5 mb-4 w-24 h-24" alt="Gastos" />
 
       <template
         v-if="userStore.hasAbilities(abilities.CREATE_EXPENSE)"

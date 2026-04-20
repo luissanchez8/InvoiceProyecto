@@ -106,7 +106,7 @@
       :title="$t('invoices.no_invoices')"
       :description="$t('invoices.list_of_invoices')"
     >
-      <MoonwalkerIcon class="mt-5 mb-4" />
+      <img src="/images/icons/empty-facturas.svg" class="mt-5 mb-4 w-24 h-24" alt="Facturas" />
       <template
         v-if="userStore.hasAbilities(abilities.CREATE_INVOICE)"
         #actions

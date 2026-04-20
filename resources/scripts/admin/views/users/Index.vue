@@ -78,7 +78,7 @@
       :title="$t('users.no_users')"
       :description="$t('users.list_of_users')"
     >
-      <AstronautIcon class="mt-5 mb-4" />
+      <img src="/images/icons/empty-usuarios.svg" class="mt-5 mb-4 w-24 h-24" alt="Usuarios" />
 
       <template #actions>
         <BaseButton

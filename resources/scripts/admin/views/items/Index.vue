@@ -73,7 +73,7 @@
       :title="$t('items.no_items')"
       :description="$t('items.list_of_items')"
     >
-      <SatelliteIcon class="mt-5 mb-4" />
+      <img src="/images/icons/empty-articulos.svg" class="mt-5 mb-4 w-24 h-24" alt="Artículos" />
 
       <template #actions>
         <BaseButton

@@ -104,7 +104,7 @@
       :title="$t('no_delivery_notes')"
       :description="$t('list_of_delivery_notes')"
     >
-      <ObservatoryIcon class="mt-5 mb-4" />
+      <img src="/images/icons/empty-albaranes.png" class="mt-5 mb-4 w-24 h-24" alt="Albaranes" />
 
       <template #actions>
         <BaseButton

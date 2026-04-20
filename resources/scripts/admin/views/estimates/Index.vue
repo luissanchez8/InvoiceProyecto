@@ -103,7 +103,7 @@
       :title="$t('estimates.no_estimates')"
       :description="$t('estimates.list_of_estimates')"
     >
-      <ObservatoryIcon class="mt-5 mb-4" />
+      <img src="/images/icons/empty-presupuestos.svg" class="mt-5 mb-4 w-24 h-24" alt="Presupuestos" />
 
       <template #actions>
         <BaseButton
