@@ -183,7 +183,10 @@ function hasActiveUrl(url) {
 function handleMenuClick(item) {
   if (item.action === 'open-chatway') {
     const trigger = document.getElementById('chatway_widget_trigger')
-    if (trigger) trigger.click()
+    if (trigger) {
+      const btn = trigger.querySelector('button, a, div')
+      if (btn) btn.click()
+    }
     return
   }
   if (item.external) {
