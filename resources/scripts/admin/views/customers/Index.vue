@@ -76,7 +76,7 @@
       :title="$t('customers.no_customers')"
       :description="$t('customers.list_of_customers')"
     >
-      <AstronautIcon class="mt-5 mb-4" />
+      <img src="/images/icons/empty-clientes.svg" class="mt-5 mb-4 w-24 h-24" alt="Clientes" />
 
       <template #actions>
         <BaseButton
