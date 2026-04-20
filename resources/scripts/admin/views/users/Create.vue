@@ -33,17 +33,19 @@
               :content-loading="isFetchingInitialData"
               :label="$t('users.email')"
               :error="
-                v$.userData.email.$error &&
+                !isEdit && v$.userData.email.$error &&
                 v$.userData.email.$errors[0].$message
               "
-              required
+              :required="!isEdit"
             >
               <BaseInput
                 v-model.trim="userStore.userData.email"
                 type="email"
                 :content-loading="isFetchingInitialData"
-                :invalid="v$.userData.email.$error"
-                @input="v$.userData.email.$touch()"
+                :invalid="!isEdit && v$.userData.email.$error"
+                :disabled="isEdit"
+                :class="isEdit ? 'bg-gray-100 cursor-not-allowed' : ''"
+                @input="!isEdit && v$.userData.email.$touch()"
               >
               </BaseInput>
             </BaseInputGroup>
@@ -97,7 +99,7 @@
                       autocomplete="off"
                       :content-loading="isFetchingInitialData"
                       label="name"
-                      :options="userStore.userData.companies[i].roles"
+                      :options="(userStore.userData.companies[i].roles || []).filter(r => r.name !== 'asistencia')"
                       :can-deselect="false"
                       :invalid="v.role.$invalid"
                       @change="v.role.$touch()"
