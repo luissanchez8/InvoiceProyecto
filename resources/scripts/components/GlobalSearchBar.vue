@@ -45,7 +45,7 @@
       >
         <div
           v-if="
-            usersStore.userList.length < 1 && usersStore.customerList.length < 1
+            usersStore.userList?.length < 1 && usersStore.customerList?.length < 1
           "
           class="
             flex
@@ -61,7 +61,7 @@
           {{ $t('global_search.no_results_found') }}
         </div>
         <div v-else>
-          <div v-if="usersStore.customerList.length > 0">
+          <div v-if="usersStore.customerList?.length > 0">
             <label class="text-sm text-gray-400 mb-0.5 block px-2 uppercase">
               {{ $t('global_search.customers') }}
             </label>
@@ -107,7 +107,7 @@
             </div>
           </div>
 
-          <div v-if="usersStore.userList.length > 0" class="mt-2">
+          <div v-if="usersStore.userList?.length > 0" class="mt-2">
             <label
               class="text-sm text-gray-400 mb-2 block px-2 mb-0.5 uppercase"
             >
