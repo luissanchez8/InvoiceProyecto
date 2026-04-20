@@ -22,6 +22,9 @@
     @endforeach
 
     @vite('resources/scripts/main.js')
+    
+    <!-- Chatway Live Chat -->
+    <script id="chatway" async="true" src="https://cdn.chatway.app/widget.js?id=TcoUMByh5EpS"></script>
 </head>
 
 <body
