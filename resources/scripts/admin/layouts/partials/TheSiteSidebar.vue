@@ -182,14 +182,8 @@ function hasActiveUrl(url) {
 
 function handleMenuClick(item) {
   if (item.action === 'open-chatway') {
-    // Abrir widget Chatway
-    const chatwayEl = document.getElementById('chatway-app') || document.querySelector('[id^="chatway"]')
-    if (chatwayEl) {
-      const openBtn = chatwayEl.querySelector('button') || chatwayEl.querySelector('[class*="open"]')
-      if (openBtn) openBtn.click()
-    }
-    // Fallback: intentar API global de Chatway
-    if (window.Chatway) window.Chatway.open()
+    const trigger = document.getElementById('chatway_widget_trigger')
+    if (trigger) trigger.click()
     return
   }
   if (item.external) {

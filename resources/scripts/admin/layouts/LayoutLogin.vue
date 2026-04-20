@@ -39,7 +39,15 @@
 
 <script setup>
 import NotificationRoot from '@/scripts/components/notifications/NotificationRoot.vue'
-import { computed } from 'vue'
+import { computed, onMounted, onUnmounted } from 'vue'
+
+function setChatwayVisible(visible) {
+  const els = document.querySelectorAll('#chatway_widget_trigger, #chatway_widget_app')
+  els.forEach(el => { el.style.display = visible ? '' : 'none' })
+}
+
+onMounted(() => setChatwayVisible(false))
+onUnmounted(() => setChatwayVisible(true))
 
 const pageHeading = computed(() => {
   if (window.login_page_heading) {
