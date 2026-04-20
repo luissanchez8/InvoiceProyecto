@@ -33,7 +33,10 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, onMounted, onUnmounted } from 'vue'
+
+onMounted(() => document.body.classList.add('hide-chatway'))
+onUnmounted(() => document.body.classList.remove('hide-chatway'))
 import NotificationRoot from '@/scripts/components/notifications/NotificationRoot.vue'
 import MainLogo from '@/scripts/components/icons/MainLogo.vue'
 
