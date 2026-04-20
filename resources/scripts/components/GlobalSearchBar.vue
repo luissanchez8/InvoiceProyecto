@@ -45,7 +45,7 @@
       >
         <div
           v-if="
-            usersStore.userList?.length < 1 && usersStore.customerList?.length < 1
+            (userList || []).length < 1 && (customerList || []).length < 1
           "
           class="
             flex
@@ -61,12 +61,12 @@
           {{ $t('global_search.no_results_found') }}
         </div>
         <div v-else>
-          <div v-if="usersStore.customerList?.length > 0">
+          <div v-if="(customerList || []).length > 0">
             <label class="text-sm text-gray-400 mb-0.5 block px-2 uppercase">
               {{ $t('global_search.customers') }}
             </label>
             <div
-              v-for="(customer, index) in usersStore.customerList"
+              v-for="(customer, index) in customerList"
               :key="index"
               class="p-2 hover:bg-gray-100 cursor-pointer rounded-md"
             >
@@ -107,14 +107,14 @@
             </div>
           </div>
 
-          <div v-if="usersStore.userList?.length > 0" class="mt-2">
+          <div v-if="(userList || []).length > 0" class="mt-2">
             <label
               class="text-sm text-gray-400 mb-2 block px-2 mb-0.5 uppercase"
             >
               {{ $t('global_search.users') }}
             </label>
             <div
-              v-for="(user, index) in usersStore.userList"
+              v-for="(user, index) in userList"
               :key="index"
               class="p-2 hover:bg-gray-100 cursor-pointer rounded-md"
             >
@@ -154,19 +154,19 @@
 
 <script setup>
 import { ref, watch } from 'vue'
-import { useUsersStore } from '@/scripts/admin/stores/users'
+import axios from 'axios'
 import { onClickOutside } from '@vueuse/core'
 import { useRoute } from 'vue-router'
 import SpinnerIcon from '@/scripts/components/icons/SpinnerIcon.vue'
 import { debounce } from 'lodash'
-
-const usersStore = useUsersStore()
 
 const isShow = ref(false)
 const name = ref('')
 const searchBar = ref(null)
 const isSearching = ref(false)
 const route = useRoute()
+const customerList = ref([])
+const userList = ref([])
 
 watch(route, () => {
   isShow.value = false
@@ -181,19 +181,23 @@ onClickOutside(searchBar, () => {
 })
 
 function onSearch() {
-  let data = {
-    search: name.value,
-  }
-
   if (name.value) {
     isSearching.value = true
-    usersStore.searchUsers(data).then(() => {
-      isShow.value = true
-    })
-    isSearching.value = false
+    axios.get('/api/v1/search', { params: { search: name.value } })
+      .then((response) => {
+        customerList.value = response.data.customers?.data || []
+        userList.value = response.data.users?.data || []
+        isShow.value = true
+        isSearching.value = false
+      })
+      .catch(() => {
+        isSearching.value = false
+      })
   }
   if (name.value === '') {
     isShow.value = false
+    customerList.value = []
+    userList.value = []
   }
 }
 
