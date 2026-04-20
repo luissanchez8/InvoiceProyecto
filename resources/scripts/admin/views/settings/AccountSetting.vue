@@ -34,13 +34,11 @@
 
         <BaseInputGroup
           :label="$t('settings.account_settings.email')"
-          :error="v$.email.$error && v$.email.$errors[0].$message"
-          required
         >
           <BaseInput
             v-model="userForm.email"
-            :invalid="v$.email.$error"
-            @input="v$.email.$touch()"
+            :disabled="true"
+            class="bg-gray-100 cursor-not-allowed"
           />
         </BaseInputGroup>
 

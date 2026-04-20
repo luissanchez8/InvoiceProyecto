@@ -213,8 +213,23 @@ async function setInitialData() {
 
   invoiceMailForm.subject = subject
 
-  // cuerpo por defecto de la empresa
-  invoiceMailForm.body = companyStore.selectedCompanySettings.invoice_mail_body || ' '
+  // cuerpo por defecto según tipo de documento
+  const settings = companyStore.selectedCompanySettings
+  switch (docType) {
+    case 'proforma_invoice':
+      invoiceMailForm.body = settings.proforma_mail_body || settings.invoice_mail_body || ' '
+      break
+    case 'delivery_note':
+      invoiceMailForm.body = settings.delivery_note_mail_body || settings.invoice_mail_body || ' '
+      break
+    case 'estimate':
+      invoiceMailForm.body = settings.estimate_mail_body || settings.invoice_mail_body || ' '
+      break
+    case 'invoice':
+    default:
+      invoiceMailForm.body = settings.invoice_mail_body || ' '
+      break
+  }
 }
 
 async function sendNow() {
