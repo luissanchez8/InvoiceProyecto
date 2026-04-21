@@ -487,6 +487,12 @@ class Invoice extends Model implements HasMedia
     public function assignNumber(): self
     {
         return DB::transaction(function () {
+            // Lock serializado por empresa para evitar que dos aprobaciones
+            // simultáneas asignen el mismo número. Usamos pg_advisory_xact_lock
+            // en PostgreSQL porque FOR UPDATE + MAX no está soportado (error
+            // 0A000 "Feature not supported"). En MySQL usamos GET_LOCK.
+            $this->acquireNumberLock();
+
             // 1) Si ya tiene invoice_number (manual), validamos unicidad.
             //    No tocamos sequence_number: queda NULL, no afecta al contador
             //    automático. Los números manuales no "consumen" secuenciales.
@@ -494,7 +500,6 @@ class Invoice extends Model implements HasMedia
                 $conflict = Invoice::where('company_id', $this->company_id)
                     ->where('invoice_number', $this->invoice_number)
                     ->where('id', '<>', $this->id)
-                    ->lockForUpdate()
                     ->first();
 
                 if ($conflict) {
@@ -517,7 +522,6 @@ class Invoice extends Model implements HasMedia
             //    lanzamos error para que el usuario resuelva el conflicto.
             $lastAuto = Invoice::where('company_id', $this->company_id)
                 ->whereNotNull('sequence_number')
-                ->lockForUpdate()
                 ->max('sequence_number');
 
             $nextSeq = ($lastAuto ? (int) $lastAuto : 0) + 1;
@@ -528,7 +532,6 @@ class Invoice extends Model implements HasMedia
             $conflict = Invoice::where('company_id', $this->company_id)
                 ->where('invoice_number', $candidate)
                 ->where('id', '<>', $this->id)
-                ->lockForUpdate()
                 ->first();
 
             if ($conflict) {
@@ -559,6 +562,35 @@ class Invoice extends Model implements HasMedia
 
             return $this->fresh();
         });
+    }
+
+    /**
+     * Adquiere un lock serializado por empresa durante la transacción actual.
+     * Evita que dos llamadas a assignNumber() simultáneas calculen el mismo
+     * siguiente número.
+     *
+     * - PostgreSQL: pg_advisory_xact_lock(key1, key2) — se libera solo al
+     *   final de la transacción. key1 identifica la tabla (hash),
+     *   key2 la empresa.
+     * - MySQL: SELECT GET_LOCK('invoices_numbering_<company>', 10)
+     *
+     * Se llama desde dentro de DB::transaction().
+     */
+    protected function acquireNumberLock(): void
+    {
+        $driver = DB::connection()->getDriverName();
+        $companyId = (int) $this->company_id;
+
+        if ($driver === 'pgsql') {
+            // Hash estable de 'invoices' → clave32-bit constante
+            $tableKey = crc32('invoices');
+            DB::statement('SELECT pg_advisory_xact_lock(?, ?)', [$tableKey, $companyId]);
+        } elseif ($driver === 'mysql') {
+            $lockName = "invoices_numbering_{$companyId}";
+            DB::statement('SELECT GET_LOCK(?, 10)', [$lockName]);
+        }
+        // Para SQLite u otros drivers en desarrollo/tests no hacemos nada;
+        // la transacción ya serializa lo suficiente en BBDD ligeras.
     }
 
     /**

@@ -317,11 +317,13 @@ class DeliveryNote extends Model implements HasMedia
     public function assignNumber(): self
     {
         return DB::transaction(function () {
+            // Lock serializado por empresa (ver acquireNumberLock).
+            $this->acquireNumberLock();
+
             if (! empty($this->delivery_note_number)) {
                 $conflict = DeliveryNote::where('company_id', $this->company_id)
                     ->where('delivery_note_number', $this->delivery_note_number)
                     ->where('id', '<>', $this->id)
-                    ->lockForUpdate()
                     ->first();
 
                 if ($conflict) {
@@ -341,7 +343,6 @@ class DeliveryNote extends Model implements HasMedia
 
             $lastAuto = DeliveryNote::where('company_id', $this->company_id)
                 ->whereNotNull('sequence_number')
-                ->lockForUpdate()
                 ->max('sequence_number');
 
             $nextSeq = ($lastAuto ? (int) $lastAuto : 0) + 1;
@@ -350,7 +351,6 @@ class DeliveryNote extends Model implements HasMedia
             $conflict = DeliveryNote::where('company_id', $this->company_id)
                 ->where('delivery_note_number', $candidate)
                 ->where('id', '<>', $this->id)
-                ->lockForUpdate()
                 ->first();
 
             if ($conflict) {
@@ -379,6 +379,23 @@ class DeliveryNote extends Model implements HasMedia
 
             return $this->fresh();
         });
+    }
+
+    /**
+     * Lock serializado por empresa. Ver Invoice::acquireNumberLock().
+     */
+    protected function acquireNumberLock(): void
+    {
+        $driver = DB::connection()->getDriverName();
+        $companyId = (int) $this->company_id;
+
+        if ($driver === 'pgsql') {
+            $tableKey = crc32('delivery_notes');
+            DB::statement('SELECT pg_advisory_xact_lock(?, ?)', [$tableKey, $companyId]);
+        } elseif ($driver === 'mysql') {
+            $lockName = "delivery_notes_numbering_{$companyId}";
+            DB::statement('SELECT GET_LOCK(?, 10)', [$lockName]);
+        }
     }
 
     /**

@@ -511,11 +511,13 @@ class ProformaInvoice extends Model implements HasMedia
     public function assignNumber(): self
     {
         return DB::transaction(function () {
+            // Lock serializado por empresa (ver acquireNumberLock).
+            $this->acquireNumberLock();
+
             if (! empty($this->proforma_invoice_number)) {
                 $conflict = ProformaInvoice::where('company_id', $this->company_id)
                     ->where('proforma_invoice_number', $this->proforma_invoice_number)
                     ->where('id', '<>', $this->id)
-                    ->lockForUpdate()
                     ->first();
 
                 if ($conflict) {
@@ -535,7 +537,6 @@ class ProformaInvoice extends Model implements HasMedia
 
             $lastAuto = ProformaInvoice::where('company_id', $this->company_id)
                 ->whereNotNull('sequence_number')
-                ->lockForUpdate()
                 ->max('sequence_number');
 
             $nextSeq = ($lastAuto ? (int) $lastAuto : 0) + 1;
@@ -544,7 +545,6 @@ class ProformaInvoice extends Model implements HasMedia
             $conflict = ProformaInvoice::where('company_id', $this->company_id)
                 ->where('proforma_invoice_number', $candidate)
                 ->where('id', '<>', $this->id)
-                ->lockForUpdate()
                 ->first();
 
             if ($conflict) {
@@ -573,6 +573,23 @@ class ProformaInvoice extends Model implements HasMedia
 
             return $this->fresh();
         });
+    }
+
+    /**
+     * Lock serializado por empresa. Ver Invoice::acquireNumberLock().
+     */
+    protected function acquireNumberLock(): void
+    {
+        $driver = DB::connection()->getDriverName();
+        $companyId = (int) $this->company_id;
+
+        if ($driver === 'pgsql') {
+            $tableKey = crc32('proforma_invoices');
+            DB::statement('SELECT pg_advisory_xact_lock(?, ?)', [$tableKey, $companyId]);
+        } elseif ($driver === 'mysql') {
+            $lockName = "proforma_invoices_numbering_{$companyId}";
+            DB::statement('SELECT GET_LOCK(?, 10)', [$lockName]);
+        }
     }
 
     /**
