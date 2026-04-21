@@ -32,6 +32,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Illuminate\Support\Facades\DB;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 use Vinkla\Hashids\Facades\Hashids;
@@ -241,16 +242,15 @@ class DeliveryNote extends Model implements HasMedia
             $data['status'] = self::STATUS_SENT;
         }
 
+        // Onfactu — numeración diferida:
+        // delivery_note_number y sequence_number quedan NULL en borrador.
+        // El número se asignará al ENVIAR el albarán (DRAFT → SENT).
+        if (empty($data['delivery_note_number'])) {
+            $data['delivery_note_number'] = null;
+        }
+
         $deliveryNote = self::create($data);
 
-        $serial = (new SerialNumberFormatter)
-            ->setModel($deliveryNote)
-            ->setCompany($deliveryNote->company_id)
-            ->setCustomer($deliveryNote->customer_id)
-            ->setNextNumbers();
-
-        $deliveryNote->sequence_number = $serial->nextSequenceNumber;
-        $deliveryNote->customer_sequence_number = $serial->nextCustomerSequenceNumber;
         $deliveryNote->unique_hash = Hashids::connection(self::class)->encode($deliveryNote->id);
         $deliveryNote->save();
 
@@ -275,15 +275,12 @@ class DeliveryNote extends Model implements HasMedia
 
     public function updateDeliveryNote($request)
     {
-        $serial = (new SerialNumberFormatter)
-            ->setModel($this)
-            ->setCompany($this->company_id)
-            ->setCustomer($request->customer_id)
-            ->setModelObject($this->id)
-            ->setNextNumbers();
-
+        // Onfactu — numeración diferida: no recalculamos sequence_number.
         $data = $request->getDeliveryNotePayload();
-        $data['customer_sequence_number'] = $serial->nextCustomerSequenceNumber;
+
+        if (empty($data['delivery_note_number'])) {
+            $data['delivery_note_number'] = null;
+        }
 
         $this->update($data);
 
@@ -310,6 +307,119 @@ class DeliveryNote extends Model implements HasMedia
 
         return self::with(['items', 'items.fields', 'items.fields.customField', 'customer', 'taxes'])
             ->find($this->id);
+    }
+
+    /**
+     * Asigna número de albarán — Onfactu numeración diferida.
+     *
+     * Se invoca al ENVIAR el albarán (DRAFT → SENT).
+     */
+    public function assignNumber(): self
+    {
+        return DB::transaction(function () {
+            if (! empty($this->delivery_note_number)) {
+                $conflict = DeliveryNote::where('company_id', $this->company_id)
+                    ->where('delivery_note_number', $this->delivery_note_number)
+                    ->where('id', '<>', $this->id)
+                    ->lockForUpdate()
+                    ->first();
+
+                if ($conflict) {
+                    throw new \App\Exceptions\NumberCollisionException(
+                        "El número de albarán '{$this->delivery_note_number}' ya existe en esta empresa.",
+                        [
+                            'conflicting_id' => $conflict->id,
+                            'conflicting_number' => $conflict->delivery_note_number,
+                            'conflicting_status' => $conflict->status,
+                            'attempted_number' => $this->delivery_note_number,
+                        ]
+                    );
+                }
+
+                return $this->fresh();
+            }
+
+            $lastAuto = DeliveryNote::where('company_id', $this->company_id)
+                ->whereNotNull('sequence_number')
+                ->lockForUpdate()
+                ->max('sequence_number');
+
+            $nextSeq = ($lastAuto ? (int) $lastAuto : 0) + 1;
+            $candidate = $this->formatSerialForSequence($nextSeq);
+
+            $conflict = DeliveryNote::where('company_id', $this->company_id)
+                ->where('delivery_note_number', $candidate)
+                ->where('id', '<>', $this->id)
+                ->lockForUpdate()
+                ->first();
+
+            if ($conflict) {
+                throw new \App\Exceptions\NumberCollisionException(
+                    "Ya existe un albarán con el número '{$candidate}' (estado: {$conflict->status}). "
+                    . 'Para continuar, edita ese albarán y cambia o libera su número, o elimínalo.',
+                    [
+                        'conflicting_id' => $conflict->id,
+                        'conflicting_number' => $conflict->delivery_note_number,
+                        'conflicting_status' => $conflict->status,
+                        'attempted_number' => $candidate,
+                    ]
+                );
+            }
+
+            $this->delivery_note_number = $candidate;
+            $this->sequence_number = $nextSeq;
+
+            $lastCustSeq = DeliveryNote::where('company_id', $this->company_id)
+                ->where('customer_id', $this->customer_id)
+                ->whereNotNull('customer_sequence_number')
+                ->max('customer_sequence_number');
+            $this->customer_sequence_number = ($lastCustSeq ? (int) $lastCustSeq : 0) + 1;
+
+            $this->save();
+
+            return $this->fresh();
+        });
+    }
+
+    /**
+     * Formatea un delivery_note_number para un sequence_number concreto.
+     */
+    protected function formatSerialForSequence(int $sequence): string
+    {
+        $format = CompanySetting::getSetting('deliverynote_number_format', $this->company_id)
+            ?: '{{SERIES:ALB}}{{DELIMITER:-}}{{SEQUENCE:6}}';
+
+        $placeholders = SerialNumberFormatter::getPlaceholders($format);
+
+        $result = '';
+        foreach ($placeholders as $p) {
+            $name = $p['name'];
+            $value = $p['value'];
+
+            switch ($name) {
+                case 'SEQUENCE':
+                    $value = $value ?: 6;
+                    $result .= str_pad((string) $sequence, (int) $value, '0', STR_PAD_LEFT);
+                    break;
+                case 'DATE_FORMAT':
+                    $result .= date($value ?: 'Y');
+                    break;
+                case 'RANDOM_SEQUENCE':
+                    $value = $value ?: 6;
+                    $result .= substr(bin2hex(random_bytes((int) $value)), 0, (int) $value);
+                    break;
+                case 'CUSTOMER_SERIES':
+                    $result .= ($this->customer && $this->customer->prefix) ? $this->customer->prefix : 'CST';
+                    break;
+                case 'CUSTOMER_SEQUENCE':
+                    $result .= str_pad((string) ($this->customer_sequence_number ?? 1), (int) ($value ?: 6), '0', STR_PAD_LEFT);
+                    break;
+                default:
+                    $result .= $value;
+            }
+        }
+
+        return $result;
     }
 
     public static function createItems($deliveryNote, $items)

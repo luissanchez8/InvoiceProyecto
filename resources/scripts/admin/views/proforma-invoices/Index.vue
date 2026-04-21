@@ -145,9 +145,11 @@
         <template #cell-proforma_invoice_number="{ row }">
           <router-link
             :to="{ path: `proforma-invoices/${row.data.id}/view` }"
-            class="font-medium text-primary-500"
+            :class="row.data.proforma_invoice_number
+              ? 'font-medium text-primary-500'
+              : 'italic text-gray-400'"
           >
-            {{ row.data.proforma_invoice_number }}
+            {{ row.data.proforma_invoice_number || $t('proforma_invoices.draft_number') }}
           </router-link>
         </template>
 

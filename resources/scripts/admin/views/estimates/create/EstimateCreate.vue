@@ -2,6 +2,12 @@
   <SelectTemplateModal />
   <ItemModal />
   <TaxTypeModal />
+  <NumberCollisionDialog
+    :visible="showCollisionDialog"
+    :details="numberCollision"
+    doc-type="estimate"
+    @close="numberCollision = null"
+  />
   <SalesTax
     v-if="salesTaxEnabled && (!isLoadingContent || route.query.customer)"
     :store="estimateStore"
@@ -163,6 +169,7 @@ import EstimateBasicFields from './EstimateCreateBasicFields.vue'
 import SelectTemplateModal from '@/scripts/admin/components/modal-components/SelectTemplateModal.vue'
 import TaxTypeModal from '@/scripts/admin/components/modal-components/TaxTypeModal.vue'
 import ItemModal from '@/scripts/admin/components/modal-components/ItemModal.vue'
+import NumberCollisionDialog from '@/scripts/admin/components/modal-components/NumberCollisionDialog.vue'
 import SalesTax from '@/scripts/admin/components/estimate-invoice-common/SalesTax.vue'
 
 const estimateStore = useEstimateStore()
@@ -206,7 +213,13 @@ const rules = {
     required: helpers.withMessage(t('validation.required'), required),
   },
   estimate_number: {
-    required: helpers.withMessage(t('validation.required'), required),
+    // Onfactu — numeración diferida: estimate_number es OPCIONAL.
+    // Si el usuario lo deja vacío, se asigna al enviar el presupuesto.
+    // Si lo rellena, el backend valida que sea único en la empresa.
+    maxLength: helpers.withMessage(
+      t('validation.name_max_length'),
+      maxLength(100)
+    ),
   },
   reference_number: {
     maxLength: helpers.withMessage(
@@ -249,6 +262,32 @@ customFieldStore.resetCustomFields()
 v$.value.$reset
 estimateStore.fetchEstimateInitialSettings(isEdit.value)
 
+// ── Onfactu — numeración diferida ────────────────────────────────────────────
+// Modal de colisión (cuando el backend devuelve 409 al marcar como enviado)
+const numberCollision = ref(null)
+const showCollisionDialog = computed({
+  get: () => numberCollision.value !== null,
+  set: (val) => {
+    if (!val) numberCollision.value = null
+  },
+})
+
+// Devuelve true si el input coincide con la sugerencia (usuario no la tocó)
+function isUnchangedSuggestion(numberInForm) {
+  const suggestion = estimateStore.suggestedEstimateNumber
+  if (!suggestion) return false
+  return String(numberInForm || '').trim() === String(suggestion).trim()
+}
+
+// Al guardar como borrador, si el input es la sugerencia no tocada → null.
+// Si el usuario escribió un número distinto, se respeta.
+function resolveNumberForDraft(data) {
+  if (isUnchangedSuggestion(data.estimate_number)) {
+    data.estimate_number = null
+  }
+  return data
+}
+
 async function submitForm() {
   v$.value.$touch()
 
@@ -264,6 +303,10 @@ async function submitForm() {
     total: estimateStore.getTotal,
     tax: estimateStore.getTotalTax,
   })
+
+  // Numeración diferida: descarta sugerencia no tocada
+  data = resolveNumberForDraft(data)
+
   if (data.discount_per_item === 'YES') {
     data.items.forEach((item, index) => {
       if (item.discount_type === 'fixed'){
@@ -295,7 +338,15 @@ async function submitForm() {
       router.push(`/admin/estimates/${res.data.data.id}/view`)
     }
   } catch (err) {
-    console.error(err)
+    // Capturamos colisión también aquí por si el usuario escribió un número
+    // manual y ya existe en otro borrador.
+    const status = err?.response?.status
+    const errorCode = err?.response?.data?.error_code
+    if (status === 409 && errorCode === 'number_collision') {
+      numberCollision.value = err.response.data.details || {}
+    } else {
+      console.error(err)
+    }
   }
 
   isSaving.value = false

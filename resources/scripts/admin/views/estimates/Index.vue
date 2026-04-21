@@ -205,9 +205,11 @@
         <template #cell-estimate_number="{ row }">
           <router-link
             :to="{ path: `estimates/${row.data.id}/view` }"
-            class="font-medium text-primary-500"
+            :class="row.data.estimate_number
+              ? 'font-medium text-primary-500'
+              : 'italic text-gray-400'"
           >
-            {{ row.data.estimate_number }}
+            {{ row.data.estimate_number || $t('estimates.draft_number') }}
           </router-link>
         </template>
 

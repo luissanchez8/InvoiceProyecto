@@ -85,7 +85,7 @@ const searchData = reactive({
   searchText: null,
 })
 
-const pageTitle = computed(() => invoiceData.value.invoice_number)
+const pageTitle = computed(() => invoiceData.value.invoice_number || t('invoices.draft_number'))
 
 const getOrderBy = computed(() => {
   if (searchData.orderBy === 'asc' || searchData.orderBy == null) {
@@ -581,7 +581,7 @@ onSearched = debounce(onSearched, 500)
                   text-gray-600
                 "
               >
-                {{ invoice.invoice_number }}
+                {{ invoice.invoice_number || $t('invoices.draft_number') }}
               </div>
               <BaseEstimateStatusBadge
                 :status="invoice.verifactu_status === 'PENDING' ? 'VERIFACTU_PENDING' : invoice.status"

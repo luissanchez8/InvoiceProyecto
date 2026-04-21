@@ -29,6 +29,42 @@ class ApproveInvoiceController extends Controller
             ], 400);
         }
 
+        // ── Numeración diferida (Onfactu) ───────────────────────────────────
+        // Asignar invoice_number ANTES de publicar a VeriFactu. Dos casos:
+        //  1. El usuario ya puso un número manualmente → se valida unicidad y
+        //     se respeta tal cual.
+        //  2. No hay número → se genera automáticamente (transacción + lock).
+        //     Si colisiona con otro borrador manual, NO se salta: se devuelve
+        //     error 409 con los datos del conflicto para que el usuario pueda
+        //     resolverlo (editando o eliminando la factura conflictiva).
+        try {
+            $invoice = $invoice->assignNumber();
+        } catch (\App\Exceptions\NumberCollisionException $e) {
+            Log::warning('Colisión al asignar número de factura', [
+                'invoice_id' => $invoice->id,
+                'details' => $e->getDetails(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'error' => $e->getMessage(),
+                'error_code' => 'number_collision',
+                'details' => $e->getDetails(),
+            ], 409);
+        } catch (\Throwable $e) {
+            Log::error('Error al asignar número de factura al aprobar', [
+                'invoice_id' => $invoice->id,
+                'invoice_number' => $invoice->invoice_number,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'error' => $e->getMessage(),
+            ], 422);
+        }
+        // ────────────────────────────────────────────────────────────────────
+
         // Marcar como pendiente de aprobación VeriFactu
         $invoice->verifactu_status = Invoice::VERIFACTU_PENDING;
         $invoice->save();

@@ -45,6 +45,8 @@ export const useDeliveryNoteStore = (useWindow = false) => {
       showExchangeRate: false,
       isFetchingInitialSettings: false,
       isFetchingDeliveryNote: false,
+      // Onfactu — numeración diferida:
+      suggestedDeliveryNoteNumber: null,
       newDeliveryNote: { ...deliveryNoteStub() },
     }),
 
@@ -134,14 +136,19 @@ export const useDeliveryNoteStore = (useWindow = false) => {
           ...editActions,
         ]).then(async ([res1, res2, res3, res4, res5, res6]) => {
           if (!isEdit) {
+            // Onfactu — numeración diferida: pre-rellenamos + guardamos sugerencia
             if (res4.data) {
               this.newDeliveryNote.delivery_note_number = res4.data.nextNumber
+              this.suggestedDeliveryNoteNumber = res4.data.nextNumber
             }
             if (res3.data && this.templates.length) {
               let defaultTpl = this.templates.find(t => t.name === 'invoice4')
               this.setTemplate(defaultTpl ? 'invoice4' : this.templates[0].name)
             }
           } else if (res6) {
+            if (res4.data) {
+              this.suggestedDeliveryNoteNumber = res4.data.nextNumber
+            }
             this.setDeliveryNoteData(res6.data.data)
           }
 
@@ -330,7 +337,16 @@ export const useDeliveryNoteStore = (useWindow = false) => {
         return new Promise((resolve, reject) => {
           axios.post(`/api/v1/delivery-notes/${data.id}/status`, { status: 'SENT' })
             .then((response) => { resolve(response) })
-            .catch((err) => { handleError(err); reject(err) })
+            .catch((err) => {
+              // Onfactu — numeración diferida: 409 manejada por la view
+              const status = err?.response?.status
+              const errorCode = err?.response?.data?.error_code
+              const isCollision = status === 409 && errorCode === 'number_collision'
+              if (!isCollision) {
+                handleError(err)
+              }
+              reject(err)
+            })
         })
       },
 
@@ -346,7 +362,13 @@ export const useDeliveryNoteStore = (useWindow = false) => {
               resolve(response)
             })
             .catch((err) => {
-              handleError(err)
+              // Onfactu — 409 de colisión manejada por la view
+              const status = err?.response?.status
+              const errorCode = err?.response?.data?.error_code
+              const isCollision = status === 409 && errorCode === 'number_collision'
+              if (!isCollision) {
+                handleError(err)
+              }
               reject(err)
             })
         })

@@ -33,6 +33,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Illuminate\Support\Facades\DB;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 use Vinkla\Hashids\Facades\Hashids;
@@ -275,17 +276,16 @@ class ProformaInvoice extends Model implements HasMedia
             $data['status'] = self::STATUS_SENT;
         }
 
+        // Onfactu — numeración diferida:
+        // proforma_invoice_number y sequence_number quedan NULL en borrador.
+        // Si el usuario ha escrito un número manualmente, se respeta.
+        // El número se asignará al ENVIAR la proforma (DRAFT → SENT).
+        if (empty($data['proforma_invoice_number'])) {
+            $data['proforma_invoice_number'] = null;
+        }
+
         $proformaInvoice = self::create($data);
 
-        // Generar número de secuencia usando el formateador
-        $serial = (new SerialNumberFormatter)
-            ->setModel($proformaInvoice)
-            ->setCompany($proformaInvoice->company_id)
-            ->setCustomer($proformaInvoice->customer_id)
-            ->setNextNumbers();
-
-        $proformaInvoice->sequence_number = $serial->nextSequenceNumber;
-        $proformaInvoice->customer_sequence_number = $serial->nextCustomerSequenceNumber;
         $proformaInvoice->unique_hash = Hashids::connection(self::class)->encode($proformaInvoice->id);
         $proformaInvoice->save();
 
@@ -318,15 +318,13 @@ class ProformaInvoice extends Model implements HasMedia
      */
     public function updateProformaInvoice($request)
     {
-        $serial = (new SerialNumberFormatter)
-            ->setModel($this)
-            ->setCompany($this->company_id)
-            ->setCustomer($request->customer_id)
-            ->setModelObject($this->id)
-            ->setNextNumbers();
-
+        // Onfactu — numeración diferida:
+        // No recalculamos sequence_number en update. Se asigna al enviar.
         $data = $request->getProformaInvoicePayload();
-        $data['customer_sequence_number'] = $serial->nextCustomerSequenceNumber;
+
+        if (empty($data['proforma_invoice_number'])) {
+            $data['proforma_invoice_number'] = null;
+        }
 
         $this->update($data);
 
@@ -473,22 +471,11 @@ class ProformaInvoice extends Model implements HasMedia
             'sales_tax_address_type' => $this->sales_tax_address_type,
         ]);
 
-        // Generar número y secuencia de la factura
-        $serial = (new SerialNumberFormatter)
-            ->setModel($invoice)
-            ->setCompany($invoice->company_id)
-            ->setCustomer($invoice->customer_id)
-            ->setNextNumbers();
-
-        $invoice->sequence_number = $serial->nextSequenceNumber;
-        $invoice->customer_sequence_number = $serial->nextCustomerSequenceNumber;
+        // Onfactu — numeración diferida:
+        // La factura resultante nace como un borrador sin número. El número
+        // se asignará cuando el usuario apruebe la factura (VeriFactu).
+        // sequence_number y customer_sequence_number quedan NULL.
         $invoice->unique_hash = Hashids::connection(Invoice::class)->encode($invoice->id);
-        $invoice->invoice_number = (new SerialNumberFormatter)
-            ->setModel(new Invoice)
-            ->setCompany($invoice->company_id)
-            ->setCustomer($invoice->customer_id)
-            ->setModelObject($invoice->id)
-            ->getNextNumber();
         $invoice->save();
 
         // Copiar ítems de la proforma a la factura
@@ -513,6 +500,120 @@ class ProformaInvoice extends Model implements HasMedia
         ]);
 
         return $invoice;
+    }
+
+    /**
+     * Asigna número de proforma — Onfactu numeración diferida.
+     *
+     * Se invoca al ENVIAR la proforma (DRAFT → SENT). Mismo patrón que
+     * Invoice::assignNumber() y Estimate::assignNumber().
+     */
+    public function assignNumber(): self
+    {
+        return DB::transaction(function () {
+            if (! empty($this->proforma_invoice_number)) {
+                $conflict = ProformaInvoice::where('company_id', $this->company_id)
+                    ->where('proforma_invoice_number', $this->proforma_invoice_number)
+                    ->where('id', '<>', $this->id)
+                    ->lockForUpdate()
+                    ->first();
+
+                if ($conflict) {
+                    throw new \App\Exceptions\NumberCollisionException(
+                        "El número de proforma '{$this->proforma_invoice_number}' ya existe en esta empresa.",
+                        [
+                            'conflicting_id' => $conflict->id,
+                            'conflicting_number' => $conflict->proforma_invoice_number,
+                            'conflicting_status' => $conflict->status,
+                            'attempted_number' => $this->proforma_invoice_number,
+                        ]
+                    );
+                }
+
+                return $this->fresh();
+            }
+
+            $lastAuto = ProformaInvoice::where('company_id', $this->company_id)
+                ->whereNotNull('sequence_number')
+                ->lockForUpdate()
+                ->max('sequence_number');
+
+            $nextSeq = ($lastAuto ? (int) $lastAuto : 0) + 1;
+            $candidate = $this->formatSerialForSequence($nextSeq);
+
+            $conflict = ProformaInvoice::where('company_id', $this->company_id)
+                ->where('proforma_invoice_number', $candidate)
+                ->where('id', '<>', $this->id)
+                ->lockForUpdate()
+                ->first();
+
+            if ($conflict) {
+                throw new \App\Exceptions\NumberCollisionException(
+                    "Ya existe una proforma con el número '{$candidate}' (estado: {$conflict->status}). "
+                    . 'Para continuar, edita esa proforma y cambia o libera su número, o elimínala.',
+                    [
+                        'conflicting_id' => $conflict->id,
+                        'conflicting_number' => $conflict->proforma_invoice_number,
+                        'conflicting_status' => $conflict->status,
+                        'attempted_number' => $candidate,
+                    ]
+                );
+            }
+
+            $this->proforma_invoice_number = $candidate;
+            $this->sequence_number = $nextSeq;
+
+            $lastCustSeq = ProformaInvoice::where('company_id', $this->company_id)
+                ->where('customer_id', $this->customer_id)
+                ->whereNotNull('customer_sequence_number')
+                ->max('customer_sequence_number');
+            $this->customer_sequence_number = ($lastCustSeq ? (int) $lastCustSeq : 0) + 1;
+
+            $this->save();
+
+            return $this->fresh();
+        });
+    }
+
+    /**
+     * Formatea un proforma_invoice_number para un sequence_number concreto.
+     */
+    protected function formatSerialForSequence(int $sequence): string
+    {
+        $format = CompanySetting::getSetting('proformainvoice_number_format', $this->company_id)
+            ?: '{{SERIES:PRF}}{{DELIMITER:-}}{{SEQUENCE:6}}';
+
+        $placeholders = SerialNumberFormatter::getPlaceholders($format);
+
+        $result = '';
+        foreach ($placeholders as $p) {
+            $name = $p['name'];
+            $value = $p['value'];
+
+            switch ($name) {
+                case 'SEQUENCE':
+                    $value = $value ?: 6;
+                    $result .= str_pad((string) $sequence, (int) $value, '0', STR_PAD_LEFT);
+                    break;
+                case 'DATE_FORMAT':
+                    $result .= date($value ?: 'Y');
+                    break;
+                case 'RANDOM_SEQUENCE':
+                    $value = $value ?: 6;
+                    $result .= substr(bin2hex(random_bytes((int) $value)), 0, (int) $value);
+                    break;
+                case 'CUSTOMER_SERIES':
+                    $result .= ($this->customer && $this->customer->prefix) ? $this->customer->prefix : 'CST';
+                    break;
+                case 'CUSTOMER_SEQUENCE':
+                    $result .= str_pad((string) ($this->customer_sequence_number ?? 1), (int) ($value ?: 6), '0', STR_PAD_LEFT);
+                    break;
+                default:
+                    $result .= $value;
+            }
+        }
+
+        return $result;
     }
 
     // =====================================================================

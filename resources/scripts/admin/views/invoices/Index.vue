@@ -211,9 +211,11 @@
         <template #cell-invoice_number="{ row }">
           <router-link
             :to="{ path: `invoices/${row.data.id}/view` }"
-            class="font-medium text-primary-500"
+            :class="row.data.invoice_number
+              ? 'font-medium text-primary-500'
+              : 'italic text-gray-400'"
           >
-            {{ row.data.invoice_number }}
+            {{ row.data.invoice_number || $t('invoices.draft_number') }}
           </router-link>
         </template>
 

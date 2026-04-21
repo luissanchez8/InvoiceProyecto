@@ -15,6 +15,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Illuminate\Support\Facades\DB;
 use Nwidart\Modules\Facades\Module;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
@@ -332,16 +333,18 @@ class Invoice extends Model implements HasMedia
             $data['status'] = Invoice::STATUS_SENT;
         }
 
+        // Numeración diferida (Onfactu):
+        // - invoice_number y sequence_number quedan NULL en borrador
+        // - Si el usuario ha escrito un invoice_number manualmente, se respeta
+        //   (viene en $data). sequence_number sigue NULL para no afectar al
+        //   contador automático.
+        // - El número se asignará al APROBAR la factura (VeriFactu).
+        if (empty($data['invoice_number'])) {
+            $data['invoice_number'] = null;
+        }
+
         $invoice = Invoice::create($data);
 
-        $serial = (new SerialNumberFormatter)
-            ->setModel($invoice)
-            ->setCompany($invoice->company_id)
-            ->setCustomer($invoice->customer_id)
-            ->setNextNumbers();
-
-        $invoice->sequence_number = $serial->nextSequenceNumber;
-        $invoice->customer_sequence_number = $serial->nextCustomerSequenceNumber;
         $invoice->unique_hash = Hashids::connection(Invoice::class)->encode($invoice->id);
         $invoice->save();
 
@@ -375,14 +378,18 @@ class Invoice extends Model implements HasMedia
 
     public function updateInvoice($request)
     {
-        $serial = (new SerialNumberFormatter)
-            ->setModel($this)
-            ->setCompany($this->company_id)
-            ->setCustomer($request->customer_id)
-            ->setModelObject($this->id)
-            ->setNextNumbers();
+        // Numeración diferida (Onfactu):
+        // - No recalculamos sequence_number en update. Solo se asigna al aprobar.
+        // - Si el usuario cambió el invoice_number manualmente en borrador,
+        //   lo respetamos tal cual (ya validado como único en InvoicesRequest).
+        // - Si el invoice_number viene vacío, se guarda NULL (sigue en borrador).
 
         $data = $request->getInvoicePayload();
+
+        if (empty($data['invoice_number'])) {
+            $data['invoice_number'] = null;
+        }
+
         $oldTotal = $this->total;
 
         $total_paid_amount = $this->total - $this->due_amount;
@@ -403,7 +410,7 @@ class Invoice extends Model implements HasMedia
 
         $data['due_amount'] = ($this->due_amount + $oldTotal);
         $data['base_due_amount'] = $data['due_amount'] * $data['exchange_rate'];
-        $data['customer_sequence_number'] = $serial->nextCustomerSequenceNumber;
+        // customer_sequence_number ya no se recalcula aquí; se asignará al aprobar.
 
         $this->update($data);
 
@@ -449,6 +456,151 @@ class Invoice extends Model implements HasMedia
             ->find($this->id);
 
         return $invoice;
+    }
+
+    /**
+     * Asigna número de factura — Onfactu numeración diferida.
+     *
+     * Se invoca al APROBAR la factura (firma VeriFactu).
+     *
+     * Comportamiento:
+     *  - Si la factura ya tiene invoice_number (manual del usuario), se respeta.
+     *    Solo se valida unicidad; si colisiona, lanza excepción con datos del
+     *    documento conflictivo.
+     *  - Si no tiene invoice_number, se genera automáticamente calculando el
+     *    siguiente sequence_number. Si el número formateado resultante colisiona
+     *    con otro existente (normalmente un borrador con número manual), NO se
+     *    salta al siguiente: lanza excepción indicando qué factura tiene el
+     *    número ocupado, para que el usuario resuelva el conflicto manualmente
+     *    (editándola o eliminándola). Esto garantiza que la numeración quede
+     *    siempre estrictamente correlativa en los números automáticos.
+     *
+     * Toda la operación ocurre dentro de una transacción con lock pesimista
+     * sobre los registros implicados, para evitar que dos aprobaciones
+     * simultáneas asignen el mismo número.
+     *
+     * @return self
+     *
+     * @throws NumberCollisionException Si hay colisión de número, con el
+     *         ID y número del documento conflictivo en el array details.
+     */
+    public function assignNumber(): self
+    {
+        return DB::transaction(function () {
+            // 1) Si ya tiene invoice_number (manual), validamos unicidad.
+            //    No tocamos sequence_number: queda NULL, no afecta al contador
+            //    automático. Los números manuales no "consumen" secuenciales.
+            if (! empty($this->invoice_number)) {
+                $conflict = Invoice::where('company_id', $this->company_id)
+                    ->where('invoice_number', $this->invoice_number)
+                    ->where('id', '<>', $this->id)
+                    ->lockForUpdate()
+                    ->first();
+
+                if ($conflict) {
+                    throw new \App\Exceptions\NumberCollisionException(
+                        "El número de factura '{$this->invoice_number}' ya existe en esta empresa.",
+                        [
+                            'conflicting_id' => $conflict->id,
+                            'conflicting_number' => $conflict->invoice_number,
+                            'conflicting_status' => $conflict->status,
+                            'attempted_number' => $this->invoice_number,
+                        ]
+                    );
+                }
+
+                return $this->fresh();
+            }
+
+            // 2) Generación automática: siguiente sequence_number disponible.
+            //    Si el número formateado colisiona con otro existente, NO saltamos:
+            //    lanzamos error para que el usuario resuelva el conflicto.
+            $lastAuto = Invoice::where('company_id', $this->company_id)
+                ->whereNotNull('sequence_number')
+                ->lockForUpdate()
+                ->max('sequence_number');
+
+            $nextSeq = ($lastAuto ? (int) $lastAuto : 0) + 1;
+            $candidate = $this->formatSerialForSequence($nextSeq);
+
+            // Comprobar si el candidato ya existe (típicamente, un borrador con
+            // número manual coincidente).
+            $conflict = Invoice::where('company_id', $this->company_id)
+                ->where('invoice_number', $candidate)
+                ->where('id', '<>', $this->id)
+                ->lockForUpdate()
+                ->first();
+
+            if ($conflict) {
+                throw new \App\Exceptions\NumberCollisionException(
+                    "Ya existe una factura con el número '{$candidate}' (estado: {$conflict->status}). "
+                    . 'Para continuar, edita esa factura y cambia o libera su número, o elimínala.',
+                    [
+                        'conflicting_id' => $conflict->id,
+                        'conflicting_number' => $conflict->invoice_number,
+                        'conflicting_status' => $conflict->status,
+                        'attempted_number' => $candidate,
+                    ]
+                );
+            }
+
+            // OK: asignar número automático
+            $this->invoice_number = $candidate;
+            $this->sequence_number = $nextSeq;
+
+            // customer_sequence_number: siguiente libre para este cliente
+            $lastCustSeq = Invoice::where('company_id', $this->company_id)
+                ->where('customer_id', $this->customer_id)
+                ->whereNotNull('customer_sequence_number')
+                ->max('customer_sequence_number');
+            $this->customer_sequence_number = ($lastCustSeq ? (int) $lastCustSeq : 0) + 1;
+
+            $this->save();
+
+            return $this->fresh();
+        });
+    }
+
+    /**
+     * Formatea un invoice_number para un sequence_number concreto, usando el
+     * formato configurado en la empresa.
+     */
+    protected function formatSerialForSequence(int $sequence): string
+    {
+        $format = CompanySetting::getSetting('invoice_number_format', $this->company_id)
+            ?: '{{SERIES:INV}}{{DELIMITER:-}}{{SEQUENCE:6}}';
+
+        $placeholders = SerialNumberFormatter::getPlaceholders($format);
+
+        $result = '';
+        foreach ($placeholders as $p) {
+            $name = $p['name'];
+            $value = $p['value'];
+
+            switch ($name) {
+                case 'SEQUENCE':
+                    $value = $value ?: 6;
+                    $result .= str_pad((string) $sequence, (int) $value, '0', STR_PAD_LEFT);
+                    break;
+                case 'DATE_FORMAT':
+                    $result .= date($value ?: 'Y');
+                    break;
+                case 'RANDOM_SEQUENCE':
+                    $value = $value ?: 6;
+                    $result .= substr(bin2hex(random_bytes((int) $value)), 0, (int) $value);
+                    break;
+                case 'CUSTOMER_SERIES':
+                    $result .= ($this->customer && $this->customer->prefix) ? $this->customer->prefix : 'CST';
+                    break;
+                case 'CUSTOMER_SEQUENCE':
+                    $result .= str_pad((string) ($this->customer_sequence_number ?? 1), (int) ($value ?: 6), '0', STR_PAD_LEFT);
+                    break;
+                default:
+                    $result .= $value;
+            }
+        }
+
+        return $result;
     }
 
     public function sendInvoiceData($data)

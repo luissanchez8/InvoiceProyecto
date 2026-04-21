@@ -38,7 +38,7 @@
       <BaseInputGroup
         :label="$t('estimates.estimate_number')"
         :content-loading="isLoading"
-        required
+        :help-text="$t('estimates.estimate_number_help')"
         :error="
           v.estimate_number.$error && v.estimate_number.$errors[0].$message
         "
@@ -46,6 +46,7 @@
         <BaseInput
           v-model="estimateStore.newEstimate.estimate_number"
           :content-loading="isLoading"
+          :placeholder="$t('estimates.estimate_number_placeholder')"
         >
         </BaseInput>
       </BaseInputGroup>

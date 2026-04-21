@@ -5,9 +5,17 @@
   <ApproveInvoiceDialog
     :visible="showApproveDialog"
     :loading="isApproving"
+    :manual-number="numberIsManual ? invoiceStore.newInvoice.invoice_number : ''"
+    :suggested-number="invoiceStore.suggestedInvoiceNumber"
     @approve="confirmApprove"
     @save-draft="onApproveSaveDraft"
     @cancel="onApproveCancelled"
+  />
+  <NumberCollisionDialog
+    :visible="showCollisionDialog"
+    :details="numberCollision"
+    doc-type="invoice"
+    @close="numberCollision = null"
   />
   <SalesTax
     v-if="salesTaxEnabled && (!isLoadingContent || route.query.customer)"
@@ -193,6 +201,7 @@ import TaxTypeModal from '@/scripts/admin/components/modal-components/TaxTypeMod
 import ItemModal from '@/scripts/admin/components/modal-components/ItemModal.vue'
 import SalesTax from '@/scripts/admin/components/estimate-invoice-common/SalesTax.vue'
 import ApproveInvoiceDialog from '@/scripts/admin/components/modal-components/ApproveInvoiceDialog.vue'
+import NumberCollisionDialog from '@/scripts/admin/components/modal-components/NumberCollisionDialog.vue'
 
 const invoiceStore = useInvoiceStore()
 const companyStore = useCompanyStore()
@@ -211,9 +220,32 @@ let isApproving = ref(false)
 const showApproveDialog = ref(false)
 const isMarkAsDefault = ref(false)
 
+// Onfactu — numeración diferida: modal cuando el backend devuelve 409 de
+// colisión al aprobar (hay otra factura con el número que tocaba).
+const numberCollision = ref(null) // { conflicting_id, conflicting_number, conflicting_status, attempted_number }
+const showCollisionDialog = computed({
+  get: () => numberCollision.value !== null,
+  set: (val) => {
+    if (!val) numberCollision.value = null
+  },
+})
+
 const verifactuEnabled = computed(() =>
   companyStore.selectedCompanySettings.verifactu_enabled === 'YES'
 )
+
+// Onfactu — numeración diferida:
+// numberIsManual es true cuando el input tiene un valor distinto de la sugerencia
+// secuencial actual (el usuario ha escrito un número a mano). Se usa para
+// mostrar el aviso "Estás saltando la numeración secuencial" en el diálogo
+// de aprobación.
+const numberIsManual = computed(() => {
+  const val = String(invoiceStore.newInvoice.invoice_number || '').trim()
+  const sug = String(invoiceStore.suggestedInvoiceNumber || '').trim()
+  if (!val) return false // input vacío: se asignará automático, no es manual
+  if (!sug) return false // sin sugerencia cargada aún
+  return val !== sug
+})
 
 const invoiceNoteFieldList = ref([
   'customer',
@@ -254,7 +286,13 @@ const rules = {
     required: helpers.withMessage(t('validation.required'), required),
   },
   invoice_number: {
-    required: helpers.withMessage(t('validation.required'), required),
+    // Onfactu — numeración diferida: invoice_number es OPCIONAL.
+    // Si el usuario lo deja vacío, se asignará automáticamente al aprobar.
+    // Si lo rellena, se valida backend que sea único en la empresa.
+    maxLength: helpers.withMessage(
+      t('validation.name_max_length'),
+      maxLength(100)
+    ),
   },
   exchange_rate: {
     required: requiredIf(function () {
@@ -288,6 +326,35 @@ watch(
   }
 )
 
+// ── Onfactu — numeración diferida ────────────────────────────────────────────
+// Detecta si el invoice_number del input es la sugerencia sin tocar.
+// Si lo es, al guardar como borrador lo sustituimos por null para que el
+// secuencial quede libre (no "bloqueado" por un borrador sin necesidad).
+function isUnchangedSuggestion(numberInForm) {
+  const suggestion = invoiceStore.suggestedInvoiceNumber
+  if (!suggestion) return false
+  return String(numberInForm || '').trim() === String(suggestion).trim()
+}
+
+// Aplica regla "descartar si es sugerencia" al payload antes de enviarlo
+// al backend en un "Guardar como borrador".
+function resolveNumberForDraft(data) {
+  if (isEdit.value) {
+    // En edición, si la factura ya estaba en borrador SIN número, el input
+    // habrá sido pre-rellenado con la sugerencia actual. Mantenemos la lógica:
+    // si coincide con la sugerencia, se guarda como null.
+    if (isUnchangedSuggestion(data.invoice_number)) {
+      data.invoice_number = null
+    }
+  } else {
+    // En creación: si el usuario no tocó la sugerencia, null.
+    if (isUnchangedSuggestion(data.invoice_number)) {
+      data.invoice_number = null
+    }
+  }
+  return data
+}
+
 async function submitForm() {
   v$.value.$touch()
 
@@ -304,6 +371,10 @@ async function submitForm() {
     total: invoiceStore.getTotal,
     tax: invoiceStore.getTotalTax,
   })
+
+  // Numeración diferida: descarta sugerencia no tocada
+  data = resolveNumberForDraft(data)
+
   if (data.discount_per_item === 'YES') {
     data.items.forEach((item, index) => {
       if (item.discount_type === 'fixed'){
@@ -385,10 +456,23 @@ async function confirmApprove() {
     const invoiceId = response.data.data.id
 
     // Después de guardar, aprobar (enviar a VeriFactu)
-    await invoiceStore.approveInvoice(invoiceId)
+    try {
+      await invoiceStore.approveInvoice(invoiceId)
 
-    showApproveDialog.value = false
-    router.push(`/admin/invoices/${invoiceId}/view`)
+      showApproveDialog.value = false
+      router.push(`/admin/invoices/${invoiceId}/view`)
+    } catch (approveErr) {
+      // Onfactu — colisión de número al aprobar
+      const status = approveErr?.response?.status
+      const errorCode = approveErr?.response?.data?.error_code
+      if (status === 409 && errorCode === 'number_collision') {
+        numberCollision.value = approveErr.response.data.details || {}
+        showApproveDialog.value = false
+      } else {
+        // Cualquier otro error ya se ha mostrado como toast en el store
+        console.error(approveErr)
+      }
+    }
   } catch (err) {
     console.error(err)
   }
@@ -410,6 +494,9 @@ async function onApproveSaveDraft() {
     total: invoiceStore.getTotal,
     tax: invoiceStore.getTotalTax,
   })
+
+  // Numeración diferida: descarta sugerencia no tocada
+  data = resolveNumberForDraft(data)
 
   if (data.discount_per_item === 'YES') {
     data.items.forEach((item, index) => {

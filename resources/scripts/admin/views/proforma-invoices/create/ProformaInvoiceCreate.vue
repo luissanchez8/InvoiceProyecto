@@ -18,6 +18,12 @@
   <SelectTemplateModal />
   <ItemModal />
   <TaxTypeModal />
+  <NumberCollisionDialog
+    :visible="showCollisionDialog"
+    :details="numberCollision"
+    doc-type="proforma-invoice"
+    @close="numberCollision = null"
+  />
 
   <BasePage class="relative invoice-create-page">
     <form @submit.prevent="submitForm">
@@ -89,12 +95,13 @@
           <BaseInputGroup
             :label="$t('pdf_proforma_invoice_number')"
             :content-loading="isLoadingContent"
+            :help-text="$t('proforma_invoices.proforma_invoice_number_help')"
             :error="v$.proforma_invoice_number.$error && v$.proforma_invoice_number.$errors[0].$message"
-            required
           >
             <BaseInput
               v-model="proformaInvoiceStore.newProformaInvoice.proforma_invoice_number"
               :content-loading="isLoadingContent"
+              :placeholder="$t('proforma_invoices.proforma_invoice_number_placeholder')"
               @input="v$.proforma_invoice_number.$touch()"
             />
           </BaseInputGroup>
@@ -193,6 +200,7 @@ import CreateCustomFields from '@/scripts/admin/components/custom-fields/CreateC
 import SelectTemplateModal from '@/scripts/admin/components/modal-components/SelectTemplateModal.vue'
 import TaxTypeModal from '@/scripts/admin/components/modal-components/TaxTypeModal.vue'
 import ItemModal from '@/scripts/admin/components/modal-components/ItemModal.vue'
+import NumberCollisionDialog from '@/scripts/admin/components/modal-components/NumberCollisionDialog.vue'
 
 const proformaInvoiceStore = useProformaInvoiceStore()
 const companyStore = useCompanyStore()
@@ -228,7 +236,12 @@ const rules = {
     required: helpers.withMessage(t('validation.required'), required),
   },
   proforma_invoice_number: {
-    required: helpers.withMessage(t('validation.required'), required),
+    // Onfactu — numeración diferida: OPCIONAL.
+    // Si se deja vacío, se asigna al enviar la proforma.
+    maxLength: helpers.withMessage(
+      t('validation.name_max_length'),
+      maxLength(100)
+    ),
   },
 }
 
@@ -270,6 +283,29 @@ watch(
  * Envía el formulario al backend.
  * Prepara los datos calculando subtotal, total e impuestos desde los getters.
  */
+
+// ── Onfactu — numeración diferida ──────────────────────────────────────────
+const numberCollision = ref(null)
+const showCollisionDialog = computed({
+  get: () => numberCollision.value !== null,
+  set: (val) => {
+    if (!val) numberCollision.value = null
+  },
+})
+
+function isUnchangedSuggestion(numberInForm) {
+  const suggestion = proformaInvoiceStore.suggestedProformaInvoiceNumber
+  if (!suggestion) return false
+  return String(numberInForm || '').trim() === String(suggestion).trim()
+}
+
+function resolveNumberForDraft(data) {
+  if (isUnchangedSuggestion(data.proforma_invoice_number)) {
+    data.proforma_invoice_number = null
+  }
+  return data
+}
+
 async function submitForm() {
   v$.value.$touch()
   if (v$.value.$invalid) return false
@@ -283,6 +319,9 @@ async function submitForm() {
     total: proformaInvoiceStore.getTotal,
     tax: proformaInvoiceStore.getTotalTax,
   })
+
+  // Numeración diferida: descarta sugerencia no tocada
+  data = resolveNumberForDraft(data)
 
   // Convertir descuentos fijos a céntimos para el backend
   if (data.discount_per_item === 'YES') {
@@ -305,7 +344,14 @@ async function submitForm() {
     const response = await action(data)
     router.push(`/admin/proforma-invoices/${response.data.data.id}/view`)
   } catch (err) {
-    console.error(err)
+    // Captura colisión 409 también aquí por si el usuario puso un número ya ocupado
+    const status = err?.response?.status
+    const errorCode = err?.response?.data?.error_code
+    if (status === 409 && errorCode === 'number_collision') {
+      numberCollision.value = err.response.data.details || {}
+    } else {
+      console.error(err)
+    }
   }
 
   isSaving.value = false

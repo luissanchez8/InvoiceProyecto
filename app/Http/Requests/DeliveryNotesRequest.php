@@ -5,6 +5,11 @@
  *
  * Valida los datos del formulario de creación/edición de albaranes.
  * Incluye el campo show_prices para controlar visibilidad de precios en PDF.
+ *
+ * Onfactu — numeración diferida:
+ *  - delivery_note_number es OPCIONAL al crear/editar un borrador.
+ *  - Si el usuario lo escribe, debe ser único en la empresa.
+ *  - Si se deja vacío, se asigna automáticamente al enviar (SENT).
  */
 
 namespace App\Http\Requests;
@@ -29,7 +34,9 @@ class DeliveryNotesRequest extends FormRequest
             'delivery_date' => ['nullable'],
             'customer_id' => ['required'],
             'delivery_note_number' => [
-                'required',
+                'nullable',
+                'string',
+                'max:100',
                 Rule::unique('delivery_notes')->where('company_id', $this->header('company')),
             ],
             'exchange_rate' => ['nullable'],
@@ -54,15 +61,36 @@ class DeliveryNotesRequest extends FormRequest
         }
 
         if ($this->isMethod('PUT')) {
-            $rules['delivery_note_number'] = [
-                'required',
-                Rule::unique('delivery_notes')
-                    ->ignore($this->route('delivery_note')->id)
-                    ->where('company_id', $this->header('company')),
-            ];
+            $deliveryNote = $this->route('delivery_note');
+
+            // Si el albarán ya está en estado emitido (no DRAFT), el número
+            // no se puede cambiar.
+            if ($deliveryNote && $deliveryNote->status !== DeliveryNote::STATUS_DRAFT && ! empty($deliveryNote->delivery_note_number)) {
+                $rules['delivery_note_number'] = [
+                    'required',
+                    Rule::in([$deliveryNote->delivery_note_number]),
+                ];
+            } else {
+                $rules['delivery_note_number'] = [
+                    'nullable',
+                    'string',
+                    'max:100',
+                    Rule::unique('delivery_notes')
+                        ->ignore($deliveryNote->id)
+                        ->where('company_id', $this->header('company')),
+                ];
+            }
         }
 
         return $rules;
+    }
+
+    public function messages(): array
+    {
+        return [
+            'delivery_note_number.unique' => 'Ya existe un albarán con ese número en esta empresa. Elige otro o deja el campo vacío para asignar uno automáticamente al enviar.',
+            'delivery_note_number.in' => 'No se puede cambiar el número de un albarán ya enviado.',
+        ];
     }
 
     /**

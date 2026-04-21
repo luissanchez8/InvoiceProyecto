@@ -34,6 +34,15 @@ export const useInvoiceStore = (useWindow = false) => {
       isFetchingInitialSettings: false,
       isFetchingInvoice: false,
 
+      // Onfactu — numeración diferida:
+      // Guardamos la última sugerencia del secuencial para poder comparar
+      // con lo que el usuario tiene en el input:
+      //  - Si input === suggestedInvoiceNumber → no ha tocado, enviar null
+      //    al backend al guardar como borrador.
+      //  - Si input !== suggestedInvoiceNumber → el usuario puso un número
+      //    manual, se envía tal cual.
+      suggestedInvoiceNumber: null,
+
       newInvoice: {
         ...invoiceStub(),
       },
@@ -364,7 +373,18 @@ export const useInvoiceStore = (useWindow = false) => {
               resolve(response)
             })
             .catch((err) => {
-              handleError(err)
+              // Onfactu — numeración diferida:
+              // Si es 409 (colisión de número), NO mostramos el toast genérico;
+              // dejamos que la view muestre un modal con datos del conflicto.
+              // Para los demás errores, seguimos usando handleError.
+              const status = err?.response?.status
+              const errorCode = err?.response?.data?.error_code
+              const isCollision = status === 409 && errorCode === 'number_collision'
+
+              if (!isCollision) {
+                handleError(err)
+              }
+
               reject(err)
             })
         })
@@ -555,8 +575,14 @@ export const useInvoiceStore = (useWindow = false) => {
         ])
           .then(async ([res1, res2, res3, res4, res5, res6]) => {
             if (!isEdit) {
+              // Onfactu — numeración diferida (opción Y):
+              // Pre-rellenamos el input con el siguiente número sugerido y
+              // guardamos aparte esa sugerencia original. Al guardar como
+              // borrador, si el usuario no la tocó, el backend lo recibirá
+              // como null (porque el frontend enviará null en ese caso).
               if (res4.data) {
                 this.newInvoice.invoice_number = res4.data.nextNumber
+                this.suggestedInvoiceNumber = res4.data.nextNumber
               }
 
               if (res3.data) {
@@ -564,8 +590,13 @@ export const useInvoiceStore = (useWindow = false) => {
                 this.setTemplate('invoice4')
                 this.newInvoice.template_name = 'invoice4'
               }
-            }
-            if (isEdit) {
+            } else {
+              // En edición: la "sugerencia" a efectos de comparación es el
+              // siguiente número automático libre en este momento. Sirve para
+              // el aviso "estás saltando la numeración" al aprobar.
+              if (res4.data) {
+                this.suggestedInvoiceNumber = res4.data.nextNumber
+              }
               this.addSalesTaxUs()
             }
 

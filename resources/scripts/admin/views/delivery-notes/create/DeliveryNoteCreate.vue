@@ -9,6 +9,12 @@
   <SelectTemplateModal />
   <ItemModal />
   <TaxTypeModal />
+  <NumberCollisionDialog
+    :visible="showCollisionDialog"
+    :details="numberCollision"
+    doc-type="delivery-note"
+    @close="numberCollision = null"
+  />
 
   <BasePage class="relative invoice-create-page">
     <form @submit.prevent="submitForm">
@@ -78,12 +84,13 @@
           <BaseInputGroup
             :label="$t('pdf_delivery_note_number')"
             :content-loading="isLoadingContent"
+            :help-text="$t('delivery_notes.delivery_note_number_help')"
             :error="v$.delivery_note_number.$error && v$.delivery_note_number.$errors[0].$message"
-            required
           >
             <BaseInput
               v-model="deliveryNoteStore.newDeliveryNote.delivery_note_number"
               :content-loading="isLoadingContent"
+              :placeholder="$t('delivery_notes.delivery_note_number_placeholder')"
               @input="v$.delivery_note_number.$touch()"
             />
           </BaseInputGroup>
@@ -152,7 +159,7 @@
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { required, helpers } from '@vuelidate/validators'
+import { required, maxLength, helpers } from '@vuelidate/validators'
 import useVuelidate from '@vuelidate/core'
 import { cloneDeep } from 'lodash'
 
@@ -168,6 +175,7 @@ import CreateCustomFields from '@/scripts/admin/components/custom-fields/CreateC
 import SelectTemplateModal from '@/scripts/admin/components/modal-components/SelectTemplateModal.vue'
 import TaxTypeModal from '@/scripts/admin/components/modal-components/TaxTypeModal.vue'
 import ItemModal from '@/scripts/admin/components/modal-components/ItemModal.vue'
+import NumberCollisionDialog from '@/scripts/admin/components/modal-components/NumberCollisionDialog.vue'
 
 const deliveryNoteStore = useDeliveryNoteStore()
 const companyStore = useCompanyStore()
@@ -200,7 +208,12 @@ const rules = {
     required: helpers.withMessage(t('validation.required'), required),
   },
   delivery_note_number: {
-    required: helpers.withMessage(t('validation.required'), required),
+    // Onfactu — numeración diferida: OPCIONAL.
+    // Si se deja vacío, se asigna al enviar el albarán.
+    maxLength: helpers.withMessage(
+      t('validation.name_max_length'),
+      maxLength(100)
+    ),
   },
 }
 
@@ -232,6 +245,28 @@ watch(
   }
 )
 
+// ── Onfactu — numeración diferida ────────────────────────────────────────────
+const numberCollision = ref(null)
+const showCollisionDialog = computed({
+  get: () => numberCollision.value !== null,
+  set: (val) => {
+    if (!val) numberCollision.value = null
+  },
+})
+
+function isUnchangedSuggestion(numberInForm) {
+  const suggestion = deliveryNoteStore.suggestedDeliveryNoteNumber
+  if (!suggestion) return false
+  return String(numberInForm || '').trim() === String(suggestion).trim()
+}
+
+function resolveNumberForDraft(data) {
+  if (isUnchangedSuggestion(data.delivery_note_number)) {
+    data.delivery_note_number = null
+  }
+  return data
+}
+
 async function submitForm() {
   v$.value.$touch()
   if (v$.value.$invalid) return false
@@ -244,6 +279,9 @@ async function submitForm() {
     total: deliveryNoteStore.getTotal,
     tax: deliveryNoteStore.getTotalTax,
   })
+
+  // Numeración diferida: descarta sugerencia no tocada
+  data = resolveNumberForDraft(data)
 
   if (data.discount_per_item === 'YES') {
     data.items.forEach((item, index) => {
@@ -265,7 +303,14 @@ async function submitForm() {
     const response = await action(data)
     router.push(`/admin/delivery-notes/${response.data.data.id}/view`)
   } catch (err) {
-    console.error(err)
+    // Captura colisión 409
+    const status = err?.response?.status
+    const errorCode = err?.response?.data?.error_code
+    if (status === 409 && errorCode === 'number_collision') {
+      numberCollision.value = err.response.data.details || {}
+    } else {
+      console.error(err)
+    }
   }
 
   isSaving.value = false

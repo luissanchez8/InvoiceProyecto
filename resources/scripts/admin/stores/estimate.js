@@ -33,6 +33,12 @@ export const useEstimateStore = (useWindow = false) => {
       isFetchingInitialSettings: false,
       showExchangeRate: false,
 
+      // Onfactu — numeración diferida:
+      // Guardamos la sugerencia del secuencial para comparar con lo que el
+      // usuario tenga en el input. Si coincide, al guardar como borrador se
+      // envía null al backend (no "consume" el secuencial).
+      suggestedEstimateNumber: null,
+
       newEstimate: {
         ...estimateStub(),
       },
@@ -225,7 +231,15 @@ export const useEstimateStore = (useWindow = false) => {
               resolve(response)
             })
             .catch((err) => {
-              handleError(err)
+              // Onfactu — 409 colisión manejada por la view
+              const status = err?.response?.status
+              const errorCode = err?.response?.data?.error_code
+              const isCollision = status === 409 && errorCode === 'number_collision'
+
+              if (!isCollision) {
+                handleError(err)
+              }
+
               reject(err)
             })
         })
@@ -417,7 +431,16 @@ export const useEstimateStore = (useWindow = false) => {
               resolve(response)
             })
             .catch((err) => {
-              handleError(err)
+              // Onfactu — numeración diferida: si es 409 de colisión, la
+              // maneja la view con el modal. Para otros errores, toast.
+              const status = err?.response?.status
+              const errorCode = err?.response?.data?.error_code
+              const isCollision = status === 409 && errorCode === 'number_collision'
+
+              if (!isCollision) {
+                handleError(err)
+              }
+
               reject(err)
             })
         })
@@ -640,8 +663,12 @@ export const useEstimateStore = (useWindow = false) => {
           .then(async ([res1, res2, res3, res4, res5, res6, res7]) => {
             // Create
             if (!isEdit) {
+              // Onfactu — numeración diferida (opción Y):
+              // Pre-rellenamos con la sugerencia y la guardamos aparte para
+              // comparar al guardar como borrador.
               if (res4.data) {
                 this.newEstimate.estimate_number = res4.data.nextNumber
+                this.suggestedEstimateNumber = res4.data.nextNumber
               }
 
               // Forzar invoice4 como plantilla universal
@@ -650,6 +677,11 @@ export const useEstimateStore = (useWindow = false) => {
             }
 
             if (isEdit) {
+              // En edición: guardamos la sugerencia actual para el aviso
+              // "saltando numeración" al marcar como enviado.
+              if (res4.data) {
+                this.suggestedEstimateNumber = res4.data.nextNumber
+              }
               this.addSalesTaxUs()
             }
             this.isFetchingInitialSettings = false

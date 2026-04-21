@@ -20,6 +20,11 @@ class EstimatesRequest extends FormRequest
 
     /**
      * Get the validation rules that apply to the request.
+     *
+     * Onfactu — numeración diferida:
+     *  - estimate_number es OPCIONAL al crear/editar un borrador.
+     *  - Si el usuario lo escribe, debe ser único en la empresa.
+     *  - Si se deja vacío, se asignará automáticamente al enviar (SENT).
      */
     public function rules(): array
     {
@@ -34,7 +39,9 @@ class EstimatesRequest extends FormRequest
                 'required',
             ],
             'estimate_number' => [
-                'required',
+                'nullable',
+                'string',
+                'max:100',
                 Rule::unique('estimates')->where('company_id', $this->header('company')),
             ],
             'exchange_rate' => [
@@ -101,15 +108,36 @@ class EstimatesRequest extends FormRequest
         }
 
         if ($this->isMethod('PUT')) {
-            $rules['estimate_number'] = [
-                'required',
-                Rule::unique('estimates')
-                    ->ignore($this->route('estimate')->id)
-                    ->where('company_id', $this->header('company')),
-            ];
+            $estimate = $this->route('estimate');
+
+            // Si el presupuesto ya está ENVIADO/ACEPTADO (no DRAFT), el número
+            // no se puede cambiar (ya se comunicó al cliente).
+            if ($estimate && $estimate->status !== Estimate::STATUS_DRAFT && ! empty($estimate->estimate_number)) {
+                $rules['estimate_number'] = [
+                    'required',
+                    Rule::in([$estimate->estimate_number]),
+                ];
+            } else {
+                $rules['estimate_number'] = [
+                    'nullable',
+                    'string',
+                    'max:100',
+                    Rule::unique('estimates')
+                        ->ignore($estimate->id)
+                        ->where('company_id', $this->header('company')),
+                ];
+            }
         }
 
         return $rules;
+    }
+
+    public function messages(): array
+    {
+        return [
+            'estimate_number.unique' => 'Ya existe un presupuesto con ese número en esta empresa. Elige otro o deja el campo vacío para asignar uno automáticamente al enviar.',
+            'estimate_number.in' => 'No se puede cambiar el número de un presupuesto ya enviado.',
+        ];
     }
 
     public function getEstimatePayload()

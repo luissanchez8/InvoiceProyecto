@@ -144,9 +144,11 @@
         <template #cell-delivery_note_number="{ row }">
           <router-link
             :to="{ path: `delivery-notes/${row.data.id}/view` }"
-            class="font-medium text-primary-500"
+            :class="row.data.delivery_note_number
+              ? 'font-medium text-primary-500'
+              : 'italic text-gray-400'"
           >
-            {{ row.data.delivery_note_number }}
+            {{ row.data.delivery_note_number || $t('delivery_notes.draft_number') }}
           </router-link>
         </template>
 

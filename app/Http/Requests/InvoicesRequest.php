@@ -19,7 +19,13 @@ class InvoicesRequest extends FormRequest
     }
 
     /**
-     * Get the validation rules that apply to the request.s
+     * Get the validation rules that apply to the request.
+     *
+     * Onfactu — numeración diferida:
+     *  - invoice_number es OPCIONAL al crear/editar un borrador.
+     *  - Si el usuario lo escribe, debe ser único en la empresa (ignorando la
+     *    propia factura en caso de edición).
+     *  - Si se deja vacío, se asignará automáticamente al aprobar la factura.
      */
     public function rules(): array
     {
@@ -34,7 +40,9 @@ class InvoicesRequest extends FormRequest
                 'required',
             ],
             'invoice_number' => [
-                'required',
+                'nullable',
+                'string',
+                'max:100',
                 Rule::unique('invoices')->where('company_id', $this->header('company')),
             ],
             'exchange_rate' => [
@@ -100,15 +108,39 @@ class InvoicesRequest extends FormRequest
         }
 
         if ($this->isMethod('PUT')) {
-            $rules['invoice_number'] = [
-                'required',
-                Rule::unique('invoices')
-                    ->ignore($this->route('invoice')->id)
-                    ->where('company_id', $this->header('company')),
-            ];
+            $invoice = $this->route('invoice');
+
+            // En edición, si la factura ya está APROBADA, el número no se
+            // puede cambiar (es inmutable tras firmar con VeriFactu).
+            if ($invoice && $invoice->status === Invoice::STATUS_APPROVED) {
+                $rules['invoice_number'] = [
+                    'required',
+                    Rule::in([$invoice->invoice_number]),
+                ];
+            } else {
+                $rules['invoice_number'] = [
+                    'nullable',
+                    'string',
+                    'max:100',
+                    Rule::unique('invoices')
+                        ->ignore($invoice->id)
+                        ->where('company_id', $this->header('company')),
+                ];
+            }
         }
 
         return $rules;
+    }
+
+    /**
+     * Mensajes personalizados de validación.
+     */
+    public function messages(): array
+    {
+        return [
+            'invoice_number.unique' => 'Ya existe una factura con ese número en esta empresa. Elige otro o deja el campo vacío para asignar uno automáticamente al aprobar.',
+            'invoice_number.in' => 'No se puede cambiar el número de una factura ya aprobada.',
+        ];
     }
 
     public function getInvoicePayload(): array

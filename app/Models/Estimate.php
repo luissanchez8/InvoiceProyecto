@@ -15,6 +15,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
@@ -224,16 +225,16 @@ class Estimate extends Model implements HasMedia
             $data['status'] = self::STATUS_SENT;
         }
 
+        // Onfactu — numeración diferida:
+        // estimate_number y sequence_number quedan NULL en borrador.
+        // Si el usuario ha escrito un número manualmente, se respeta.
+        // El número se asignará al ENVIAR el presupuesto (DRAFT → SENT).
+        if (empty($data['estimate_number'])) {
+            $data['estimate_number'] = null;
+        }
+
         $estimate = self::create($data);
         $estimate->unique_hash = Hashids::connection(Estimate::class)->encode($estimate->id);
-        $serial = (new SerialNumberFormatter)
-            ->setModel($estimate)
-            ->setCompany($estimate->company_id)
-            ->setCustomer($estimate->customer_id)
-            ->setNextNumbers();
-
-        $estimate->sequence_number = $serial->nextSequenceNumber;
-        $estimate->customer_sequence_number = $serial->nextCustomerSequenceNumber;
         $estimate->save();
 
         $company_currency = CompanySetting::getSetting('currency', $request->header('company'));
@@ -261,14 +262,12 @@ class Estimate extends Model implements HasMedia
     {
         $data = $request->getEstimatePayload();
 
-        $serial = (new SerialNumberFormatter)
-            ->setModel($this)
-            ->setCompany($this->company_id)
-            ->setCustomer($request->customer_id)
-            ->setModelObject($this->id)
-            ->setNextNumbers();
-
-        $data['customer_sequence_number'] = $serial->nextCustomerSequenceNumber;
+        // Onfactu — numeración diferida:
+        // No recalculamos sequence_number en update. Se asigna al enviar.
+        // Si el usuario dejó vacío el estimate_number, se guarda NULL.
+        if (empty($data['estimate_number'])) {
+            $data['estimate_number'] = null;
+        }
 
         $this->update($data);
 
@@ -307,6 +306,124 @@ class Estimate extends Model implements HasMedia
             'taxes',
         ])
             ->find($this->id);
+    }
+
+    /**
+     * Asigna número de presupuesto — Onfactu numeración diferida.
+     *
+     * Se invoca al ENVIAR el presupuesto (DRAFT → SENT). Misma lógica que
+     * Invoice::assignNumber(): respeta el número manual si existe, o genera
+     * uno automático. En caso de colisión, lanza NumberCollisionException
+     * con los detalles del documento conflictivo (no salta al siguiente).
+     *
+     * Idempotente: si ya tiene número, solo valida unicidad.
+     */
+    public function assignNumber(): self
+    {
+        return DB::transaction(function () {
+            if (! empty($this->estimate_number)) {
+                $conflict = Estimate::where('company_id', $this->company_id)
+                    ->where('estimate_number', $this->estimate_number)
+                    ->where('id', '<>', $this->id)
+                    ->lockForUpdate()
+                    ->first();
+
+                if ($conflict) {
+                    throw new \App\Exceptions\NumberCollisionException(
+                        "El número de presupuesto '{$this->estimate_number}' ya existe en esta empresa.",
+                        [
+                            'conflicting_id' => $conflict->id,
+                            'conflicting_number' => $conflict->estimate_number,
+                            'conflicting_status' => $conflict->status,
+                            'attempted_number' => $this->estimate_number,
+                        ]
+                    );
+                }
+
+                return $this->fresh();
+            }
+
+            $lastAuto = Estimate::where('company_id', $this->company_id)
+                ->whereNotNull('sequence_number')
+                ->lockForUpdate()
+                ->max('sequence_number');
+
+            $nextSeq = ($lastAuto ? (int) $lastAuto : 0) + 1;
+            $candidate = $this->formatSerialForSequence($nextSeq);
+
+            $conflict = Estimate::where('company_id', $this->company_id)
+                ->where('estimate_number', $candidate)
+                ->where('id', '<>', $this->id)
+                ->lockForUpdate()
+                ->first();
+
+            if ($conflict) {
+                throw new \App\Exceptions\NumberCollisionException(
+                    "Ya existe un presupuesto con el número '{$candidate}' (estado: {$conflict->status}). "
+                    . 'Para continuar, edita ese presupuesto y cambia o libera su número, o elimínalo.',
+                    [
+                        'conflicting_id' => $conflict->id,
+                        'conflicting_number' => $conflict->estimate_number,
+                        'conflicting_status' => $conflict->status,
+                        'attempted_number' => $candidate,
+                    ]
+                );
+            }
+
+            $this->estimate_number = $candidate;
+            $this->sequence_number = $nextSeq;
+
+            $lastCustSeq = Estimate::where('company_id', $this->company_id)
+                ->where('customer_id', $this->customer_id)
+                ->whereNotNull('customer_sequence_number')
+                ->max('customer_sequence_number');
+            $this->customer_sequence_number = ($lastCustSeq ? (int) $lastCustSeq : 0) + 1;
+
+            $this->save();
+
+            return $this->fresh();
+        });
+    }
+
+    /**
+     * Formatea un estimate_number para un sequence_number concreto.
+     */
+    protected function formatSerialForSequence(int $sequence): string
+    {
+        $format = CompanySetting::getSetting('estimate_number_format', $this->company_id)
+            ?: '{{SERIES:EST}}{{DELIMITER:-}}{{SEQUENCE:6}}';
+
+        $placeholders = SerialNumberFormatter::getPlaceholders($format);
+
+        $result = '';
+        foreach ($placeholders as $p) {
+            $name = $p['name'];
+            $value = $p['value'];
+
+            switch ($name) {
+                case 'SEQUENCE':
+                    $value = $value ?: 6;
+                    $result .= str_pad((string) $sequence, (int) $value, '0', STR_PAD_LEFT);
+                    break;
+                case 'DATE_FORMAT':
+                    $result .= date($value ?: 'Y');
+                    break;
+                case 'RANDOM_SEQUENCE':
+                    $value = $value ?: 6;
+                    $result .= substr(bin2hex(random_bytes((int) $value)), 0, (int) $value);
+                    break;
+                case 'CUSTOMER_SERIES':
+                    $result .= ($this->customer && $this->customer->prefix) ? $this->customer->prefix : 'CST';
+                    break;
+                case 'CUSTOMER_SEQUENCE':
+                    $result .= str_pad((string) ($this->customer_sequence_number ?? 1), (int) ($value ?: 6), '0', STR_PAD_LEFT);
+                    break;
+                default:
+                    $result .= $value;
+            }
+        }
+
+        return $result;
     }
 
     public static function createItems($estimate, $request, $exchange_rate)
