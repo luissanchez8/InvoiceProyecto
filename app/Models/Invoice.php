@@ -493,75 +493,167 @@ class Invoice extends Model implements HasMedia
             // 0A000 "Feature not supported"). En MySQL usamos GET_LOCK.
             $this->acquireNumberLock();
 
-            // 1) Si ya tiene invoice_number (manual), validamos unicidad.
-            //    No tocamos sequence_number: queda NULL, no afecta al contador
-            //    automático. Los números manuales no "consumen" secuenciales.
+            // Calculamos el siguiente sequence_number automático disponible.
+            // Esto lo necesitamos en ambas ramas (manual y auto) para poder
+            // distinguir el caso "auto rellenado" (el input tenía la sugerencia
+            // porque el frontend la pre-rellenó) del caso "manual puro"
+            // (el usuario escribió un número distinto).
+            $lastAuto = Invoice::where('company_id', $this->company_id)
+                ->whereNotNull('sequence_number')
+                ->max('sequence_number');
+
+            $nextSeq = ($lastAuto ? (int) $lastAuto : 0) + 1;
+            $autoCandidate = $this->formatSerialForSequence($nextSeq);
+
+            // ── Rama 1: invoice_number NO vacío (puede ser manual puro o
+            //    auto rellenado por el frontend). ────────────────────────────
             if (! empty($this->invoice_number)) {
+                // ¿Coincide con el candidato automático actual?
+                // Si sí → es "auto rellenado" → le asignamos sequence_number
+                // (es un registro automático normal).
+                // Si no → es manual puro → sequence_number queda null.
+                $isAutoCandidate = ($this->invoice_number === $autoCandidate);
+
+                // Validar unicidad dentro de la misma empresa
                 $conflict = Invoice::where('company_id', $this->company_id)
                     ->where('invoice_number', $this->invoice_number)
                     ->where('id', '<>', $this->id)
                     ->first();
 
                 if ($conflict) {
-                    throw new \App\Exceptions\NumberCollisionException(
-                        "El número de factura '{$this->invoice_number}' ya existe en esta empresa.",
-                        [
-                            'conflicting_id' => $conflict->id,
-                            'conflicting_number' => $conflict->invoice_number,
-                            'conflicting_status' => $conflict->status,
-                            'attempted_number' => $this->invoice_number,
-                        ]
-                    );
+                    // Colisión. Estrategia:
+                    //  - Si el conflicto es un DRAFT → error: el usuario debe
+                    //    editarlo para resolverlo.
+                    //  - Si el conflicto ya está APPROVED (u otro estado final)
+                    //    → el número no puede liberarse. Dos sub-casos:
+                    //      a) Estamos en rama auto rellenado → saltamos al
+                    //         siguiente libre y asignamos auto.
+                    //      b) Estamos en rama manual pura → error: no podemos
+                    //         usar un número ya "consumido" para siempre.
+                    if ($conflict->status === self::STATUS_DRAFT) {
+                        throw new \App\Exceptions\NumberCollisionException(
+                            "Ya existe un borrador con el número '{$this->invoice_number}'. "
+                            . 'Para continuar, edita ese borrador y cambia o libera su número, o elimínalo.',
+                            [
+                                'conflicting_id' => $conflict->id,
+                                'conflicting_number' => $conflict->invoice_number,
+                                'conflicting_status' => $conflict->status,
+                                'attempted_number' => $this->invoice_number,
+                            ]
+                        );
+                    }
+
+                    if ($isAutoCandidate) {
+                        // Salto automático: el número que tocaba ya está
+                        // aprobado (consumido). Avanzamos hasta el siguiente libre.
+                        [$nextSeq, $newCandidate] = $this->findNextFreeSequence($nextSeq);
+                        $this->invoice_number = $newCandidate;
+                        $this->sequence_number = $nextSeq;
+                    } else {
+                        // Manual puro que colisiona con APPROVED: no permitido.
+                        throw new \App\Exceptions\NumberCollisionException(
+                            "El número '{$this->invoice_number}' ya está asignado a una factura {$conflict->status} y no puede reutilizarse.",
+                            [
+                                'conflicting_id' => $conflict->id,
+                                'conflicting_number' => $conflict->invoice_number,
+                                'conflicting_status' => $conflict->status,
+                                'attempted_number' => $this->invoice_number,
+                            ]
+                        );
+                    }
+                } else {
+                    // Sin colisión.
+                    if ($isAutoCandidate) {
+                        // Es auto rellenado → asignamos sequence_number.
+                        $this->sequence_number = $nextSeq;
+                    }
+                    // Si es manual puro, sequence_number queda null.
+                    // (el invoice_number ya está fijado en this->invoice_number)
+                }
+            }
+            // ── Rama 2: invoice_number vacío → generación automática pura. ──
+            else {
+                $candidate = $autoCandidate;
+
+                // Si ya existe, aplicamos la misma estrategia: si es DRAFT
+                // error, si es APPROVED saltamos.
+                $conflict = Invoice::where('company_id', $this->company_id)
+                    ->where('invoice_number', $candidate)
+                    ->where('id', '<>', $this->id)
+                    ->first();
+
+                if ($conflict) {
+                    if ($conflict->status === self::STATUS_DRAFT) {
+                        throw new \App\Exceptions\NumberCollisionException(
+                            "Ya existe un borrador con el número '{$candidate}'. "
+                            . 'Para continuar, edita ese borrador y cambia o libera su número, o elimínalo.',
+                            [
+                                'conflicting_id' => $conflict->id,
+                                'conflicting_number' => $conflict->invoice_number,
+                                'conflicting_status' => $conflict->status,
+                                'attempted_number' => $candidate,
+                            ]
+                        );
+                    }
+
+                    // Conflicto con APPROVED → salto automático
+                    [$nextSeq, $candidate] = $this->findNextFreeSequence($nextSeq);
                 }
 
-                return $this->fresh();
+                $this->invoice_number = $candidate;
+                $this->sequence_number = $nextSeq;
             }
-
-            // 2) Generación automática: siguiente sequence_number disponible.
-            //    Si el número formateado colisiona con otro existente, NO saltamos:
-            //    lanzamos error para que el usuario resuelva el conflicto.
-            $lastAuto = Invoice::where('company_id', $this->company_id)
-                ->whereNotNull('sequence_number')
-                ->max('sequence_number');
-
-            $nextSeq = ($lastAuto ? (int) $lastAuto : 0) + 1;
-            $candidate = $this->formatSerialForSequence($nextSeq);
-
-            // Comprobar si el candidato ya existe (típicamente, un borrador con
-            // número manual coincidente).
-            $conflict = Invoice::where('company_id', $this->company_id)
-                ->where('invoice_number', $candidate)
-                ->where('id', '<>', $this->id)
-                ->first();
-
-            if ($conflict) {
-                throw new \App\Exceptions\NumberCollisionException(
-                    "Ya existe una factura con el número '{$candidate}' (estado: {$conflict->status}). "
-                    . 'Para continuar, edita esa factura y cambia o libera su número, o elimínala.',
-                    [
-                        'conflicting_id' => $conflict->id,
-                        'conflicting_number' => $conflict->invoice_number,
-                        'conflicting_status' => $conflict->status,
-                        'attempted_number' => $candidate,
-                    ]
-                );
-            }
-
-            // OK: asignar número automático
-            $this->invoice_number = $candidate;
-            $this->sequence_number = $nextSeq;
 
             // customer_sequence_number: siguiente libre para este cliente
-            $lastCustSeq = Invoice::where('company_id', $this->company_id)
-                ->where('customer_id', $this->customer_id)
-                ->whereNotNull('customer_sequence_number')
-                ->max('customer_sequence_number');
-            $this->customer_sequence_number = ($lastCustSeq ? (int) $lastCustSeq : 0) + 1;
+            // (solo si no lo tenía ya asignado — puede venir con valor si es
+            // manual puro que ya tenía customer_sequence_number).
+            if (empty($this->customer_sequence_number)) {
+                $lastCustSeq = Invoice::where('company_id', $this->company_id)
+                    ->where('customer_id', $this->customer_id)
+                    ->whereNotNull('customer_sequence_number')
+                    ->max('customer_sequence_number');
+                $this->customer_sequence_number = ($lastCustSeq ? (int) $lastCustSeq : 0) + 1;
+            }
 
             $this->save();
 
             return $this->fresh();
         });
+    }
+
+    /**
+     * Busca el siguiente sequence_number cuyo invoice_number formateado no
+     * colisione con ninguna factura existente en la empresa. Salta por encima
+     * de números ya ocupados por registros APPROVED (manuales o históricos).
+     *
+     * @param  int  $startSeq  Sequence inicial desde el que empezar a buscar.
+     * @return array{0:int, 1:string}  [nextSeq, candidate]
+     *
+     * @throws \RuntimeException Si no se encuentra hueco en un número razonable de intentos.
+     */
+    protected function findNextFreeSequence(int $startSeq): array
+    {
+        $maxAttempts = 1000;
+        $seq = $startSeq + 1;
+
+        for ($i = 0; $i < $maxAttempts; $i++) {
+            $candidate = $this->formatSerialForSequence($seq);
+
+            $exists = Invoice::where('company_id', $this->company_id)
+                ->where('invoice_number', $candidate)
+                ->where('id', '<>', $this->id)
+                ->exists();
+
+            if (! $exists) {
+                return [$seq, $candidate];
+            }
+
+            $seq++;
+        }
+
+        throw new \RuntimeException(
+            'No se encontró un número libre tras ' . $maxAttempts . ' intentos.'
+        );
     }
 
     /**

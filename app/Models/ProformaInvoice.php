@@ -511,68 +511,125 @@ class ProformaInvoice extends Model implements HasMedia
     public function assignNumber(): self
     {
         return DB::transaction(function () {
-            // Lock serializado por empresa (ver acquireNumberLock).
             $this->acquireNumberLock();
-
-            if (! empty($this->proforma_invoice_number)) {
-                $conflict = ProformaInvoice::where('company_id', $this->company_id)
-                    ->where('proforma_invoice_number', $this->proforma_invoice_number)
-                    ->where('id', '<>', $this->id)
-                    ->first();
-
-                if ($conflict) {
-                    throw new \App\Exceptions\NumberCollisionException(
-                        "El número de proforma '{$this->proforma_invoice_number}' ya existe en esta empresa.",
-                        [
-                            'conflicting_id' => $conflict->id,
-                            'conflicting_number' => $conflict->proforma_invoice_number,
-                            'conflicting_status' => $conflict->status,
-                            'attempted_number' => $this->proforma_invoice_number,
-                        ]
-                    );
-                }
-
-                return $this->fresh();
-            }
 
             $lastAuto = ProformaInvoice::where('company_id', $this->company_id)
                 ->whereNotNull('sequence_number')
                 ->max('sequence_number');
 
             $nextSeq = ($lastAuto ? (int) $lastAuto : 0) + 1;
-            $candidate = $this->formatSerialForSequence($nextSeq);
+            $autoCandidate = $this->formatSerialForSequence($nextSeq);
 
-            $conflict = ProformaInvoice::where('company_id', $this->company_id)
-                ->where('proforma_invoice_number', $candidate)
-                ->where('id', '<>', $this->id)
-                ->first();
+            if (! empty($this->proforma_invoice_number)) {
+                $isAutoCandidate = ($this->proforma_invoice_number === $autoCandidate);
 
-            if ($conflict) {
-                throw new \App\Exceptions\NumberCollisionException(
-                    "Ya existe una proforma con el número '{$candidate}' (estado: {$conflict->status}). "
-                    . 'Para continuar, edita esa proforma y cambia o libera su número, o elimínala.',
-                    [
-                        'conflicting_id' => $conflict->id,
-                        'conflicting_number' => $conflict->proforma_invoice_number,
-                        'conflicting_status' => $conflict->status,
-                        'attempted_number' => $candidate,
-                    ]
-                );
+                $conflict = ProformaInvoice::where('company_id', $this->company_id)
+                    ->where('proforma_invoice_number', $this->proforma_invoice_number)
+                    ->where('id', '<>', $this->id)
+                    ->first();
+
+                if ($conflict) {
+                    if ($conflict->status === self::STATUS_DRAFT) {
+                        throw new \App\Exceptions\NumberCollisionException(
+                            "Ya existe un borrador con el número '{$this->proforma_invoice_number}'. "
+                            . 'Para continuar, edita ese borrador y cambia o libera su número, o elimínalo.',
+                            [
+                                'conflicting_id' => $conflict->id,
+                                'conflicting_number' => $conflict->proforma_invoice_number,
+                                'conflicting_status' => $conflict->status,
+                                'attempted_number' => $this->proforma_invoice_number,
+                            ]
+                        );
+                    }
+
+                    if ($isAutoCandidate) {
+                        [$nextSeq, $newCandidate] = $this->findNextFreeSequence($nextSeq);
+                        $this->proforma_invoice_number = $newCandidate;
+                        $this->sequence_number = $nextSeq;
+                    } else {
+                        throw new \App\Exceptions\NumberCollisionException(
+                            "El número '{$this->proforma_invoice_number}' ya está asignado a una proforma {$conflict->status} y no puede reutilizarse.",
+                            [
+                                'conflicting_id' => $conflict->id,
+                                'conflicting_number' => $conflict->proforma_invoice_number,
+                                'conflicting_status' => $conflict->status,
+                                'attempted_number' => $this->proforma_invoice_number,
+                            ]
+                        );
+                    }
+                } else {
+                    if ($isAutoCandidate) {
+                        $this->sequence_number = $nextSeq;
+                    }
+                }
+            } else {
+                $candidate = $autoCandidate;
+
+                $conflict = ProformaInvoice::where('company_id', $this->company_id)
+                    ->where('proforma_invoice_number', $candidate)
+                    ->where('id', '<>', $this->id)
+                    ->first();
+
+                if ($conflict) {
+                    if ($conflict->status === self::STATUS_DRAFT) {
+                        throw new \App\Exceptions\NumberCollisionException(
+                            "Ya existe un borrador con el número '{$candidate}'. "
+                            . 'Para continuar, edita ese borrador y cambia o libera su número, o elimínalo.',
+                            [
+                                'conflicting_id' => $conflict->id,
+                                'conflicting_number' => $conflict->proforma_invoice_number,
+                                'conflicting_status' => $conflict->status,
+                                'attempted_number' => $candidate,
+                            ]
+                        );
+                    }
+                    [$nextSeq, $candidate] = $this->findNextFreeSequence($nextSeq);
+                }
+
+                $this->proforma_invoice_number = $candidate;
+                $this->sequence_number = $nextSeq;
             }
 
-            $this->proforma_invoice_number = $candidate;
-            $this->sequence_number = $nextSeq;
-
-            $lastCustSeq = ProformaInvoice::where('company_id', $this->company_id)
-                ->where('customer_id', $this->customer_id)
-                ->whereNotNull('customer_sequence_number')
-                ->max('customer_sequence_number');
-            $this->customer_sequence_number = ($lastCustSeq ? (int) $lastCustSeq : 0) + 1;
+            if (empty($this->customer_sequence_number)) {
+                $lastCustSeq = ProformaInvoice::where('company_id', $this->company_id)
+                    ->where('customer_id', $this->customer_id)
+                    ->whereNotNull('customer_sequence_number')
+                    ->max('customer_sequence_number');
+                $this->customer_sequence_number = ($lastCustSeq ? (int) $lastCustSeq : 0) + 1;
+            }
 
             $this->save();
 
             return $this->fresh();
         });
+    }
+
+    /**
+     * @return array{0:int, 1:string}
+     */
+    protected function findNextFreeSequence(int $startSeq): array
+    {
+        $maxAttempts = 1000;
+        $seq = $startSeq + 1;
+
+        for ($i = 0; $i < $maxAttempts; $i++) {
+            $candidate = $this->formatSerialForSequence($seq);
+
+            $exists = ProformaInvoice::where('company_id', $this->company_id)
+                ->where('proforma_invoice_number', $candidate)
+                ->where('id', '<>', $this->id)
+                ->exists();
+
+            if (! $exists) {
+                return [$seq, $candidate];
+            }
+
+            $seq++;
+        }
+
+        throw new \RuntimeException(
+            'No se encontró un número libre tras ' . $maxAttempts . ' intentos.'
+        );
     }
 
     /**

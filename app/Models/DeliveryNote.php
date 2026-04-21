@@ -317,68 +317,125 @@ class DeliveryNote extends Model implements HasMedia
     public function assignNumber(): self
     {
         return DB::transaction(function () {
-            // Lock serializado por empresa (ver acquireNumberLock).
             $this->acquireNumberLock();
-
-            if (! empty($this->delivery_note_number)) {
-                $conflict = DeliveryNote::where('company_id', $this->company_id)
-                    ->where('delivery_note_number', $this->delivery_note_number)
-                    ->where('id', '<>', $this->id)
-                    ->first();
-
-                if ($conflict) {
-                    throw new \App\Exceptions\NumberCollisionException(
-                        "El número de albarán '{$this->delivery_note_number}' ya existe en esta empresa.",
-                        [
-                            'conflicting_id' => $conflict->id,
-                            'conflicting_number' => $conflict->delivery_note_number,
-                            'conflicting_status' => $conflict->status,
-                            'attempted_number' => $this->delivery_note_number,
-                        ]
-                    );
-                }
-
-                return $this->fresh();
-            }
 
             $lastAuto = DeliveryNote::where('company_id', $this->company_id)
                 ->whereNotNull('sequence_number')
                 ->max('sequence_number');
 
             $nextSeq = ($lastAuto ? (int) $lastAuto : 0) + 1;
-            $candidate = $this->formatSerialForSequence($nextSeq);
+            $autoCandidate = $this->formatSerialForSequence($nextSeq);
 
-            $conflict = DeliveryNote::where('company_id', $this->company_id)
-                ->where('delivery_note_number', $candidate)
-                ->where('id', '<>', $this->id)
-                ->first();
+            if (! empty($this->delivery_note_number)) {
+                $isAutoCandidate = ($this->delivery_note_number === $autoCandidate);
 
-            if ($conflict) {
-                throw new \App\Exceptions\NumberCollisionException(
-                    "Ya existe un albarán con el número '{$candidate}' (estado: {$conflict->status}). "
-                    . 'Para continuar, edita ese albarán y cambia o libera su número, o elimínalo.',
-                    [
-                        'conflicting_id' => $conflict->id,
-                        'conflicting_number' => $conflict->delivery_note_number,
-                        'conflicting_status' => $conflict->status,
-                        'attempted_number' => $candidate,
-                    ]
-                );
+                $conflict = DeliveryNote::where('company_id', $this->company_id)
+                    ->where('delivery_note_number', $this->delivery_note_number)
+                    ->where('id', '<>', $this->id)
+                    ->first();
+
+                if ($conflict) {
+                    if ($conflict->status === self::STATUS_DRAFT) {
+                        throw new \App\Exceptions\NumberCollisionException(
+                            "Ya existe un borrador con el número '{$this->delivery_note_number}'. "
+                            . 'Para continuar, edita ese borrador y cambia o libera su número, o elimínalo.',
+                            [
+                                'conflicting_id' => $conflict->id,
+                                'conflicting_number' => $conflict->delivery_note_number,
+                                'conflicting_status' => $conflict->status,
+                                'attempted_number' => $this->delivery_note_number,
+                            ]
+                        );
+                    }
+
+                    if ($isAutoCandidate) {
+                        [$nextSeq, $newCandidate] = $this->findNextFreeSequence($nextSeq);
+                        $this->delivery_note_number = $newCandidate;
+                        $this->sequence_number = $nextSeq;
+                    } else {
+                        throw new \App\Exceptions\NumberCollisionException(
+                            "El número '{$this->delivery_note_number}' ya está asignado a un albarán {$conflict->status} y no puede reutilizarse.",
+                            [
+                                'conflicting_id' => $conflict->id,
+                                'conflicting_number' => $conflict->delivery_note_number,
+                                'conflicting_status' => $conflict->status,
+                                'attempted_number' => $this->delivery_note_number,
+                            ]
+                        );
+                    }
+                } else {
+                    if ($isAutoCandidate) {
+                        $this->sequence_number = $nextSeq;
+                    }
+                }
+            } else {
+                $candidate = $autoCandidate;
+
+                $conflict = DeliveryNote::where('company_id', $this->company_id)
+                    ->where('delivery_note_number', $candidate)
+                    ->where('id', '<>', $this->id)
+                    ->first();
+
+                if ($conflict) {
+                    if ($conflict->status === self::STATUS_DRAFT) {
+                        throw new \App\Exceptions\NumberCollisionException(
+                            "Ya existe un borrador con el número '{$candidate}'. "
+                            . 'Para continuar, edita ese borrador y cambia o libera su número, o elimínalo.',
+                            [
+                                'conflicting_id' => $conflict->id,
+                                'conflicting_number' => $conflict->delivery_note_number,
+                                'conflicting_status' => $conflict->status,
+                                'attempted_number' => $candidate,
+                            ]
+                        );
+                    }
+                    [$nextSeq, $candidate] = $this->findNextFreeSequence($nextSeq);
+                }
+
+                $this->delivery_note_number = $candidate;
+                $this->sequence_number = $nextSeq;
             }
 
-            $this->delivery_note_number = $candidate;
-            $this->sequence_number = $nextSeq;
-
-            $lastCustSeq = DeliveryNote::where('company_id', $this->company_id)
-                ->where('customer_id', $this->customer_id)
-                ->whereNotNull('customer_sequence_number')
-                ->max('customer_sequence_number');
-            $this->customer_sequence_number = ($lastCustSeq ? (int) $lastCustSeq : 0) + 1;
+            if (empty($this->customer_sequence_number)) {
+                $lastCustSeq = DeliveryNote::where('company_id', $this->company_id)
+                    ->where('customer_id', $this->customer_id)
+                    ->whereNotNull('customer_sequence_number')
+                    ->max('customer_sequence_number');
+                $this->customer_sequence_number = ($lastCustSeq ? (int) $lastCustSeq : 0) + 1;
+            }
 
             $this->save();
 
             return $this->fresh();
         });
+    }
+
+    /**
+     * @return array{0:int, 1:string}
+     */
+    protected function findNextFreeSequence(int $startSeq): array
+    {
+        $maxAttempts = 1000;
+        $seq = $startSeq + 1;
+
+        for ($i = 0; $i < $maxAttempts; $i++) {
+            $candidate = $this->formatSerialForSequence($seq);
+
+            $exists = DeliveryNote::where('company_id', $this->company_id)
+                ->where('delivery_note_number', $candidate)
+                ->where('id', '<>', $this->id)
+                ->exists();
+
+            if (! $exists) {
+                return [$seq, $candidate];
+            }
+
+            $seq++;
+        }
+
+        throw new \RuntimeException(
+            'No se encontró un número libre tras ' . $maxAttempts . ' intentos.'
+        );
     }
 
     /**
