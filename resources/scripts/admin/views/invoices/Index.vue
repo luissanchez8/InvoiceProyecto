@@ -331,16 +331,15 @@ let verifactuPollTimer = null
 
 function startVerifactuPolling() {
   stopVerifactuPolling()
-  verifactuPollTimer = setInterval(() => {
+  verifactuPollTimer = setTimeout(() => {
     table.value && table.value.refresh()
-  }, 4000)
-  // Parar después de 60 segundos
-  setTimeout(() => stopVerifactuPolling(), 60000)
+    verifactuPollTimer = null
+  }, 5000)
 }
 
 function stopVerifactuPolling() {
   if (verifactuPollTimer) {
-    clearInterval(verifactuPollTimer)
+    clearTimeout(verifactuPollTimer)
     verifactuPollTimer = null
   }
 }
