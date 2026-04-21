@@ -3,9 +3,17 @@
   <ApproveInvoiceDialog
     :visible="showApproveDialog"
     :loading="isApproving"
+    :manual-number="numberIsManual ? (approvingInvoice?.invoice_number || '') : ''"
+    :suggested-number="invoiceStore.suggestedInvoiceNumber"
     @approve="confirmApproveFromIndex"
     @save-draft="onApproveSaveDraftFromIndex"
     @cancel="onApproveCancelFromIndex"
+  />
+  <NumberCollisionDialog
+    :visible="showCollisionDialog"
+    :details="numberCollision"
+    doc-type="invoice"
+    @close="numberCollision = null"
   />
   <BasePage>
     <BasePageHeader :title="$t('invoices.title')">
@@ -311,6 +319,7 @@ import MoonwalkerIcon from '@/scripts/components/icons/empty/MoonwalkerIcon.vue'
 import InvoiceDropdown from '@/scripts/admin/components/dropdowns/InvoiceIndexDropdown.vue'
 import SendInvoiceModal from '@/scripts/admin/components/modal-components/SendInvoiceModal.vue'
 import ApproveInvoiceDialog from '@/scripts/admin/components/modal-components/ApproveInvoiceDialog.vue'
+import NumberCollisionDialog from '@/scripts/admin/components/modal-components/NumberCollisionDialog.vue'
 import BaseInvoiceStatusLabel from "@/scripts/components/base/BaseInvoiceStatusLabel.vue";
 import { useCompanyStore } from '@/scripts/admin/stores/company'
 // Stores
@@ -330,6 +339,27 @@ const showApproveDialog = ref(false)
 const approvingInvoice = ref(null)
 const isApproving = ref(false)
 let verifactuPollTimer = null
+
+// Onfactu — numeración diferida:
+// Modal de colisión cuando el backend devuelve 409 al aprobar
+const numberCollision = ref(null)
+const showCollisionDialog = computed({
+  get: () => numberCollision.value !== null,
+  set: (val) => {
+    if (!val) numberCollision.value = null
+  },
+})
+
+// Comparamos el invoice_number de la factura a aprobar con la sugerencia
+// actual del store para decidir si mostrar el aviso amber "estás saltando
+// la numeración secuencial".
+const numberIsManual = computed(() => {
+  const val = String(approvingInvoice.value?.invoice_number || '').trim()
+  const sug = String(invoiceStore.suggestedInvoiceNumber || '').trim()
+  if (!val) return false
+  if (!sug) return false
+  return val !== sug
+})
 
 function startVerifactuPolling() {
   stopVerifactuPolling()
@@ -626,8 +656,18 @@ function setActiveTab(val) {
       break
   }
 }
-function openApproveDialog(invoice) {
+async function openApproveDialog(invoice) {
   approvingInvoice.value = invoice
+  // Onfactu — numeración diferida: cargamos la sugerencia actual para
+  // poder comparar con invoice_number y mostrar el aviso si es manual.
+  try {
+    const nextRes = await invoiceStore.getNextNumber()
+    if (nextRes?.data?.nextNumber) {
+      invoiceStore.suggestedInvoiceNumber = nextRes.data.nextNumber
+    }
+  } catch (e) {
+    // Silencioso: si falla, no sale el aviso (asumimos no manual).
+  }
   showApproveDialog.value = true
 }
 
@@ -646,10 +686,18 @@ async function confirmApproveFromIndex() {
     // Iniciar polling para refrescar la tabla cuando VeriFactu responda
     startVerifactuPolling()
   } catch (err) {
-    notificationStore.showNotification({
-      type: 'error',
-      message: t('verifactu.approved_error'),
-    })
+    // Onfactu — captura colisión 409 de número en uso
+    const status = err?.response?.status
+    const errorCode = err?.response?.data?.error_code
+    if (status === 409 && errorCode === 'number_collision') {
+      numberCollision.value = err.response.data.details || {}
+      showApproveDialog.value = false
+    } else {
+      notificationStore.showNotification({
+        type: 'error',
+        message: t('verifactu.approved_error'),
+      })
+    }
   }
   isApproving.value = false
 }
