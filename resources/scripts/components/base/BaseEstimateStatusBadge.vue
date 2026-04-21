@@ -29,6 +29,22 @@ const badgeColorClasses = computed(() => {
       return 'bg-green-400 bg-opacity-25 px-2 py-1 text-sm  text-green-800 uppercase font-normal text-center'
     case 'REJECTED':
       return 'bg-purple-300 bg-opacity-25 px-2 py-1 text-sm  text-purple-800 uppercase font-normal text-center'
+    case 'COMPLETED':
+      return 'bg-green-500 bg-opacity-25 px-2 py-1 text-sm  text-green-900 uppercase font-normal text-center'
+    case 'DUE':
+      return 'bg-yellow-500 bg-opacity-25 px-2 py-1 text-sm  text-yellow-900 uppercase font-normal text-center'
+    case 'OVERDUE':
+      return 'bg-red-300 bg-opacity-50 px-2 py-1 text-sm  text-red-900 uppercase font-normal text-center'
+    case 'UNPAID':
+      return 'bg-yellow-500 bg-opacity-25 px-2 py-1 text-sm  text-yellow-900 uppercase font-normal text-center'
+    case 'PARTIALLY_PAID':
+      return 'bg-blue-400 bg-opacity-25 px-2 py-1 text-sm  text-blue-900 uppercase font-normal text-center'
+    case 'PAID':
+      return 'bg-green-500 bg-opacity-25 px-2 py-1 text-sm  text-green-900 uppercase font-normal text-center'
+    case 'DELIVERED':
+      return 'bg-green-500 bg-opacity-25 px-2 py-1 text-sm  text-green-900 uppercase font-normal text-center'
+    case 'APPROVED':
+      return 'bg-[#38d587] bg-opacity-25 px-2 py-1 text-sm  text-[#1a6b3a] uppercase font-normal text-center'
     default:
       return 'bg-gray-500 bg-opacity-25 px-2 py-1 text-sm  text-gray-900 uppercase font-normal text-center'
   }
