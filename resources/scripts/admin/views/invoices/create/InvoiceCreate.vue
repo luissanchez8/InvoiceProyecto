@@ -428,6 +428,14 @@ async function confirmApprove() {
     verifactu_approve: true,
   })
 
+  // Onfactu — numeración diferida:
+  // Si el input es la sugerencia sin tocar, enviamos null para que el backend
+  // active la generación automática (asigna invoice_number + sequence_number).
+  // Si el usuario escribió algo distinto, se envía tal cual como número manual
+  // y el backend lo respeta sin tocar sequence_number (la secuencia auto sigue
+  // por su cuenta).
+  data = resolveNumberForDraft(data)
+
   if (data.discount_per_item === 'YES') {
     data.items.forEach((item, index) => {
       if (item.discount_type === 'fixed') {
