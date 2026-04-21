@@ -232,8 +232,14 @@
 
         <!-- Invoice status  -->
         <template #cell-status="{ row }">
-          <BaseInvoiceStatusBadge :status="row.data.status" class="px-3 py-1">
-            <BaseInvoiceStatusLabel :status="row.data.status" />
+          <BaseInvoiceStatusBadge
+            :status="row.data.verifactu_status === 'PENDING' ? 'VERIFACTU_PENDING' : row.data.status"
+            class="px-3 py-1"
+          >
+            <template v-if="row.data.verifactu_status === 'PENDING'">
+              Pendiente VeriFactu
+            </template>
+            <BaseInvoiceStatusLabel v-else :status="row.data.status" />
           </BaseInvoiceStatusBadge>
         </template>
 
@@ -264,13 +270,16 @@
 
         <template v-if="verifactuEnabled" #cell-verifactu="{ row }">
           <BaseButton
-            v-if="row.data.status === 'DRAFT'"
+            v-if="row.data.status === 'DRAFT' && !row.data.verifactu_status"
             variant="primary-outline"
             size="sm"
             @click="openApproveDialog(row.data)"
           >
             {{ $t('verifactu.approve_invoice') }}
           </BaseButton>
+          <span v-else-if="row.data.verifactu_status === 'PENDING'" class="text-amber-600 font-medium text-xs animate-pulse">
+            ⏳ Pendiente...
+          </span>
           <span v-else-if="row.data.status === 'APPROVED'" class="text-[#38d587] font-medium text-xs">
             ✓ {{ $t('verifactu.approved') }}
           </span>

@@ -161,7 +161,6 @@ async function confirmApprove() {
   isApproving.value = true
   try {
     const response = await invoiceStore.approveInvoice(invoiceData.value.id)
-    // Actualizar datos locales con la respuesta del servidor
     if (response.data?.data) {
       invoiceData.value = { ...invoiceData.value, ...response.data.data }
     }
@@ -173,16 +172,12 @@ async function confirmApprove() {
     )
     if (pos >= 0 && invoiceList.value[pos]) {
       invoiceList.value[pos].verifactu_status = 'PENDING'
-      invoiceList.value[pos].status = 'SENT'
     }
-    // Cambiar status visual a SENT para quitar DRAFT
-    invoiceData.value.status = 'SENT'
     showApproveDialog.value = false
     notificationStore.showNotification({
       type: 'success',
       message: 'Factura enviada a VeriFactu. Esperando aprobación...',
     })
-    // Iniciar polling para detectar cuando VeriFactu responda
     startVerifactuPolling(invoiceData.value.id)
   } catch (err) {
     notificationStore.showNotification({
@@ -589,10 +584,13 @@ onSearched = debounce(onSearched, 500)
                 {{ invoice.invoice_number }}
               </div>
               <BaseEstimateStatusBadge
-                :status="invoice.status"
+                :status="invoice.verifactu_status === 'PENDING' ? 'VERIFACTU_PENDING' : invoice.status"
                 class="px-1 text-xs"
               >
-                <BaseInvoiceStatusLabel :status="invoice.status" />
+                <template v-if="invoice.verifactu_status === 'PENDING'">
+                  Pendiente VeriFactu
+                </template>
+                <BaseInvoiceStatusLabel v-else :status="invoice.status" />
               </BaseEstimateStatusBadge>
             </div>
 

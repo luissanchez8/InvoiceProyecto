@@ -45,6 +45,8 @@ const badgeColorClasses = computed(() => {
       return 'bg-green-500 bg-opacity-25 px-2 py-1 text-sm  text-green-900 uppercase font-normal text-center'
     case 'APPROVED':
       return 'bg-[#38d587] bg-opacity-25 px-2 py-1 text-sm  text-[#1a6b3a] uppercase font-normal text-center'
+    case 'VERIFACTU_PENDING':
+      return 'bg-amber-400 bg-opacity-30 px-2 py-1 text-sm  text-amber-900 uppercase font-normal text-center animate-pulse'
     default:
       return 'bg-gray-500 bg-opacity-25 px-2 py-1 text-sm  text-gray-900 uppercase font-normal text-center'
   }
