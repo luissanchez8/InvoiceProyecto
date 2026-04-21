@@ -99,6 +99,18 @@ class InvoicesController extends Controller
     {
         $this->authorize('delete multiple invoices');
 
+        // No permitir eliminar facturas aprobadas por VeriFactu
+        $approvedCount = Invoice::whereIn('id', $request->ids)
+            ->where('status', 'APPROVED')
+            ->count();
+
+        if ($approvedCount > 0) {
+            return response()->json([
+                'success' => false,
+                'error' => 'No se pueden eliminar facturas aprobadas por VeriFactu',
+            ], 422);
+        }
+
         Invoice::deleteInvoices($request->ids);
 
         return response()->json([

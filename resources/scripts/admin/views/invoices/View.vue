@@ -164,20 +164,24 @@ async function confirmApprove() {
     // Actualizar datos locales con la respuesta del servidor
     if (response.data?.data) {
       invoiceData.value = { ...invoiceData.value, ...response.data.data }
-    } else {
-      invoiceData.value.verifactu_status = 'PENDING'
     }
-    notificationStore.showNotification({
-      type: 'success',
-      message: t('verifactu.approved_success'),
-    })
+    // Forzar verifactu_status a PENDING para mostrar el spinner
+    invoiceData.value.verifactu_status = 'PENDING'
+    // Actualizar también el listado lateral
     let pos = invoiceList.value?.findIndex(
       (inv) => inv.id === invoiceData.value.id
     )
     if (pos >= 0 && invoiceList.value[pos]) {
       invoiceList.value[pos].verifactu_status = 'PENDING'
+      invoiceList.value[pos].status = 'SENT'
     }
+    // Cambiar status visual a SENT para quitar DRAFT
+    invoiceData.value.status = 'SENT'
     showApproveDialog.value = false
+    notificationStore.showNotification({
+      type: 'success',
+      message: 'Factura enviada a VeriFactu. Esperando aprobación...',
+    })
     // Iniciar polling para detectar cuando VeriFactu responda
     startVerifactuPolling(invoiceData.value.id)
   } catch (err) {

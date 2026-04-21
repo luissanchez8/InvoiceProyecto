@@ -101,7 +101,7 @@
 
     <!--  Delete Invoice  -->
     <BaseDropdownItem
-      v-if="userStore.hasAbilities(abilities.DELETE_INVOICE)"
+      v-if="userStore.hasAbilities(abilities.DELETE_INVOICE) && row.status !== 'APPROVED'"
       @click="removeInvoice(row.id)"
     >
       <BaseIcon
