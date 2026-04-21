@@ -278,7 +278,7 @@
             {{ $t('verifactu.approve_invoice') }}
           </BaseButton>
           <span v-else-if="row.data.verifactu_status === 'PENDING'" class="text-amber-600 font-medium text-xs animate-pulse">
-            ⏳ Pendiente...
+            Pendiente...
           </span>
           <span v-else-if="row.data.status === 'APPROVED'" class="text-[#38d587] font-medium text-xs">
             ✓ {{ $t('verifactu.approved') }}
@@ -327,6 +327,25 @@ const companyStore = useCompanyStore()
 const showApproveDialog = ref(false)
 const approvingInvoice = ref(null)
 const isApproving = ref(false)
+let verifactuPollTimer = null
+
+function startVerifactuPolling() {
+  stopVerifactuPolling()
+  verifactuPollTimer = setInterval(() => {
+    table.value && table.value.refresh()
+  }, 4000)
+  // Parar después de 60 segundos
+  setTimeout(() => stopVerifactuPolling(), 60000)
+}
+
+function stopVerifactuPolling() {
+  if (verifactuPollTimer) {
+    clearInterval(verifactuPollTimer)
+    verifactuPollTimer = null
+  }
+}
+
+onUnmounted(() => stopVerifactuPolling())
 
 const verifactuEnabled = computed(() =>
   companyStore.selectedCompanySettings.verifactu_enabled === 'YES'
@@ -618,11 +637,13 @@ async function confirmApproveFromIndex() {
     await invoiceStore.approveInvoice(approvingInvoice.value.id)
     notificationStore.showNotification({
       type: 'success',
-      message: t('verifactu.approved_success'),
+      message: 'Factura enviada a VeriFactu. Esperando aprobación...',
     })
     showApproveDialog.value = false
     approvingInvoice.value = null
     table.value && table.value.refresh()
+    // Iniciar polling para refrescar la tabla cuando VeriFactu responda
+    startVerifactuPolling()
   } catch (err) {
     notificationStore.showNotification({
       type: 'error',
