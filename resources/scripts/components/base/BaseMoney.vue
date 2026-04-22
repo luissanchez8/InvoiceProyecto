@@ -78,9 +78,13 @@ const currencyBindings = computed(() => {
   return {
     decimal: currency.decimal_separator,
     thousands: currency.thousand_separator,
-    prefix: currency.symbol + ' ',
+    // Onfactu: símbolo a la derecha (formato europeo: 1.234,56 €)
+    suffix: ' ' + currency.symbol,
     precision: currency.precision,
     masked: false,
+    // Onfactu: cursor empieza en la parte entera (izquierda de la coma decimal)
+    // por defecto v-money3 lo lleva a la derecha (decimales).
+    focusOnRight: false,
   }
 })
 

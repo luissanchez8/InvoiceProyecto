@@ -59,9 +59,9 @@ class DemoSeeder extends Seeder
             'fiscal_year' => 'calendar_year',
             'tax_per_item' => false,
             'discount_per_item' => false,
-            'invoice_prefix' => 'INV-',
-            'estimate_prefix' => 'EST-',
-            'payment_prefix' => 'PAY-',
+            'invoice_prefix' => 'FAC-',
+            'estimate_prefix' => 'PRE-',
+            'payment_prefix' => 'PAG-',
         ], $company->id);
 
         // Create demo customers

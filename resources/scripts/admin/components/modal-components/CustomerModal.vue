@@ -204,6 +204,24 @@
           </BaseTab>
 
           <BaseTab :title="$t('customers.billing_address')" class="!mt-2">
+            <!-- Onfactu: botón para copiar info básica del cliente al billing -->
+            <div class="flex items-center justify-end mb-4">
+              <BaseButton
+                type="button"
+                size="sm"
+                variant="primary-outline"
+                @click="copyBasicInfoToBilling()"
+              >
+                <template #left="slotProps">
+                  <BaseIcon
+                    name="DocumentDuplicateIcon"
+                    :class="slotProps.class"
+                  />
+                </template>
+                {{ $t('customers.copy_basic_info') }}
+              </BaseButton>
+            </div>
+
             <BaseInputGrid layout="one-column">
               <BaseInputGroup :label="$t('customers.name')">
                 <BaseInput
@@ -590,6 +608,11 @@ const getCustomerPortalUrl = computed(() => {
 
 function copyAddress() {
   customerStore.copyAddress()
+}
+
+// Onfactu: copiar info básica del cliente al billing (botón simétrico)
+function copyBasicInfoToBilling() {
+  customerStore.copyBasicInfoToBilling()
 }
 
 async function setInitialData() {

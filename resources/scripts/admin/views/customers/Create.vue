@@ -262,6 +262,29 @@
 
         <BaseDivider class="mb-5 md:mb-8" />
 
+        <!-- Onfactu: Botón copiar información básica a Billing -->
+        <div
+          class="flex items-center justify-start mb-6 md:justify-end md:mb-0"
+        >
+          <div class="p-1">
+            <BaseButton
+              type="button"
+              :content-loading="isFetchingInitialData"
+              size="sm"
+              variant="primary-outline"
+              @click="customerStore.copyBasicInfoToBilling()"
+            >
+              <template #left="slotProps">
+                <BaseIcon
+                  name="DocumentDuplicateIcon"
+                  :class="slotProps.class"
+                />
+              </template>
+              {{ $t('customers.copy_basic_info') }}
+            </BaseButton>
+          </div>
+        </div>
+
         <!-- Billing Address   -->
         <div class="grid grid-cols-5 gap-4 mb-8">
           <h6 class="col-span-5 text-lg font-semibold text-left lg:col-span-1">

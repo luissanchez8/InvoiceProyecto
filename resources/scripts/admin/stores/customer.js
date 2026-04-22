@@ -46,6 +46,18 @@ export const useCustomerStore = (useWindow = false) => {
         }
       },
 
+      // Onfactu: copia la info básica del cliente (nombre, email, teléfono)
+      // a la dirección de facturación. Botón simétrico al de "copiar de
+      // facturación" que ya existe en dirección de envío.
+      copyBasicInfoToBilling() {
+        this.currentCustomer.billing = {
+          ...this.currentCustomer.billing,
+          name: this.currentCustomer.name || this.currentCustomer.billing.name,
+          phone: this.currentCustomer.phone || this.currentCustomer.billing.phone,
+          type: 'billing',
+        }
+      },
+
       fetchCustomerInitialSettings(isEdit) {
         const route = useRoute()
         const globalStore = useGlobalStore()
