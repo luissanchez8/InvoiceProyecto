@@ -69,20 +69,78 @@ class ApproveInvoiceController extends Controller
         $invoice->verifactu_status = Invoice::VERIFACTU_PENDING;
         $invoice->save();
 
-        // Encolar Job asíncrono para publicar en RabbitMQ.
-        // Esto sustituye la llamada síncrona a publishToVerifactu() que
-        // bloqueaba la petición HTTP y causaba el mensaje "Please check your
-        // internet connection" en el navegador cuando Rabbit tardaba en
-        // responder. Con dispatch() el Job se inserta instantáneamente en
-        // la tabla `jobs` y un worker (php artisan queue:work) lo procesa.
-        // El frontend hace polling de verifactu_status para detectar cuándo
-        // el worker termina.
-        \App\Jobs\PublishInvoiceToVerifactu::dispatch($invoice);
-
-        return response()->json([
+        // Onfactu — approve asíncrono vía fastcgi_finish_request():
+        // Responder al navegador YA (sin esperar a RabbitMQ) y luego publicar
+        // el mensaje con el script ya "desconectado" del cliente HTTP.
+        //
+        // Esto evita el toast "Please check your internet connection" cuando
+        // Rabbit tarda en abrir el socket, sin necesidad de montar un worker
+        // de Laravel (queue:work) ni supervisor. El trade-off es que si el
+        // publish falla, no hay reintentos automáticos: la factura queda en
+        // VERIFACTU_ERROR con el mensaje y hay que reaprobarla desde la UI.
+        //
+        // Para esto preparamos la respuesta, llamamos a flush() + finish() y
+        // seguimos ejecutando el publish. Si el SAPI no soporta
+        // fastcgi_finish_request (p.ej. en CLI durante tests), caemos a
+        // publicar síncronamente (comportamiento legacy).
+        $response = response()->json([
             'success' => true,
             'data' => $invoice->fresh(),
         ]);
+
+        // En entornos PHP-FPM, flush + finish envían la respuesta al cliente
+        // y cierran la conexión TCP con el navegador, pero el script PHP
+        // sigue vivo ejecutando lo que venga después.
+        if (function_exists('fastcgi_finish_request')) {
+            // Enviamos los headers y el body al cliente
+            $response->send();
+
+            // Cerramos la conexión con el cliente. A partir de aquí el
+            // navegador ya tiene la respuesta y nos da igual lo que tardemos.
+            fastcgi_finish_request();
+
+            // Ahora sí, publicamos a Rabbit sin presión de timeout HTTP.
+            try {
+                $this->publishToVerifactu($invoice);
+            } catch (\Throwable $e) {
+                Log::error('Error al publicar en cola VeriFactu (post-response)', [
+                    'invoice_id' => $invoice->id,
+                    'error' => $e->getMessage(),
+                ]);
+
+                // Como ya respondimos 200 al cliente, no podemos devolver
+                // error HTTP. Marcamos el estado para que lo vea el frontend
+                // vía polling de verifactu_status.
+                $invoice->verifactu_status = Invoice::VERIFACTU_ERROR;
+                $invoice->verifactu_error = $e->getMessage();
+                $invoice->save();
+            }
+
+            // El return aquí no tiene efecto (la respuesta ya se envió),
+            // pero lo dejamos por claridad de flujo.
+            return $response;
+        }
+
+        // Fallback (CLI, tests, SAPI sin FastCGI): comportamiento síncrono.
+        try {
+            $this->publishToVerifactu($invoice);
+        } catch (\Throwable $e) {
+            Log::error('Error al publicar en cola VeriFactu (sync fallback)', [
+                'invoice_id' => $invoice->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            $invoice->verifactu_status = Invoice::VERIFACTU_ERROR;
+            $invoice->verifactu_error = $e->getMessage();
+            $invoice->save();
+
+            return response()->json([
+                'success' => false,
+                'error' => 'Error al enviar a VeriFactu: ' . $e->getMessage(),
+            ], 500);
+        }
+
+        return $response;
     }
 
     private function publishToVerifactu(Invoice $invoice): void
