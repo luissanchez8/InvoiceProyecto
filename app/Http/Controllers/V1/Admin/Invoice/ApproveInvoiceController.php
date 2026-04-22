@@ -69,24 +69,15 @@ class ApproveInvoiceController extends Controller
         $invoice->verifactu_status = Invoice::VERIFACTU_PENDING;
         $invoice->save();
 
-        // Publicar en cola RabbitMQ
-        try {
-            $this->publishToVerifactu($invoice);
-        } catch (\Throwable $e) {
-            Log::error('Error al publicar en cola VeriFactu', [
-                'invoice_id' => $invoice->id,
-                'error' => $e->getMessage(),
-            ]);
-
-            $invoice->verifactu_status = Invoice::VERIFACTU_ERROR;
-            $invoice->verifactu_error = $e->getMessage();
-            $invoice->save();
-
-            return response()->json([
-                'success' => false,
-                'error' => 'Error al enviar a VeriFactu: ' . $e->getMessage(),
-            ], 500);
-        }
+        // Encolar Job asíncrono para publicar en RabbitMQ.
+        // Esto sustituye la llamada síncrona a publishToVerifactu() que
+        // bloqueaba la petición HTTP y causaba el mensaje "Please check your
+        // internet connection" en el navegador cuando Rabbit tardaba en
+        // responder. Con dispatch() el Job se inserta instantáneamente en
+        // la tabla `jobs` y un worker (php artisan queue:work) lo procesa.
+        // El frontend hace polling de verifactu_status para detectar cuándo
+        // el worker termina.
+        \App\Jobs\PublishInvoiceToVerifactu::dispatch($invoice);
 
         return response()->json([
             'success' => true,

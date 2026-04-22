@@ -14,21 +14,25 @@ use Illuminate\Http\Request;
 /**
  * Devuelve el siguiente número sugerido para un tipo de documento.
  *
- * Onfactu — numeración diferida:
+ * Onfactu — numeración diferida (opción C):
  * No basta con devolver MAX(sequence_number) + 1, porque ese número puede
  * estar ocupado por un documento manual puro (sequence_number NULL pero
- * invoice_number coincidente con el candidato). Si lo devolvemos tal cual,
- * el usuario lo verá como sugerencia pero al aprobar colisionará.
+ * invoice_number coincidente con el candidato).
  *
- * Aquí, si el candidato ya existe en la BD, avanzamos hasta encontrar uno
- * libre. Esto hace que la sugerencia que ve el usuario sea siempre válida.
+ * Si el candidato original (MAX+1 formateado) está ocupado, avanzamos hasta
+ * encontrar uno libre. En ese caso devolvemos isSkipped=true, indicando al
+ * frontend que el número es un "hueco reservado" y que debe persistirlo
+ * al guardar como borrador (no descartarlo con la lógica de "sugerencia sin
+ * tocar"). Si el primer candidato estaba libre, isSkipped=false y el
+ * frontend puede descartar la sugerencia al guardar borrador (comportamiento
+ * estándar que libera números para reaprovechar).
  */
 class NextNumberController extends Controller
 {
     public function __invoke(Request $request, Invoice $invoice, Estimate $estimate, Payment $payment, ProformaInvoice $proformaInvoice, DeliveryNote $deliveryNote)
     {
         $key = $request->key;
-        $nextNumber = null;
+        $result = ['nextNumber' => null, 'isSkipped' => false];
         $companyId = $request->header('company');
 
         $serial = (new SerialNumberFormatter)
@@ -38,55 +42,42 @@ class NextNumberController extends Controller
         try {
             switch ($key) {
                 case 'invoice':
-                    $nextNumber = $this->nextFreeNumberFor(
-                        $serial,
-                        $invoice,
-                        $request->model_id,
-                        Invoice::class,
-                        'invoice_number',
-                        $companyId
+                    $result = $this->nextFreeNumberFor(
+                        $serial, $invoice, $request->model_id,
+                        Invoice::class, 'invoice_number', $companyId
                     );
                     break;
 
                 case 'estimate':
-                    $nextNumber = $this->nextFreeNumberFor(
-                        $serial,
-                        $estimate,
-                        $request->model_id,
-                        Estimate::class,
-                        'estimate_number',
-                        $companyId
+                    $result = $this->nextFreeNumberFor(
+                        $serial, $estimate, $request->model_id,
+                        Estimate::class, 'estimate_number', $companyId
                     );
                     break;
 
                 case 'payment':
-                    // Payment no tiene numeración diferida, comportamiento original
-                    $nextNumber = $serial->setModel($payment)
-                        ->setModelObject($request->model_id)
-                        ->getNextNumber();
+                    // Payment no tiene numeración diferida
+                    $result = [
+                        'nextNumber' => $serial->setModel($payment)
+                            ->setModelObject($request->model_id)
+                            ->getNextNumber(),
+                        'isSkipped' => false,
+                    ];
                     break;
 
                 case 'proforma_invoice':
                 case 'proformainvoice':
-                    $nextNumber = $this->nextFreeNumberFor(
-                        $serial,
-                        $proformaInvoice,
-                        $request->model_id,
-                        ProformaInvoice::class,
-                        'proforma_invoice_number',
-                        $companyId
+                    $result = $this->nextFreeNumberFor(
+                        $serial, $proformaInvoice, $request->model_id,
+                        ProformaInvoice::class, 'proforma_invoice_number', $companyId
                     );
                     break;
 
                 case 'delivery_note':
                 case 'deliverynote':
-                    $nextNumber = $this->nextFreeNumberFor(
-                        $serial,
-                        $deliveryNote,
-                        $request->model_id,
-                        DeliveryNote::class,
-                        'delivery_note_number',
-                        $companyId
+                    $result = $this->nextFreeNumberFor(
+                        $serial, $deliveryNote, $request->model_id,
+                        DeliveryNote::class, 'delivery_note_number', $companyId
                     );
                     break;
 
@@ -102,25 +93,15 @@ class NextNumberController extends Controller
 
         return response()->json([
             'success' => true,
-            'nextNumber' => $nextNumber,
+            'nextNumber' => $result['nextNumber'],
+            'isSkipped' => $result['isSkipped'],
         ]);
     }
 
     /**
-     * Obtiene el siguiente número libre para un tipo de documento.
+     * Busca el siguiente número libre para un tipo de documento.
      *
-     * 1. Usa SerialNumberFormatter para calcular el candidato estándar
-     *    (MAX(sequence_number) + 1 formateado).
-     * 2. Si ese candidato ya existe en la tabla (por manual puro, dato
-     *    histórico, etc.), avanza al siguiente sequence_number y vuelve a
-     *    formatear, hasta encontrar uno libre.
-     *
-     * @param  \App\Services\SerialNumberFormatter  $serial
-     * @param  mixed  $modelInstance  Instancia vacía para setModel
-     * @param  mixed  $modelId
-     * @param  class-string  $modelClass  Para hacer la query de existencia
-     * @param  string  $numberField  Nombre de la columna (invoice_number, etc.)
-     * @param  mixed  $companyId
+     * @return array{nextNumber: string, isSkipped: bool}
      */
     protected function nextFreeNumberFor(
         SerialNumberFormatter $serial,
@@ -129,15 +110,15 @@ class NextNumberController extends Controller
         string $modelClass,
         string $numberField,
         $companyId
-    ): string {
+    ): array {
         $serial->setModel($modelInstance)
             ->setModelObject($modelId)
             ->setNextNumbers();
 
         $seq = $serial->nextSequenceNumber ?: 1;
         $candidate = $serial->getNextNumber();
+        $isSkipped = false;
 
-        // Comprobar si el candidato ya existe. Si sí, avanzar.
         $maxAttempts = 1000;
         for ($i = 0; $i < $maxAttempts; $i++) {
             $exists = $modelClass::where('company_id', $companyId)
@@ -145,17 +126,18 @@ class NextNumberController extends Controller
                 ->exists();
 
             if (! $exists) {
-                return $candidate;
+                return ['nextNumber' => $candidate, 'isSkipped' => $isSkipped];
             }
 
-            // Ocupado: avanzar al siguiente
+            // Ocupado: marcamos como skipped y avanzamos
+            $isSkipped = true;
             $seq++;
             $serial->nextSequenceNumber = $seq;
-            // Regeneramos el número con el nuevo sequence
             $candidate = $serial->getNextNumber();
         }
 
-        // Fallback: devolver lo que haya aunque colisione (no debería llegar nunca aquí)
-        return $candidate;
+        // Fallback
+        return ['nextNumber' => $candidate, 'isSkipped' => $isSkipped];
     }
 }
+

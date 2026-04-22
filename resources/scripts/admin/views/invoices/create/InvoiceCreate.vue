@@ -336,21 +336,26 @@ function isUnchangedSuggestion(numberInForm) {
   return String(numberInForm || '').trim() === String(suggestion).trim()
 }
 
-// Aplica regla "descartar si es sugerencia" al payload antes de enviarlo
+// Aplica regla "descartar si es sugerencia limpia" al payload antes de enviarlo
 // al backend en un "Guardar como borrador".
+//
+// Opción C (Onfactu):
+//  - Si el input coincide con la sugerencia Y la sugerencia era "clean"
+//    (MAX+1 puro sin saltos) → se envía null. Esto libera el número para
+//    que otro documento que se apruebe antes lo pueda usar.
+//  - Si el input coincide con la sugerencia Y la sugerencia era "skipped"
+//    (hubo que saltar por encima de huecos ocupados) → se persiste el
+//    valor literal. El usuario vio ese número concreto como sugerencia,
+//    queremos que quede reservado para este borrador.
+//  - Si el input es distinto de la sugerencia → es manual puro, se persiste
+//    tal cual.
 function resolveNumberForDraft(data) {
-  if (isEdit.value) {
-    // En edición, si la factura ya estaba en borrador SIN número, el input
-    // habrá sido pre-rellenado con la sugerencia actual. Mantenemos la lógica:
-    // si coincide con la sugerencia, se guarda como null.
-    if (isUnchangedSuggestion(data.invoice_number)) {
+  if (isUnchangedSuggestion(data.invoice_number)) {
+    // Solo descartamos si la sugerencia era clean
+    if (!invoiceStore.suggestedInvoiceNumberIsSkipped) {
       data.invoice_number = null
     }
-  } else {
-    // En creación: si el usuario no tocó la sugerencia, null.
-    if (isUnchangedSuggestion(data.invoice_number)) {
-      data.invoice_number = null
-    }
+    // Si era skipped, data.invoice_number se mantiene con el valor de la sugerencia
   }
   return data
 }

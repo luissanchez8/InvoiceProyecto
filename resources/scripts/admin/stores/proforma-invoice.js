@@ -48,6 +48,7 @@ export const useProformaInvoiceStore = (useWindow = false) => {
       isFetchingProformaInvoice: false,
       // Onfactu — numeración diferida:
       suggestedProformaInvoiceNumber: null,
+      suggestedProformaInvoiceNumberIsSkipped: false,
       newProformaInvoice: { ...proformaInvoiceStub() },
     }),
 
@@ -158,10 +159,11 @@ export const useProformaInvoiceStore = (useWindow = false) => {
           ...editActions,
         ]).then(async ([res1, res2, res3, res4, res5, res6]) => {
           if (!isEdit) {
-            // Onfactu — numeración diferida: pre-rellenamos + guardamos sugerencia
+            // Onfactu — numeración diferida: pre-rellenamos + guardamos sugerencia + isSkipped
             if (res4.data) {
               this.newProformaInvoice.proforma_invoice_number = res4.data.nextNumber
               this.suggestedProformaInvoiceNumber = res4.data.nextNumber
+              this.suggestedProformaInvoiceNumberIsSkipped = !!res4.data.isSkipped
             }
             // Asignar template por defecto
             if (res3.data && this.templates.length) {
@@ -172,6 +174,7 @@ export const useProformaInvoiceStore = (useWindow = false) => {
             // En edición guardamos la sugerencia actual para comparar
             if (res4.data) {
               this.suggestedProformaInvoiceNumber = res4.data.nextNumber
+              this.suggestedProformaInvoiceNumberIsSkipped = !!res4.data.isSkipped
             }
             // Poblar datos de la proforma
             this.setProformaInvoiceData(res6.data.data)

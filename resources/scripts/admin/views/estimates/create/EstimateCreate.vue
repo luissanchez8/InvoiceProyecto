@@ -279,11 +279,16 @@ function isUnchangedSuggestion(numberInForm) {
   return String(numberInForm || '').trim() === String(suggestion).trim()
 }
 
-// Al guardar como borrador, si el input es la sugerencia no tocada → null.
-// Si el usuario escribió un número distinto, se respeta.
+// Al guardar como borrador, opción C:
+//  - Sugerencia "clean" (MAX+1 puro) y no tocada → null (libera el número).
+//  - Sugerencia "skipped" (salto por hueco) y no tocada → se persiste el valor
+//    literal para reservar ese hueco concreto.
+//  - Usuario cambió el número → se respeta el valor manual.
 function resolveNumberForDraft(data) {
   if (isUnchangedSuggestion(data.estimate_number)) {
-    data.estimate_number = null
+    if (!estimateStore.suggestedEstimateNumberIsSkipped) {
+      data.estimate_number = null
+    }
   }
   return data
 }

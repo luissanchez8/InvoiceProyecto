@@ -664,6 +664,7 @@ async function openApproveDialog(invoice) {
     const nextRes = await invoiceStore.getNextNumber()
     if (nextRes?.data?.nextNumber) {
       invoiceStore.suggestedInvoiceNumber = nextRes.data.nextNumber
+      invoiceStore.suggestedInvoiceNumberIsSkipped = !!nextRes.data.isSkipped
     }
   } catch (e) {
     // Silencioso: si falla, no sale el aviso (asumimos no manual).

@@ -329,6 +329,7 @@ async function loadInvoice() {
     const nextRes = await invoiceStore.getNextNumber()
     if (nextRes?.data?.nextNumber) {
       invoiceStore.suggestedInvoiceNumber = nextRes.data.nextNumber
+      invoiceStore.suggestedInvoiceNumberIsSkipped = !!nextRes.data.isSkipped
     }
   } catch (e) {
     // Silencioso: si no se puede cargar la sugerencia, simplemente no

@@ -42,6 +42,10 @@ export const useInvoiceStore = (useWindow = false) => {
       //  - Si input !== suggestedInvoiceNumber → el usuario puso un número
       //    manual, se envía tal cual.
       suggestedInvoiceNumber: null,
+      // isSkipped indica si la sugerencia es un "hueco" por encima del MAX+1
+      // puro. Si true, al guardar como borrador con la sugerencia intacta
+      // NO se descarta (se persiste el número concreto).
+      suggestedInvoiceNumberIsSkipped: false,
 
       newInvoice: {
         ...invoiceStub(),
@@ -575,14 +579,17 @@ export const useInvoiceStore = (useWindow = false) => {
         ])
           .then(async ([res1, res2, res3, res4, res5, res6]) => {
             if (!isEdit) {
-              // Onfactu — numeración diferida (opción Y):
+              // Onfactu — numeración diferida (opción C):
               // Pre-rellenamos el input con el siguiente número sugerido y
-              // guardamos aparte esa sugerencia original. Al guardar como
-              // borrador, si el usuario no la tocó, el backend lo recibirá
-              // como null (porque el frontend enviará null en ese caso).
+              // guardamos aparte la sugerencia + flag isSkipped. Al guardar
+              // como borrador:
+              //  - Si es "clean" y no la tocó → null (libera el número).
+              //  - Si es "skipped" y no la tocó → se persiste literal (reserva
+              //    ese hueco concreto en la secuencia).
               if (res4.data) {
                 this.newInvoice.invoice_number = res4.data.nextNumber
                 this.suggestedInvoiceNumber = res4.data.nextNumber
+                this.suggestedInvoiceNumberIsSkipped = !!res4.data.isSkipped
               }
 
               if (res3.data) {
@@ -591,11 +598,11 @@ export const useInvoiceStore = (useWindow = false) => {
                 this.newInvoice.template_name = 'invoice4'
               }
             } else {
-              // En edición: la "sugerencia" a efectos de comparación es el
-              // siguiente número automático libre en este momento. Sirve para
-              // el aviso "estás saltando la numeración" al aprobar.
+              // En edición: guardamos la sugerencia actual para comparar
+              // al marcar como enviado / aprobar.
               if (res4.data) {
                 this.suggestedInvoiceNumber = res4.data.nextNumber
+                this.suggestedInvoiceNumberIsSkipped = !!res4.data.isSkipped
               }
               this.addSalesTaxUs()
             }

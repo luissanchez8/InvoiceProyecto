@@ -69,6 +69,7 @@ class ProformaInvoice extends Model implements HasMedia
         'formattedProformaInvoiceDate',
         'formattedExpiryDate',
         'proformaInvoicePdfUrl',
+        'allow_edit',
     ];
 
     protected function casts(): array

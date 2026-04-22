@@ -38,6 +38,9 @@ export const useEstimateStore = (useWindow = false) => {
       // usuario tenga en el input. Si coincide, al guardar como borrador se
       // envía null al backend (no "consume" el secuencial).
       suggestedEstimateNumber: null,
+      // isSkipped: si true, la sugerencia es un "hueco" por encima de MAX+1;
+      // al guardar borrador con la sugerencia intacta NO se descarta.
+      suggestedEstimateNumberIsSkipped: false,
 
       newEstimate: {
         ...estimateStub(),
@@ -665,10 +668,11 @@ export const useEstimateStore = (useWindow = false) => {
             if (!isEdit) {
               // Onfactu — numeración diferida (opción Y):
               // Pre-rellenamos con la sugerencia y la guardamos aparte para
-              // comparar al guardar como borrador.
+              // comparar al guardar como borrador (con flag isSkipped).
               if (res4.data) {
                 this.newEstimate.estimate_number = res4.data.nextNumber
                 this.suggestedEstimateNumber = res4.data.nextNumber
+                this.suggestedEstimateNumberIsSkipped = !!res4.data.isSkipped
               }
 
               // Forzar invoice4 como plantilla universal
@@ -681,6 +685,7 @@ export const useEstimateStore = (useWindow = false) => {
               // "saltando numeración" al marcar como enviado.
               if (res4.data) {
                 this.suggestedEstimateNumber = res4.data.nextNumber
+                this.suggestedEstimateNumberIsSkipped = !!res4.data.isSkipped
               }
               this.addSalesTaxUs()
             }

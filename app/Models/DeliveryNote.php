@@ -65,6 +65,7 @@ class DeliveryNote extends Model implements HasMedia
         'formattedDeliveryNoteDate',
         'formattedDeliveryDate',
         'deliveryNotePdfUrl',
+        'allow_edit',
     ];
 
     protected function casts(): array

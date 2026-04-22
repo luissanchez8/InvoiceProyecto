@@ -260,9 +260,15 @@ function isUnchangedSuggestion(numberInForm) {
   return String(numberInForm || '').trim() === String(suggestion).trim()
 }
 
+// Al guardar como borrador, opción C:
+//  - Sugerencia "clean" (MAX+1 puro) y no tocada → null (libera el número).
+//  - Sugerencia "skipped" (salto por hueco) y no tocada → se persiste literal.
+//  - Usuario cambió el número → se respeta el valor manual.
 function resolveNumberForDraft(data) {
   if (isUnchangedSuggestion(data.delivery_note_number)) {
-    data.delivery_note_number = null
+    if (!deliveryNoteStore.suggestedDeliveryNoteNumberIsSkipped) {
+      data.delivery_note_number = null
+    }
   }
   return data
 }

@@ -47,6 +47,7 @@ export const useDeliveryNoteStore = (useWindow = false) => {
       isFetchingDeliveryNote: false,
       // Onfactu — numeración diferida:
       suggestedDeliveryNoteNumber: null,
+      suggestedDeliveryNoteNumberIsSkipped: false,
       newDeliveryNote: { ...deliveryNoteStub() },
     }),
 
@@ -136,10 +137,11 @@ export const useDeliveryNoteStore = (useWindow = false) => {
           ...editActions,
         ]).then(async ([res1, res2, res3, res4, res5, res6]) => {
           if (!isEdit) {
-            // Onfactu — numeración diferida: pre-rellenamos + guardamos sugerencia
+            // Onfactu — numeración diferida: pre-rellenamos + guardamos sugerencia + isSkipped
             if (res4.data) {
               this.newDeliveryNote.delivery_note_number = res4.data.nextNumber
               this.suggestedDeliveryNoteNumber = res4.data.nextNumber
+              this.suggestedDeliveryNoteNumberIsSkipped = !!res4.data.isSkipped
             }
             if (res3.data && this.templates.length) {
               let defaultTpl = this.templates.find(t => t.name === 'invoice4')
@@ -148,6 +150,7 @@ export const useDeliveryNoteStore = (useWindow = false) => {
           } else if (res6) {
             if (res4.data) {
               this.suggestedDeliveryNoteNumber = res4.data.nextNumber
+              this.suggestedDeliveryNoteNumberIsSkipped = !!res4.data.isSkipped
             }
             this.setDeliveryNoteData(res6.data.data)
           }
