@@ -16,7 +16,18 @@ use Vinkla\Hashids\Facades\Hashids;
 class ConvertEstimateController extends Controller
 {
     /**
-     * Handle the incoming request.
+     * Convierte un presupuesto en factura.
+     *
+     * Onfactu — numeración diferida:
+     * La factura resultante nace como BORRADOR SIN NÚMERO. El número se
+     * asignará cuando el usuario la apruebe (VeriFactu) llamando a
+     * Invoice::assignNumber().
+     *
+     * Antes de este cambio, este controller asignaba directamente
+     * invoice_number + sequence_number con SerialNumberFormatter, lo que
+     * podía duplicar números si ya existía un borrador con el mismo
+     * número (la conversión se saltaba la validación de unicidad y la
+     * lógica de salto sobre ocupados).
      *
      * @return \Illuminate\Http\Response
      */
@@ -42,12 +53,6 @@ class ConvertEstimateController extends Controller
             $due_date = Carbon::now()->addDays($dueDateDays)->format('Y-m-d');
         }
 
-        $serial = (new SerialNumberFormatter)
-            ->setModel($invoice)
-            ->setCompany($estimate->company_id)
-            ->setCustomer($estimate->customer_id)
-            ->setNextNumbers();
-
         $templateName = $estimate->getInvoiceTemplateName();
 
         $exchange_rate = $estimate->exchange_rate;
@@ -56,10 +61,11 @@ class ConvertEstimateController extends Controller
             'creator_id' => Auth::id(),
             'invoice_date' => $invoice_date->format('Y-m-d'),
             'due_date' => $due_date,
-            'invoice_number' => $serial->getNextNumber(),
-            'sequence_number' => $serial->nextSequenceNumber,
-            'customer_sequence_number' => $serial->nextCustomerSequenceNumber,
-            'reference_number' => $serial->getNextNumber(),
+            // Numeración diferida: nace sin número. Se asignará al aprobar.
+            'invoice_number' => null,
+            'sequence_number' => null,
+            'customer_sequence_number' => null,
+            'reference_number' => null,
             'customer_id' => $estimate->customer_id,
             'company_id' => $request->header('company'),
             'template_name' => $templateName,

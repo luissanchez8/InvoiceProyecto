@@ -440,6 +440,21 @@ export const useProformaInvoiceStore = (useWindow = false) => {
         })
       },
 
+      // Onfactu — convertir proforma a factura
+      convertToInvoice(id) {
+        return new Promise((resolve, reject) => {
+          axios
+            .post(`/api/v1/proforma-invoices/${id}/convert`)
+            .then((response) => {
+              resolve(response)
+            })
+            .catch((err) => {
+              // No mostramos toast aquí — lo gestiona quien llama
+              reject(err)
+            })
+        })
+      },
+
       sendProformaInvoice(data) {
         return new Promise((resolve, reject) => {
           axios

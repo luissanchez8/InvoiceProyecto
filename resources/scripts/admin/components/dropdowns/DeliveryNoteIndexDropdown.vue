@@ -53,6 +53,15 @@
       {{ $t('general.mark_as_sent') }}
     </BaseDropdownItem>
 
+    <!-- Convert to Invoice (Onfactu) -->
+    <BaseDropdownItem
+      v-if="row.status !== 'DRAFT' && userStore.hasAbilities(abilities.CREATE_INVOICE)"
+      @click="convertToInvoice(row)"
+    >
+      <BaseIcon name="DocumentTextIcon" class="w-5 h-5 mr-3 text-gray-400 group-hover:text-gray-500" />
+      {{ $t('convert_to_invoice') }}
+    </BaseDropdownItem>
+
     <!-- Clone -->
     <BaseDropdownItem @click="cloneDeliveryNoteData(row)">
       <BaseIcon name="DocumentDuplicateIcon" class="w-5 h-5 mr-3 text-gray-400 group-hover:text-gray-500" />
@@ -179,6 +188,37 @@ async function cloneDeliveryNoteData(data) {
         })
       }
     })
+}
+
+// Onfactu — convertir albarán a factura
+async function convertToInvoice(row) {
+  const confirmed = await dialogStore.openDialog({
+    title: t('convert_to_invoice'),
+    message: '¿Quieres crear una factura nueva a partir de este albarán? La factura nacerá como borrador, podrás revisarla antes de aprobarla.',
+    yesLabel: t('general.ok'),
+    noLabel: t('general.cancel'),
+    variant: 'primary',
+    hideNoButton: false,
+    size: 'lg',
+  })
+
+  if (!confirmed) return
+
+  try {
+    const res = await deliveryNoteStore.convertToInvoice(row.id)
+    if (res?.data?.data?.id) {
+      notificationStore.showNotification({
+        type: 'success',
+        message: 'Factura creada a partir del albarán',
+      })
+      router.push(`/admin/invoices/${res.data.data.id}/edit`)
+    }
+  } catch (err) {
+    notificationStore.showNotification({
+      type: 'error',
+      message: err?.response?.data?.message || t('general.action_failed'),
+    })
+  }
 }
 
 function copyPdfUrl() {

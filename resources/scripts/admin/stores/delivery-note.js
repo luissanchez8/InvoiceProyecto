@@ -340,6 +340,16 @@ export const useDeliveryNoteStore = (useWindow = false) => {
         })
       },
 
+      // Onfactu — convertir albarán a factura (factura nace sin número)
+      convertToInvoice(id) {
+        return new Promise((resolve, reject) => {
+          axios
+            .post(`/api/v1/delivery-notes/${id}/convert-to-invoice`)
+            .then((response) => { resolve(response) })
+            .catch((err) => { reject(err) })
+        })
+      },
+
       markAsSent(data) {
         return new Promise((resolve, reject) => {
           axios.post(`/api/v1/delivery-notes/${data.id}/status`, { status: 'SENT' })

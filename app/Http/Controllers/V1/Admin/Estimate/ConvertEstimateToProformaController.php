@@ -21,19 +21,15 @@ class ConvertEstimateToProformaController extends Controller
 
         $exchange_rate = $estimate->exchange_rate;
 
-        $serial = (new SerialNumberFormatter)
-            ->setModel(new ProformaInvoice)
-            ->setCompany($estimate->company_id)
-            ->setCustomer($estimate->customer_id)
-            ->setNextNumbers();
-
+        // Onfactu — numeración diferida: la proforma nace SIN número.
+        // Se asignará al marcar como enviada (DRAFT → SENT).
         $proforma = ProformaInvoice::create([
             'creator_id' => Auth::id(),
             'proforma_invoice_date' => Carbon::now()->format('Y-m-d'),
             'expiry_date' => $estimate->expiry_date,
-            'proforma_invoice_number' => $serial->getNextNumber(),
-            'sequence_number' => $serial->nextSequenceNumber,
-            'customer_sequence_number' => $serial->nextCustomerSequenceNumber,
+            'proforma_invoice_number' => null,
+            'sequence_number' => null,
+            'customer_sequence_number' => null,
             'reference_number' => $estimate->reference_number,
             'customer_id' => $estimate->customer_id,
             'company_id' => $request->header('company'),

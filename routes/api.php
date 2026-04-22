@@ -307,6 +307,9 @@ Route::prefix('/v1')->group(function () {
 
             Route::post('/delivery-notes/{delivery_note}/clone', [\App\Http\Controllers\V1\Admin\DeliveryNote\CloneDeliveryNoteController::class, '__invoke']);
 
+            // Onfactu — Convertir albarán a factura (numeración diferida)
+            Route::post('/delivery-notes/{delivery_note}/convert-to-invoice', \App\Http\Controllers\V1\Admin\DeliveryNote\ConvertDeliveryNoteToInvoiceController::class);
+
             Route::post('/delivery-notes/{delivery_note}/send', [\App\Http\Controllers\V1\Admin\DeliveryNote\SendDeliveryNoteController::class, '__invoke']);
 
             Route::post('/delivery-notes/delete', [\App\Http\Controllers\V1\Admin\DeliveryNote\DeliveryNotesController::class, 'delete']);

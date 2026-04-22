@@ -21,19 +21,15 @@ class ConvertEstimateToDeliveryNoteController extends Controller
 
         $exchange_rate = $estimate->exchange_rate;
 
-        $serial = (new SerialNumberFormatter)
-            ->setModel(new DeliveryNote)
-            ->setCompany($estimate->company_id)
-            ->setCustomer($estimate->customer_id)
-            ->setNextNumbers();
-
+        // Onfactu — numeración diferida: el albarán nace SIN número.
+        // Se asignará al marcar como enviado (DRAFT → SENT).
         $deliveryNote = DeliveryNote::create([
             'creator_id' => Auth::id(),
             'delivery_note_date' => Carbon::now()->format('Y-m-d'),
             'delivery_date' => null,
-            'delivery_note_number' => $serial->getNextNumber(),
-            'sequence_number' => $serial->nextSequenceNumber,
-            'customer_sequence_number' => $serial->nextCustomerSequenceNumber,
+            'delivery_note_number' => null,
+            'sequence_number' => null,
+            'customer_sequence_number' => null,
             'reference_number' => $estimate->reference_number,
             'customer_id' => $estimate->customer_id,
             'company_id' => $request->header('company'),
