@@ -522,7 +522,8 @@ class ProformaInvoice extends Model implements HasMedia
             $autoCandidate = $this->formatSerialForSequence($nextSeq);
 
             if (! empty($this->proforma_invoice_number)) {
-                $isAutoCandidate = ($this->proforma_invoice_number === $autoCandidate);
+                $autoSeq = $this->detectAutoSequenceNumber($this->proforma_invoice_number, $nextSeq);
+                $isAutoCandidate = ($autoSeq !== null);
 
                 $conflict = ProformaInvoice::where('company_id', $this->company_id)
                     ->where('proforma_invoice_number', $this->proforma_invoice_number)
@@ -642,7 +643,8 @@ class ProformaInvoice extends Model implements HasMedia
         $companyId = (int) $this->company_id;
 
         if ($driver === 'pgsql') {
-            $tableKey = crc32('proforma_invoices');
+            // Onfactu — int32 signed safety (ver Invoice::acquireNumberLock).
+            $tableKey = crc32('proforma_invoices') & 0x7FFFFFFF;
             DB::statement('SELECT pg_advisory_xact_lock(?, ?)', [$tableKey, $companyId]);
         } elseif ($driver === 'mysql') {
             $lockName = "proforma_invoices_numbering_{$companyId}";

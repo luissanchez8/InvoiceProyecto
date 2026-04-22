@@ -331,7 +331,8 @@ class Estimate extends Model implements HasMedia
             $autoCandidate = $this->formatSerialForSequence($nextSeq);
 
             if (! empty($this->estimate_number)) {
-                $isAutoCandidate = ($this->estimate_number === $autoCandidate);
+                $autoSeq = $this->detectAutoSequenceNumber($this->estimate_number, $nextSeq);
+                $isAutoCandidate = ($autoSeq !== null);
 
                 $conflict = Estimate::where('company_id', $this->company_id)
                     ->where('estimate_number', $this->estimate_number)
@@ -354,9 +355,9 @@ class Estimate extends Model implements HasMedia
 
                     if ($isAutoCandidate) {
                         // Conflicto con emitido + era auto rellenado → saltar
-                        [$nextSeq, $newCandidate] = $this->findNextFreeSequence($nextSeq);
+                        [$newSeq, $newCandidate] = $this->findNextFreeSequence($nextSeq);
                         $this->estimate_number = $newCandidate;
-                        $this->sequence_number = $nextSeq;
+                        $this->sequence_number = $newSeq;
                     } else {
                         throw new \App\Exceptions\NumberCollisionException(
                             "El número '{$this->estimate_number}' ya está asignado a un presupuesto {$conflict->status} y no puede reutilizarse.",
@@ -370,7 +371,7 @@ class Estimate extends Model implements HasMedia
                     }
                 } else {
                     if ($isAutoCandidate) {
-                        $this->sequence_number = $nextSeq;
+                        $this->sequence_number = $autoSeq;
                     }
                 }
             } else {
@@ -447,6 +448,48 @@ class Estimate extends Model implements HasMedia
     }
 
     /**
+     * Detecta si el número rellenado por el frontend corresponde a la
+     * sugerencia automática (clean o skipped sobre huecos ocupados).
+     * Ver Invoice::detectAutoSequenceNumber para detalles.
+     *
+     * @return int|null  sequence_number a asignar, o null si es manual.
+     */
+    protected function detectAutoSequenceNumber(string $candidateNumber, int $startSeq): ?int
+    {
+        $maxAttempts = 1000;
+        $seq = $startSeq;
+
+        for ($i = 0; $i < $maxAttempts; $i++) {
+            $formatted = $this->formatSerialForSequence($seq);
+
+            if ($formatted === $candidateNumber) {
+                if ($seq === $startSeq) {
+                    return $seq;
+                }
+                for ($mid = $startSeq; $mid < $seq; $mid++) {
+                    $midFormatted = $this->formatSerialForSequence($mid);
+                    $occupied = Estimate::where('company_id', $this->company_id)
+                        ->where('estimate_number', $midFormatted)
+                        ->where('id', '<>', $this->id)
+                        ->exists();
+                    if (! $occupied) {
+                        return null;
+                    }
+                }
+                return $seq;
+            }
+
+            if (strcmp($formatted, $candidateNumber) > 0) {
+                return null;
+            }
+
+            $seq++;
+        }
+
+        return null;
+    }
+
+    /**
      * Lock serializado por empresa. Ver Invoice::acquireNumberLock() para
      * explicación completa.
      */
@@ -456,7 +499,13 @@ class Estimate extends Model implements HasMedia
         $companyId = (int) $this->company_id;
 
         if ($driver === 'pgsql') {
-            $tableKey = crc32('estimates');
+            // Onfactu — int32 signed safety:
+            // PostgreSQL pg_advisory_xact_lock(int, int) requiere int32
+            // con signo (max 2147483647). crc32() en PHP devuelve unsigned
+            // int32 y puede superar ese límite (ej. 'estimates' = 2243473646).
+            // Aplicamos AND con 0x7FFFFFFF para descartar el bit más alto
+            // y garantizar un valor positivo dentro del rango int32.
+            $tableKey = crc32('estimates') & 0x7FFFFFFF;
             DB::statement('SELECT pg_advisory_xact_lock(?, ?)', [$tableKey, $companyId]);
         } elseif ($driver === 'mysql') {
             $lockName = "estimates_numbering_{$companyId}";

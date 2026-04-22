@@ -448,7 +448,8 @@ class DeliveryNote extends Model implements HasMedia
         $companyId = (int) $this->company_id;
 
         if ($driver === 'pgsql') {
-            $tableKey = crc32('delivery_notes');
+            // Onfactu — int32 signed safety (ver Invoice::acquireNumberLock).
+            $tableKey = crc32('delivery_notes') & 0x7FFFFFFF;
             DB::statement('SELECT pg_advisory_xact_lock(?, ?)', [$tableKey, $companyId]);
         } elseif ($driver === 'mysql') {
             $lockName = "delivery_notes_numbering_{$companyId}";

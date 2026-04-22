@@ -493,11 +493,14 @@ class Invoice extends Model implements HasMedia
             // 0A000 "Feature not supported"). En MySQL usamos GET_LOCK.
             $this->acquireNumberLock();
 
-            // Calculamos el siguiente sequence_number automático disponible.
-            // Esto lo necesitamos en ambas ramas (manual y auto) para poder
-            // distinguir el caso "auto rellenado" (el input tenía la sugerencia
-            // porque el frontend la pre-rellenó) del caso "manual puro"
-            // (el usuario escribió un número distinto).
+            // Calculamos el siguiente sequence_number automático puro.
+            // Esto lo necesitamos para distinguir tres casos cuando el
+            // invoice_number viene rellenado:
+            //  1. Coincide con el candidato puro (MAX+1) → auto rellenado clean.
+            //  2. Coincide con el siguiente libre saltando ocupados → auto
+            //     rellenado skipped (el frontend pre-rellenó con un número
+            //     más alto porque el MAX+1 ya estaba ocupado por otro DRAFT).
+            //  3. No coincide con ninguno → manual puro.
             $lastAuto = Invoice::where('company_id', $this->company_id)
                 ->whereNotNull('sequence_number')
                 ->max('sequence_number');
@@ -505,14 +508,16 @@ class Invoice extends Model implements HasMedia
             $nextSeq = ($lastAuto ? (int) $lastAuto : 0) + 1;
             $autoCandidate = $this->formatSerialForSequence($nextSeq);
 
-            // ── Rama 1: invoice_number NO vacío (puede ser manual puro o
-            //    auto rellenado por el frontend). ────────────────────────────
+            // ── Rama 1: invoice_number NO vacío. ─────────────────────────────
             if (! empty($this->invoice_number)) {
-                // ¿Coincide con el candidato automático actual?
-                // Si sí → es "auto rellenado" → le asignamos sequence_number
-                // (es un registro automático normal).
-                // Si no → es manual puro → sequence_number queda null.
-                $isAutoCandidate = ($this->invoice_number === $autoCandidate);
+                // Determinamos si lo que trae el usuario es "auto" o "manual".
+                // Auto significa: coincide con MAX+1 puro O con el siguiente
+                // libre tras MAX+1 saltando ocupados (caso skipped).
+                // Esto cubre el caso del frontend que envía la sugerencia
+                // "libre" devuelta por NextNumberController, que puede ser
+                // > naturalNext si hay borradores ocupando huecos.
+                $autoSeq = $this->detectAutoSequenceNumber($this->invoice_number, $nextSeq);
+                $isAutoCandidate = ($autoSeq !== null);
 
                 // Validar unicidad dentro de la misma empresa
                 $conflict = Invoice::where('company_id', $this->company_id)
@@ -546,9 +551,9 @@ class Invoice extends Model implements HasMedia
                     if ($isAutoCandidate) {
                         // Salto automático: el número que tocaba ya está
                         // aprobado (consumido). Avanzamos hasta el siguiente libre.
-                        [$nextSeq, $newCandidate] = $this->findNextFreeSequence($nextSeq);
+                        [$newSeq, $newCandidate] = $this->findNextFreeSequence($nextSeq);
                         $this->invoice_number = $newCandidate;
-                        $this->sequence_number = $nextSeq;
+                        $this->sequence_number = $newSeq;
                     } else {
                         // Manual puro que colisiona con APPROVED: no permitido.
                         throw new \App\Exceptions\NumberCollisionException(
@@ -564,11 +569,14 @@ class Invoice extends Model implements HasMedia
                 } else {
                     // Sin colisión.
                     if ($isAutoCandidate) {
-                        // Es auto rellenado → asignamos sequence_number.
-                        $this->sequence_number = $nextSeq;
+                        // Es auto rellenado (clean o skipped) → asignamos
+                        // sequence_number con el valor calculado por el
+                        // detector. Si era clean: autoSeq == nextSeq. Si era
+                        // skipped: autoSeq > nextSeq (el frontend sugirió un
+                        // hueco más alto que MAX+1).
+                        $this->sequence_number = $autoSeq;
                     }
                     // Si es manual puro, sequence_number queda null.
-                    // (el invoice_number ya está fijado en this->invoice_number)
                 }
             }
             // ── Rama 2: invoice_number vacío → generación automática pura. ──
@@ -657,6 +665,68 @@ class Invoice extends Model implements HasMedia
     }
 
     /**
+     * Detecta si el número rellenado por el frontend corresponde a la
+     * "sugerencia automática" del sistema (sea clean o skipped).
+     *
+     * Caso clean: el número coincide con MAX(sequence_number)+1 formateado.
+     * Caso skipped: el número coincide con el siguiente libre tras MAX+1
+     * saltando registros existentes (típicamente borradores que ocupan
+     * huecos consecutivos).
+     *
+     * Esto reproduce la misma lógica que NextNumberController.nextFreeNumberFor
+     * pero del lado del modelo, para validar que el invoice_number recibido
+     * es realmente la sugerencia que daría el sistema en este momento.
+     *
+     * @return int|null  El sequence_number a asignar, o null si el número
+     *                   no corresponde a la sugerencia (es manual puro).
+     */
+    protected function detectAutoSequenceNumber(string $candidateNumber, int $startSeq): ?int
+    {
+        $maxAttempts = 1000;
+        $seq = $startSeq;
+
+        for ($i = 0; $i < $maxAttempts; $i++) {
+            $formatted = $this->formatSerialForSequence($seq);
+
+            if ($formatted === $candidateNumber) {
+                // El número coincide con esta posición de la secuencia.
+                // Verificamos que las posiciones intermedias (entre startSeq y
+                // este seq) están realmente todas ocupadas — si no, es un salto
+                // injustificado y debe tratarse como manual puro.
+                if ($seq === $startSeq) {
+                    return $seq; // clean
+                }
+
+                // Desde startSeq hasta seq-1, todas tienen que existir
+                for ($mid = $startSeq; $mid < $seq; $mid++) {
+                    $midFormatted = $this->formatSerialForSequence($mid);
+                    $occupied = Invoice::where('company_id', $this->company_id)
+                        ->where('invoice_number', $midFormatted)
+                        ->where('id', '<>', $this->id)
+                        ->exists();
+                    if (! $occupied) {
+                        // Hay un hueco intermedio libre. El usuario pretendió
+                        // saltarlo → tratamos como manual.
+                        return null;
+                    }
+                }
+
+                return $seq; // skipped legítimo
+            }
+
+            // Si el número del usuario es "menor" que el formato actual, no
+            // tiene sentido seguir buscando hacia arriba.
+            if (strcmp($formatted, $candidateNumber) > 0) {
+                return null;
+            }
+
+            $seq++;
+        }
+
+        return null;
+    }
+
+    /**
      * Adquiere un lock serializado por empresa durante la transacción actual.
      * Evita que dos llamadas a assignNumber() simultáneas calculen el mismo
      * siguiente número.
@@ -675,7 +745,13 @@ class Invoice extends Model implements HasMedia
 
         if ($driver === 'pgsql') {
             // Hash estable de 'invoices' → clave32-bit constante
-            $tableKey = crc32('invoices');
+            // Onfactu — int32 signed safety:
+            // PostgreSQL pg_advisory_xact_lock(int, int) requiere int32
+            // con signo (max 2147483647). crc32() en PHP devuelve unsigned
+            // int32 y puede superar ese límite. AND con 0x7FFFFFFF descarta
+            // el bit más alto para garantizar un valor positivo dentro del
+            // rango int32.
+            $tableKey = crc32('invoices') & 0x7FFFFFFF;
             DB::statement('SELECT pg_advisory_xact_lock(?, ?)', [$tableKey, $companyId]);
         } elseif ($driver === 'mysql') {
             $lockName = "invoices_numbering_{$companyId}";
