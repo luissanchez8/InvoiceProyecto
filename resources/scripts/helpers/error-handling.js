@@ -5,38 +5,84 @@ export const handleError = (err) => {
   const authStore = useAuthStore()
   const notificationStore = useNotificationStore()
 
+  // Onfactu — ignorar peticiones canceladas/abortadas:
+  // Cuando el usuario navega entre páginas (p.ej. tras aprobar una factura
+  // que hace router.push a la vista detalle), axios aborta las peticiones
+  // pendientes. Esos errores llegan aquí sin err.response y antes se
+  // mostraban como "Please check your internet connection", confundiendo
+  // al usuario aunque la operación haya ido bien.
+  if (
+    err?.code === 'ERR_CANCELED' ||
+    err?.name === 'CanceledError' ||
+    err?.message === 'canceled' ||
+    (typeof err?.__CANCEL__ !== 'undefined' && err.__CANCEL__)
+  ) {
+    return // ignorar silenciosamente
+  }
+
+  // Onfactu — distinguir errores de red reales de errores de JavaScript
+  // (TypeError, ReferenceError, etc.) que pueden ocurrir DENTRO de un
+  // .then() o .catch() y llegan aquí sin err.response. Antes se mostraba
+  // "Please check your internet connection" para CUALQUIER error sin
+  // response, pero un TypeError no tiene nada que ver con conexión.
+  //
+  // Errores de red reales típicamente tienen:
+  //  - err.code = 'ERR_NETWORK' o 'ECONNREFUSED' o 'ETIMEDOUT'
+  //  - err.message que empieza por "Network Error" o "timeout"
+  //  - err.isAxiosError = true
+  //
+  // Si llega aquí algo que NO es un error de axios y NO tiene response,
+  // es muy probable un error de JavaScript dentro del flujo. En ese caso
+  // logueamos en consola y NO molestamos al usuario con un toast falso.
   if (!err.response) {
-    notificationStore.showNotification({
-      type: 'error',
-      message:
-        'Please check your internet connection or wait until servers are back online.',
-    })
-  } else {
-    if (
-      err.response.data &&
-      (err.response.statusText === 'Unauthorized' ||
-        err.response.data === ' Unauthorized.')
-    ) {
-      // Unauthorized and log out
-      const msg = err.response.data.message
-        ? err.response.data.message
-        : 'Unauthorized'
+    const isAxiosError = err?.isAxiosError === true || err?.name === 'AxiosError'
+    const isNetworkLike =
+      err?.code === 'ERR_NETWORK' ||
+      err?.code === 'ECONNREFUSED' ||
+      err?.code === 'ETIMEDOUT' ||
+      (typeof err?.message === 'string' && (
+        err.message.startsWith('Network Error') ||
+        err.message.startsWith('timeout')
+      ))
 
-      showToaster(msg)
-
-      authStore.logout()
-    } else if (err.response.data.errors) {
-      // Show a notification per error
-      const errors = JSON.parse(JSON.stringify(err.response.data.errors))
-      for (const i in errors) {
-        showError(errors[i][0])
-      }
-    } else if (err.response.data.error) {
-      if (typeof err.response.data.error == 'boolean') showError(err.response.data?.message)
-      else showError(err.response.data.error)
+    if (isAxiosError && isNetworkLike) {
+      notificationStore.showNotification({
+        type: 'error',
+        message:
+          'Please check your internet connection or wait until servers are back online.',
+      })
     } else {
-      showError(err.response.data.message)
+      // Error inesperado de JavaScript (TypeError, etc.). No es de red.
+      console.error('handleError: error no-HTTP no-cancelación:', err)
     }
+    return
+  }
+
+  // Tiene response: es un error HTTP normal
+  if (
+    err.response.data &&
+    (err.response.statusText === 'Unauthorized' ||
+      err.response.data === ' Unauthorized.')
+  ) {
+    // Unauthorized and log out
+    const msg = err.response.data.message
+      ? err.response.data.message
+      : 'Unauthorized'
+
+    showToaster(msg)
+
+    authStore.logout()
+  } else if (err.response.data.errors) {
+    // Show a notification per error
+    const errors = JSON.parse(JSON.stringify(err.response.data.errors))
+    for (const i in errors) {
+      showError(errors[i][0])
+    }
+  } else if (err.response.data.error) {
+    if (typeof err.response.data.error == 'boolean') showError(err.response.data?.message)
+    else showError(err.response.data.error)
+  } else {
+    showError(err.response.data.message)
   }
 }
 

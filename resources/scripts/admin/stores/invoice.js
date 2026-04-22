@@ -372,12 +372,25 @@ export const useInvoiceStore = (useWindow = false) => {
           axios
             .post(`/api/v1/invoices/${id}/approve`)
             .then((response) => {
-              let pos = this.invoices.findIndex(
-                (invoice) => invoice.id === id
-              )
-
-              if (this.invoices[pos]) {
-                this.invoices[pos].status = 'SENT'
+              // Onfactu — proteger findIndex de elementos undefined.
+              // En algunos momentos this.invoices puede contener huecos o
+              // estar siendo reactivamente actualizado por otra parte de la
+              // UI; sin esta protección, invoice.id revienta con
+              // "Cannot read properties of undefined" y handleError lo
+              // interpreta erróneamente como error de red.
+              try {
+                if (Array.isArray(this.invoices)) {
+                  let pos = this.invoices.findIndex(
+                    (invoice) => invoice && invoice.id === id
+                  )
+                  if (pos >= 0 && this.invoices[pos]) {
+                    this.invoices[pos].status = 'SENT'
+                  }
+                }
+              } catch (e) {
+                // Silencioso: no es crítico actualizar el listado en memoria,
+                // se refrescará la próxima vez que se navegue al listado.
+                console.warn('approveInvoice: no se pudo actualizar listado en memoria', e)
               }
 
               resolve(response)
