@@ -6,7 +6,7 @@
     :visible="showApproveDialog"
     :loading="isApproving"
     :manual-number="numberIsManual ? invoiceStore.newInvoice.invoice_number : ''"
-    :suggested-number="invoiceStore.suggestedInvoiceNumber"
+    :suggested-number="invoiceStore.naturalNextInvoiceNumber"
     @approve="confirmApprove"
     @save-draft="onApproveSaveDraft"
     @cancel="onApproveCancelled"
@@ -235,16 +235,31 @@ const verifactuEnabled = computed(() =>
 )
 
 // Onfactu — numeración diferida:
-// numberIsManual es true cuando el input tiene un valor distinto de la sugerencia
-// secuencial actual (el usuario ha escrito un número a mano). Se usa para
-// mostrar el aviso "Estás saltando la numeración secuencial" en el diálogo
-// de aprobación.
+// numberIsManual es true cuando el input tiene un valor distinto del
+// secuencial natural puro (MAX(sequence_number)+1). Se usa para mostrar
+// el aviso "Estás saltando la numeración secuencial" en el diálogo de
+// aprobación.
+//
+// IMPORTANTE: comparamos contra naturalNextInvoiceNumber, NO contra
+// suggestedInvoiceNumber. La diferencia es:
+//  - suggested (lo que va en el input): siguiente libre saltando huecos
+//    ocupados por borradores. Es lo que el sistema asignará si dejamos
+//    el input vacío.
+//  - naturalNext: MAX(sequence_number)+1 puro. Es lo que el sistema
+//    "querría" asignar si nadie hubiera tocado nada.
+//
+// Si comparamos contra suggested, no detectaríamos como "manual" un caso
+// como: borradores con 45 y 46, MAX=44, sugerencia (libre) = 47,
+// usuario aprueba con 46. 46==46 (su propia sugerencia ajustada) → no
+// avisaría aunque realmente está saltando el 45.
+//
+// Comparando contra naturalNext (45) → 46!=45 → avisa correctamente.
 const numberIsManual = computed(() => {
   const val = String(invoiceStore.newInvoice.invoice_number || '').trim()
-  const sug = String(invoiceStore.suggestedInvoiceNumber || '').trim()
+  const nat = String(invoiceStore.naturalNextInvoiceNumber || '').trim()
   if (!val) return false // input vacío: se asignará automático, no es manual
-  if (!sug) return false // sin sugerencia cargada aún
-  return val !== sug
+  if (!nat) return false // sin naturalNext cargado aún
+  return val !== nat
 })
 
 const invoiceNoteFieldList = ref([

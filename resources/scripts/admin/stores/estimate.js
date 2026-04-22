@@ -41,6 +41,10 @@ export const useEstimateStore = (useWindow = false) => {
       // isSkipped: si true, la sugerencia es un "hueco" por encima de MAX+1;
       // al guardar borrador con la sugerencia intacta NO se descarta.
       suggestedEstimateNumberIsSkipped: false,
+      // naturalNextEstimateNumber: MAX(sequence_number)+1 puro, sin saltos.
+      // Sirve para detectar si el documento "salta" la numeración real
+      // (uso futuro en aviso amber al marcar como enviado).
+      naturalNextEstimateNumber: null,
 
       newEstimate: {
         ...estimateStub(),
@@ -676,6 +680,7 @@ export const useEstimateStore = (useWindow = false) => {
                 this.newEstimate.estimate_number = res4.data.nextNumber
                 this.suggestedEstimateNumber = res4.data.nextNumber
                 this.suggestedEstimateNumberIsSkipped = !!res4.data.isSkipped
+                this.naturalNextEstimateNumber = res4.data.naturalNext || res4.data.nextNumber
               }
 
               // Forzar invoice4 como plantilla universal
@@ -689,6 +694,7 @@ export const useEstimateStore = (useWindow = false) => {
               if (res4.data) {
                 this.suggestedEstimateNumber = res4.data.nextNumber
                 this.suggestedEstimateNumberIsSkipped = !!res4.data.isSkipped
+                this.naturalNextEstimateNumber = res4.data.naturalNext || res4.data.nextNumber
               }
               this.addSalesTaxUs()
             }

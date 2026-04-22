@@ -46,6 +46,12 @@ export const useInvoiceStore = (useWindow = false) => {
       // puro. Si true, al guardar como borrador con la sugerencia intacta
       // NO se descarta (se persiste el número concreto).
       suggestedInvoiceNumberIsSkipped: false,
+      // naturalNextInvoiceNumber es el siguiente secuencial puro (MAX+1
+      // formateado) sin tener en cuenta colisiones. Sirve para el aviso
+      // amber: si el numero del documento difiere de naturalNext, el
+      // usuario está saltando la numeración real (independiente de los
+      // huecos que haya por borradores existentes).
+      naturalNextInvoiceNumber: null,
 
       newInvoice: {
         ...invoiceStub(),
@@ -588,8 +594,8 @@ export const useInvoiceStore = (useWindow = false) => {
             if (!isEdit) {
               // Onfactu — numeración diferida (opción C):
               // Pre-rellenamos el input con el siguiente número sugerido y
-              // guardamos aparte la sugerencia + flag isSkipped. Al guardar
-              // como borrador:
+              // guardamos aparte la sugerencia + flag isSkipped + naturalNext.
+              // Al guardar como borrador:
               //  - Si es "clean" y no la tocó → null (libera el número).
               //  - Si es "skipped" y no la tocó → se persiste literal (reserva
               //    ese hueco concreto en la secuencia).
@@ -597,6 +603,7 @@ export const useInvoiceStore = (useWindow = false) => {
                 this.newInvoice.invoice_number = res4.data.nextNumber
                 this.suggestedInvoiceNumber = res4.data.nextNumber
                 this.suggestedInvoiceNumberIsSkipped = !!res4.data.isSkipped
+                this.naturalNextInvoiceNumber = res4.data.naturalNext || res4.data.nextNumber
               }
 
               if (res3.data) {
@@ -610,6 +617,7 @@ export const useInvoiceStore = (useWindow = false) => {
               if (res4.data) {
                 this.suggestedInvoiceNumber = res4.data.nextNumber
                 this.suggestedInvoiceNumberIsSkipped = !!res4.data.isSkipped
+                this.naturalNextInvoiceNumber = res4.data.naturalNext || res4.data.nextNumber
               }
               this.addSalesTaxUs()
             }

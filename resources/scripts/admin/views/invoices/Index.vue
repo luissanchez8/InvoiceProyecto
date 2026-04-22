@@ -4,7 +4,7 @@
     :visible="showApproveDialog"
     :loading="isApproving"
     :manual-number="numberIsManual ? (approvingInvoice?.invoice_number || '') : ''"
-    :suggested-number="invoiceStore.suggestedInvoiceNumber"
+    :suggested-number="invoiceStore.naturalNextInvoiceNumber"
     @approve="confirmApproveFromIndex"
     @save-draft="onApproveSaveDraftFromIndex"
     @cancel="onApproveCancelFromIndex"
@@ -350,15 +350,17 @@ const showCollisionDialog = computed({
   },
 })
 
-// Comparamos el invoice_number de la factura a aprobar con la sugerencia
-// actual del store para decidir si mostrar el aviso amber "estás saltando
-// la numeración secuencial".
+// Comparamos el invoice_number de la factura a aprobar con el secuencial
+// natural puro (MAX+1) para decidir si mostrar el aviso amber "estás
+// saltando la numeración". Comparar contra naturalNext (no contra
+// suggested) garantiza que detectamos también el caso "ocupé un hueco
+// entre borradores existentes".
 const numberIsManual = computed(() => {
   const val = String(approvingInvoice.value?.invoice_number || '').trim()
-  const sug = String(invoiceStore.suggestedInvoiceNumber || '').trim()
+  const nat = String(invoiceStore.naturalNextInvoiceNumber || '').trim()
   if (!val) return false
-  if (!sug) return false
-  return val !== sug
+  if (!nat) return false
+  return val !== nat
 })
 
 function startVerifactuPolling() {
@@ -667,6 +669,7 @@ async function openApproveDialog(invoice) {
     if (nextRes?.data?.nextNumber) {
       invoiceStore.suggestedInvoiceNumber = nextRes.data.nextNumber
       invoiceStore.suggestedInvoiceNumberIsSkipped = !!nextRes.data.isSkipped
+      invoiceStore.naturalNextInvoiceNumber = nextRes.data.naturalNext || nextRes.data.nextNumber
     }
   } catch (e) {
     // Silencioso: si falla, no sale el aviso (asumimos no manual).

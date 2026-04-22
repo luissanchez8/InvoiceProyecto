@@ -48,15 +48,18 @@ const showCollisionDialog = computed({
   },
 })
 
-// Comparamos el invoice_number de la factura actual con la sugerencia
-// secuencial del store. Si son distintos, el usuario tiene un número manual
-// y se le muestra el aviso amber antes de aprobar.
+// Comparamos el invoice_number de la factura actual con el secuencial
+// natural puro (MAX+1). Si son distintos, el usuario está saltando la
+// numeración (manual o salto sobre borradores) y se muestra el aviso
+// amber antes de aprobar. Comparar contra naturalNext (no contra
+// suggested) garantiza que detectamos también el caso "ocupé un hueco
+// entre borradores existentes".
 const numberIsManual = computed(() => {
   const val = String(invoiceData.value?.invoice_number || '').trim()
-  const sug = String(invoiceStore.suggestedInvoiceNumber || '').trim()
+  const nat = String(invoiceStore.naturalNextInvoiceNumber || '').trim()
   if (!val) return false
-  if (!sug) return false
-  return val !== sug
+  if (!nat) return false
+  return val !== nat
 })
 
 // Polling VeriFactu: consulta el estado cada 3s hasta que cambie
@@ -332,6 +335,7 @@ async function loadInvoice() {
     if (nextRes?.data?.nextNumber) {
       invoiceStore.suggestedInvoiceNumber = nextRes.data.nextNumber
       invoiceStore.suggestedInvoiceNumberIsSkipped = !!nextRes.data.isSkipped
+      invoiceStore.naturalNextInvoiceNumber = nextRes.data.naturalNext || nextRes.data.nextNumber
     }
   } catch (e) {
     // Silencioso: si no se puede cargar la sugerencia, simplemente no
@@ -377,7 +381,7 @@ onSearched = debounce(onSearched, 500)
     :visible="showApproveDialog"
     :loading="isApproving"
     :manual-number="numberIsManual ? (invoiceData?.invoice_number || '') : ''"
-    :suggested-number="invoiceStore.suggestedInvoiceNumber"
+    :suggested-number="invoiceStore.naturalNextInvoiceNumber"
     @approve="confirmApprove"
     @save-draft="onApproveSaveDraft"
     @cancel="onApproveCancelled"

@@ -32,7 +32,7 @@ class NextNumberController extends Controller
     public function __invoke(Request $request, Invoice $invoice, Estimate $estimate, Payment $payment, ProformaInvoice $proformaInvoice, DeliveryNote $deliveryNote)
     {
         $key = $request->key;
-        $result = ['nextNumber' => null, 'isSkipped' => false];
+        $result = ['nextNumber' => null, 'isSkipped' => false, 'naturalNext' => null];
         $companyId = $request->header('company');
 
         $serial = (new SerialNumberFormatter)
@@ -57,11 +57,13 @@ class NextNumberController extends Controller
 
                 case 'payment':
                     // Payment no tiene numeración diferida
+                    $paymentNumber = $serial->setModel($payment)
+                        ->setModelObject($request->model_id)
+                        ->getNextNumber();
                     $result = [
-                        'nextNumber' => $serial->setModel($payment)
-                            ->setModelObject($request->model_id)
-                            ->getNextNumber(),
+                        'nextNumber' => $paymentNumber,
                         'isSkipped' => false,
+                        'naturalNext' => $paymentNumber,
                     ];
                     break;
 
@@ -95,13 +97,24 @@ class NextNumberController extends Controller
             'success' => true,
             'nextNumber' => $result['nextNumber'],
             'isSkipped' => $result['isSkipped'],
+            'naturalNext' => $result['naturalNext'],
         ]);
     }
 
     /**
      * Busca el siguiente número libre para un tipo de documento.
      *
-     * @return array{nextNumber: string, isSkipped: bool}
+     * @return array{nextNumber: string, isSkipped: bool, naturalNext: string}
+     *   - nextNumber: sugerencia "libre" (avanza si el candidato natural
+     *     está ocupado). Es lo que va al input del formulario.
+     *   - isSkipped: true si nextNumber > naturalNext (hubo que avanzar).
+     *     Sirve para la opción C: borradores con sugerencia skipped reservan
+     *     el hueco al guardar; con sugerencia clean liberan el número.
+     *   - naturalNext: el siguiente secuencial puro (MAX(sequence_number)+1
+     *     formateado), sin tener en cuenta colisiones. Es lo que el sistema
+     *     "querría" asignar siguiendo la secuencia natural. Se usa en el
+     *     frontend para el aviso amber: si el número del documento difiere
+     *     de naturalNext, el usuario está saltando la numeración.
      */
     protected function nextFreeNumberFor(
         SerialNumberFormatter $serial,
@@ -117,16 +130,17 @@ class NextNumberController extends Controller
 
         $seq = $serial->nextSequenceNumber ?: 1;
         $candidate = $serial->getNextNumber();
+        // Capturamos el "natural next" antes de cualquier salto.
+        $naturalNext = $candidate;
         $isSkipped = false;
 
         $maxAttempts = 1000;
         for ($i = 0; $i < $maxAttempts; $i++) {
             // Excluimos el propio documento si hay model_id (cuando el frontend
             // pide sugerencia desde una pantalla de edit/view para una factura
-            // existente). Si no excluyéramos, una factura borrador con número
-            // "INV-000040" se contaría como "ocupada" y la sugerencia saltaría
-            // a 41 o más, provocando falsos positivos en el aviso amber
-            // "estás saltando la numeración".
+            // existente). Sin excluir, una factura borrador con su propio
+            // número se contaría como ocupada y la sugerencia saltaría al
+            // siguiente, provocando falso positivo en el aviso amber.
             $query = $modelClass::where('company_id', $companyId)
                 ->where($numberField, $candidate);
 
@@ -137,7 +151,11 @@ class NextNumberController extends Controller
             $exists = $query->exists();
 
             if (! $exists) {
-                return ['nextNumber' => $candidate, 'isSkipped' => $isSkipped];
+                return [
+                    'nextNumber' => $candidate,
+                    'isSkipped' => $isSkipped,
+                    'naturalNext' => $naturalNext,
+                ];
             }
 
             // Ocupado: marcamos como skipped y avanzamos
@@ -148,7 +166,11 @@ class NextNumberController extends Controller
         }
 
         // Fallback
-        return ['nextNumber' => $candidate, 'isSkipped' => $isSkipped];
+        return [
+            'nextNumber' => $candidate,
+            'isSkipped' => $isSkipped,
+            'naturalNext' => $naturalNext,
+        ];
     }
 }
 
