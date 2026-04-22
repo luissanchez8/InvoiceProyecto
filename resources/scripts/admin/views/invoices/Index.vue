@@ -661,7 +661,9 @@ async function openApproveDialog(invoice) {
   // Onfactu — numeración diferida: cargamos la sugerencia actual para
   // poder comparar con invoice_number y mostrar el aviso si es manual.
   try {
-    const nextRes = await invoiceStore.getNextNumber()
+    const nextRes = await invoiceStore.getNextNumber({
+      model_id: invoice?.id,
+    })
     if (nextRes?.data?.nextNumber) {
       invoiceStore.suggestedInvoiceNumber = nextRes.data.nextNumber
       invoiceStore.suggestedInvoiceNumberIsSkipped = !!nextRes.data.isSkipped

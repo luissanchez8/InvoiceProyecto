@@ -565,6 +565,13 @@ export const useInvoiceStore = (useWindow = false) => {
           editActions = [this.fetchInvoice(route.params.id)]
         }
 
+        // Onfactu — numeración diferida:
+        // En edit, pasamos model_id para que el backend excluya el propio
+        // documento al calcular la sugerencia. Sin esto, una factura borrador
+        // con número "INV-000040" se contaría como ocupada y la sugerencia
+        // saltaría a 41, provocando un falso aviso de "saltando numeración".
+        const nextNumberParams = isEdit ? { model_id: route.params.id } : undefined
+
         Promise.all([
           itemStore.fetchItems({
             filter: {},
@@ -573,7 +580,7 @@ export const useInvoiceStore = (useWindow = false) => {
           }),
           this.resetSelectedNote(),
           this.fetchInvoiceTemplates(),
-          this.getNextNumber(),
+          this.getNextNumber(nextNumberParams),
           taxTypeStore.fetchTaxTypes({ limit: 'all' }),
           ...editActions,
         ])

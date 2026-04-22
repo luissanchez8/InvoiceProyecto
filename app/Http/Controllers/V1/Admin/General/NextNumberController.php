@@ -121,9 +121,20 @@ class NextNumberController extends Controller
 
         $maxAttempts = 1000;
         for ($i = 0; $i < $maxAttempts; $i++) {
-            $exists = $modelClass::where('company_id', $companyId)
-                ->where($numberField, $candidate)
-                ->exists();
+            // Excluimos el propio documento si hay model_id (cuando el frontend
+            // pide sugerencia desde una pantalla de edit/view para una factura
+            // existente). Si no excluyéramos, una factura borrador con número
+            // "INV-000040" se contaría como "ocupada" y la sugerencia saltaría
+            // a 41 o más, provocando falsos positivos en el aviso amber
+            // "estás saltando la numeración".
+            $query = $modelClass::where('company_id', $companyId)
+                ->where($numberField, $candidate);
+
+            if (! empty($modelId)) {
+                $query->where('id', '<>', $modelId);
+            }
+
+            $exists = $query->exists();
 
             if (! $exists) {
                 return ['nextNumber' => $candidate, 'isSkipped' => $isSkipped];

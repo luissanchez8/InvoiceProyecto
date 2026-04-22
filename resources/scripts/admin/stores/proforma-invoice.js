@@ -154,7 +154,9 @@ export const useProformaInvoiceStore = (useWindow = false) => {
           itemStore.fetchItems({ filter: {}, orderByField: '', orderBy: '' }),
           this.resetSelectedNote(),
           this.fetchInvoiceTemplates(),
-          this.getNextNumber(),
+          // Onfactu: en edit pasamos model_id para excluir el propio documento
+          // de la comprobación de "ocupado" en la sugerencia.
+          this.getNextNumber(isEdit ? { model_id: route.params.id } : undefined),
           taxTypeStore.fetchTaxTypes({ limit: 'all' }),
           ...editActions,
         ]).then(async ([res1, res2, res3, res4, res5, res6]) => {

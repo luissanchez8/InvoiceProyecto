@@ -326,7 +326,9 @@ async function loadInvoice() {
   // "sugerencia" para poder comparar con invoice_number y detectar si hay
   // número manual (mostrando el aviso amber al aprobar).
   try {
-    const nextRes = await invoiceStore.getNextNumber()
+    const nextRes = await invoiceStore.getNextNumber({
+      model_id: invoiceData.value?.id,
+    })
     if (nextRes?.data?.nextNumber) {
       invoiceStore.suggestedInvoiceNumber = nextRes.data.nextNumber
       invoiceStore.suggestedInvoiceNumberIsSkipped = !!nextRes.data.isSkipped

@@ -659,7 +659,10 @@ export const useEstimateStore = (useWindow = false) => {
           }),
           this.resetSelectedNote(),
           this.fetchEstimateTemplates(),
-          this.getNextNumber(),
+          // Onfactu: en edit, pasar model_id para que el backend excluya
+          // este propio documento al calcular la sugerencia (evita falso
+          // aviso de "saltando numeración" en borradores existentes).
+          this.getNextNumber(isEdit ? { model_id: route.params.id } : undefined),
           taxTypeStore.fetchTaxTypes({ limit: 'all' }),
           ...editActions,
         ])
