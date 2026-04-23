@@ -7,6 +7,7 @@ import { debounce } from 'lodash'
 
 import { useInvoiceStore } from '@/scripts/admin/stores/invoice'
 import { useCompanyStore } from '@/scripts/admin/stores/company'
+import { useGlobalStore } from '@/scripts/admin/stores/global'
 import { useModalStore } from '@/scripts/stores/modal'
 import { useUserStore } from '@/scripts/admin/stores/user'
 import { useDialogStore } from '@/scripts/stores/dialog'
@@ -14,7 +15,6 @@ import { useNotificationStore } from '@/scripts/stores/notification'
 
 import SendInvoiceModal from '@/scripts/admin/components/modal-components/SendInvoiceModal.vue'
 import ApproveInvoiceDialog from '@/scripts/admin/components/modal-components/ApproveInvoiceDialog.vue'
-import NumberCollisionDialog from '@/scripts/admin/components/modal-components/NumberCollisionDialog.vue'
 import InvoiceDropdown from '@/scripts/admin/components/dropdowns/InvoiceIndexDropdown.vue'
 import LoadingIcon from '@/scripts/components/icons/LoadingIcon.vue'
 
@@ -37,30 +37,6 @@ const isLoading = ref(false)
 const isApproving = ref(false)
 const showApproveDialog = ref(false)
 let verifactuPollTimer = null
-
-// Onfactu — numeración diferida:
-// Modal de colisión cuando el backend devuelve 409 al aprobar.
-const numberCollision = ref(null)
-const showCollisionDialog = computed({
-  get: () => numberCollision.value !== null,
-  set: (val) => {
-    if (!val) numberCollision.value = null
-  },
-})
-
-// Comparamos el invoice_number de la factura actual con el secuencial
-// natural puro (MAX+1). Si son distintos, el usuario está saltando la
-// numeración (manual o salto sobre borradores) y se muestra el aviso
-// amber antes de aprobar. Comparar contra naturalNext (no contra
-// suggested) garantiza que detectamos también el caso "ocupé un hueco
-// entre borradores existentes".
-const numberIsManual = computed(() => {
-  const val = String(invoiceData.value?.invoice_number || '').trim()
-  const nat = String(invoiceStore.naturalNextInvoiceNumber || '').trim()
-  if (!val) return false
-  if (!nat) return false
-  return val !== nat
-})
 
 // Polling VeriFactu: consulta el estado cada 3s hasta que cambie
 function startVerifactuPolling(invoiceId) {
@@ -95,7 +71,11 @@ function stopVerifactuPolling() {
 
 onUnmounted(() => stopVerifactuPolling())
 
+const globalStore = useGlobalStore()
+
+// Ver Index.vue para explicación.
 const verifactuEnabled = computed(() =>
+  globalStore.opcionVerifactu === true &&
   companyStore.selectedCompanySettings.verifactu_enabled === 'YES'
 )
 
@@ -110,7 +90,7 @@ const searchData = reactive({
   searchText: null,
 })
 
-const pageTitle = computed(() => invoiceData.value.invoice_number || t('invoices.draft_number'))
+const pageTitle = computed(() => invoiceData.value.invoice_number)
 
 const getOrderBy = computed(() => {
   if (searchData.orderBy === 'asc' || searchData.orderBy == null) {
@@ -205,18 +185,10 @@ async function confirmApprove() {
     })
     startVerifactuPolling(invoiceData.value.id)
   } catch (err) {
-    // Onfactu — captura colisión 409 de número en uso
-    const status = err?.response?.status
-    const errorCode = err?.response?.data?.error_code
-    if (status === 409 && errorCode === 'number_collision') {
-      numberCollision.value = err.response.data.details || {}
-      showApproveDialog.value = false
-    } else {
-      notificationStore.showNotification({
-        type: 'error',
-        message: t('verifactu.approved_error'),
-      })
-    }
+    notificationStore.showNotification({
+      type: 'error',
+      message: t('verifactu.approved_error'),
+    })
   }
   isApproving.value = false
 }
@@ -323,24 +295,6 @@ async function loadInvoice() {
       startVerifactuPolling(invoiceData.value.id)
     }
   }
-
-  // Onfactu — numeración diferida:
-  // Pedimos el siguiente número secuencial y lo guardamos en el store como
-  // "sugerencia" para poder comparar con invoice_number y detectar si hay
-  // número manual (mostrando el aviso amber al aprobar).
-  try {
-    const nextRes = await invoiceStore.getNextNumber({
-      model_id: invoiceData.value?.id,
-    })
-    if (nextRes?.data?.nextNumber) {
-      invoiceStore.suggestedInvoiceNumber = nextRes.data.nextNumber
-      invoiceStore.suggestedInvoiceNumberIsSkipped = !!nextRes.data.isSkipped
-      invoiceStore.naturalNextInvoiceNumber = nextRes.data.naturalNext || nextRes.data.nextNumber
-    }
-  } catch (e) {
-    // Silencioso: si no se puede cargar la sugerencia, simplemente no
-    // aparecerá el aviso (se asume que no hay número manual).
-  }
 }
 
 async function onSearched() {
@@ -380,17 +334,9 @@ onSearched = debounce(onSearched, 500)
   <ApproveInvoiceDialog
     :visible="showApproveDialog"
     :loading="isApproving"
-    :manual-number="numberIsManual ? (invoiceData?.invoice_number || '') : ''"
-    :suggested-number="invoiceStore.naturalNextInvoiceNumber"
     @approve="confirmApprove"
     @save-draft="onApproveSaveDraft"
     @cancel="onApproveCancelled"
-  />
-  <NumberCollisionDialog
-    :visible="showCollisionDialog"
-    :details="numberCollision"
-    doc-type="invoice"
-    @close="numberCollision = null"
   />
 
   <BasePage v-if="invoiceData" class="xl:pl-96 xl:ml-8">
@@ -640,7 +586,7 @@ onSearched = debounce(onSearched, 500)
                   text-gray-600
                 "
               >
-                {{ invoice.invoice_number || $t('invoices.draft_number') }}
+                {{ invoice.invoice_number }}
               </div>
               <BaseEstimateStatusBadge
                 :status="invoice.verifactu_status === 'PENDING' ? 'VERIFACTU_PENDING' : invoice.status"

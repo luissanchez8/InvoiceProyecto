@@ -16,6 +16,19 @@ class VerifactuController extends Controller
             'invoice_id' => $invoice->id,
         ]);
 
+        // Validar que VeriFactu esté activo a nivel de instancia.
+        // OPCION_VERIFACTU lo controla Asistencia desde el panel de app_config;
+        // si no está en 1, bloquea el envío aunque la factura se haya creado.
+        if ((int) app_cfg('OPCION_VERIFACTU', 0) !== 1) {
+            Log::warning('VerifactuController::send bloqueado: OPCION_VERIFACTU desactivado', [
+                'invoice_id' => $invoice->id,
+            ]);
+            return response()->json([
+                'ok'    => false,
+                'error' => 'VeriFactu no está activado en esta instancia. Contacta con soporte.',
+            ], 403);
+        }
+
         $endpoint = config('services.verifactu.endpoint');
 
         if (!$endpoint) {
