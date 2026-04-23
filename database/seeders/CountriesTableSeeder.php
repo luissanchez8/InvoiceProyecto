@@ -218,7 +218,7 @@ class CountriesTableSeeder extends Seeder
             ['id' => 202, 'code' => 'ZA', 'name' => 'South Africa', 'phonecode' => 27],
             ['id' => 203, 'code' => 'GS', 'name' => 'South Georgia', 'phonecode' => 0],
             ['id' => 204, 'code' => 'SS', 'name' => 'South Sudan', 'phonecode' => 211],
-            ['id' => 205, 'code' => 'ES', 'name' => 'Spain', 'phonecode' => 34],
+            ['id' => 205, 'code' => 'ES', 'name' => 'España', 'phonecode' => 34],
             ['id' => 206, 'code' => 'LK', 'name' => 'Sri Lanka', 'phonecode' => 94],
             ['id' => 207, 'code' => 'SD', 'name' => 'Sudan', 'phonecode' => 249],
             ['id' => 208, 'code' => 'SR', 'name' => 'Suriname', 'phonecode' => 597],
