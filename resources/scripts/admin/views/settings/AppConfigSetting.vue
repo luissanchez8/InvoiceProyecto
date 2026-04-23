@@ -109,6 +109,12 @@ const planLabels = {
 
 const readonlyKeys = ['PLAN_ID']
 
+// Claves que se tratan como toggle boolean (valor '1' o '0').
+// Incluye todas las OPCION_MENU_* y OPCION_VERIFACTU.
+function isBooleanToggle(key) {
+  return key.startsWith('OPCION_MENU_') || key === 'OPCION_VERIFACTU'
+}
+
 function labelFor(key) { return labels[key] || key }
 
 // PLAN_ID local de app_config (fallback)
@@ -142,7 +148,7 @@ async function fetchConfig() {
     const response = await axios.get('/api/v1/app-config')
     configs.value = response.data.data.map(item => ({
       ...item,
-      enabled: item.key.startsWith('OPCION_MENU_') ? item.value === '1' : undefined,
+      enabled: isBooleanToggle(item.key) ? item.value === '1' : undefined,
     }))
   } catch (err) {
     notificationStore.showNotification({
@@ -188,7 +194,7 @@ async function saveConfig() {
       .filter(c => !readonlyKeys.includes(c.key))
       .map(c => ({
         key: c.key,
-        value: c.key.startsWith('OPCION_MENU_')
+        value: isBooleanToggle(c.key)
           ? (c.enabled ? '1' : '0')
           : String(c.value ?? ''),
       }))
