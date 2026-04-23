@@ -17,6 +17,7 @@
                 v-for="col in columns"
                 :key="col.key"
                 class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                :class="col.key === 'total' ? 'text-right' : ''"
               >
                 {{ col.label }}
               </th>
@@ -25,7 +26,7 @@
           <tbody class="bg-white divide-y divide-gray-200">
             <tr v-for="row in rows" :key="row.id" class="hover:bg-gray-50">
               <td class="px-4 py-3 text-sm text-gray-900">
-                {{ row.formatted_date || row.formatted_created_at || '-' }}
+                {{ row.formatted_date || '-' }}
               </td>
               <td class="px-4 py-3 text-sm">
                 <router-link
@@ -37,7 +38,7 @@
                 </router-link>
                 <span v-else class="font-medium">{{ row.number_label }}</span>
               </td>
-              <td class="px-4 py-3 text-sm">
+              <td v-if="hasStatusColumn" class="px-4 py-3 text-sm">
                 <BaseInvoiceStatusBadge :status="row.status" class="px-3 py-1">
                   <BaseInvoiceStatusLabel :status="row.status" />
                 </BaseInvoiceStatusBadge>
@@ -71,7 +72,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import axios from 'axios'
 import LoadingIcon from '@/scripts/components/icons/LoadingIcon.vue'
 import SatelliteIcon from '@/scripts/components/icons/empty/SatelliteIcon.vue'
@@ -93,12 +94,49 @@ const isLoading = ref(false)
 const currentPage = ref(1)
 const lastPage = ref(1)
 
-const columns = [
-  { key: 'date', label: 'Fecha' },
-  { key: 'number', label: 'Número' },
-  { key: 'status', label: 'Estado' },
-  { key: 'total', label: 'Total' },
-]
+// Pagos y Gastos no tienen estado → no mostramos esa columna en esas pestañas.
+const hasStatusColumn = computed(() =>
+  !['payments', 'expenses'].includes(props.docType)
+)
+
+// Columnas dinámicas en función del tipo de documento.
+const columns = computed(() => {
+  const cols = [
+    { key: 'date', label: 'Fecha' },
+    { key: 'number', label: 'Número' },
+  ]
+  if (hasStatusColumn.value) cols.push({ key: 'status', label: 'Estado' })
+  cols.push({ key: 'total', label: 'Total' })
+  return cols
+})
+
+// Mapeo docType → nombre del accessor de fecha formateada que devuelve el API.
+// Cada tipo de documento usa su propio accessor; si se añaden tipos nuevos en
+// el futuro, basta con añadir aquí su mapeo y el componente lo pintará bien.
+const DATE_FIELD_BY_TYPE = {
+  'invoices':          'formatted_invoice_date',
+  'estimates':         'formatted_estimate_date',
+  'proforma-invoices': 'formatted_proforma_invoice_date',
+  'delivery-notes':    'formatted_delivery_note_date',
+  'payments':          'formatted_payment_date',
+  'expenses':          'formatted_expense_date',
+}
+
+function extractDate(item) {
+  const primary = DATE_FIELD_BY_TYPE[props.docType]
+  if (primary && item[primary]) return item[primary]
+  // Fallbacks por si alguna instancia no devuelve el accessor específico.
+  return (
+    item.formatted_invoice_date ||
+    item.formatted_estimate_date ||
+    item.formatted_proforma_invoice_date ||
+    item.formatted_delivery_note_date ||
+    item.formatted_payment_date ||
+    item.formatted_expense_date ||
+    item.formatted_created_at ||
+    ''
+  )
+}
 
 async function loadPage(page = 1) {
   isLoading.value = true
@@ -116,13 +154,7 @@ async function loadPage(page = 1) {
     const data = response.data.data || []
     rows.value = data.map((item) => ({
       ...item,
-      formatted_date:
-        item.formatted_invoice_date ||
-        item.formatted_estimate_date ||
-        item.formatted_payment_date ||
-        item.formatted_expense_date ||
-        item.formatted_created_at ||
-        '',
+      formatted_date: extractDate(item),
       number_label:
         item[props.numberField] ||
         item.invoice_number ||
