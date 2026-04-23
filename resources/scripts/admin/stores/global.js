@@ -34,6 +34,11 @@ export const useGlobalStore = (useWindow = false) => {
       // Opciones de menú deshabilitadas (segmentos de ruta: 'invoices', 'estimates', etc.)
       disabledMenuOptions: [],
 
+      // Onfactu: si Asistencia ha activado VeriFactu para esta instancia.
+      // Si false, el usuario normal ve un botón "Solicitar activación" en
+      // lugar del toggle de VeriFactu en Ajustes.
+      opcionVerifactu: false,
+
       // Boolean Flags
       isAppLoaded: false,
       isSidebarOpen: false,
@@ -62,6 +67,7 @@ export const useGlobalStore = (useWindow = false) => {
               this.mainMenu = response.data.main_menu
               this.settingMenu = response.data.setting_menu
               this.disabledMenuOptions = response.data.disabled_menu_options || []
+              this.opcionVerifactu = response.data.opcion_verifactu === true
 
               this.config = response.data.config
               this.globalSettings = response.data.global_settings

@@ -95,6 +95,7 @@ const labels = {
   'OPCION_MENU_FRA_RECURRENTE': 'Facturas recurrentes',
   'OPCION_MENU_PAGOS': 'Pagos',
   'OPCION_MENU_GASTOS': 'Gastos',
+  'OPCION_VERIFACTU': 'Activar VeriFactu',
   'NOMBRE_EMPRESA': 'Nombre de la empresa',
   'URL_LOGOTIPO': 'URL del logotipo',
   'PLAN_ID': 'Plan contratado',
@@ -122,11 +123,17 @@ const planLabel = computed(() => {
 })
 
 const toggleConfigs = computed(() =>
-  configs.value.filter(c => c.key.startsWith('OPCION_MENU_'))
+  configs.value.filter(c =>
+    c.key.startsWith('OPCION_MENU_') || c.key === 'OPCION_VERIFACTU'
+  )
 )
 
 const editableConfigs = computed(() =>
-  configs.value.filter(c => !c.key.startsWith('OPCION_MENU_') && !readonlyKeys.includes(c.key))
+  configs.value.filter(c =>
+    !c.key.startsWith('OPCION_MENU_') &&
+    c.key !== 'OPCION_VERIFACTU' &&
+    !readonlyKeys.includes(c.key)
+  )
 )
 
 async function fetchConfig() {

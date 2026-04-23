@@ -238,7 +238,6 @@
         "billing_address": "Billing Address",
         "shipping_address": "Shipping Address",
         "copy_billing_address": "Copy from Billing",
-        "copy_basic_info": "Copy basic info",
         "no_customers": "No customers yet!",
         "no_customers_found": "No customers found!",
         "no_contact": "No contact",
@@ -1533,8 +1532,8 @@
     },
     "validation": {
         "invalid_phone": "Invalid Phone Number",
-        "invalid_url": "Invalid url (ex: http://www.onfactu.com)",
-        "invalid_domain_url": "Invalid url (ex: onfactu.com)",
+        "invalid_url": "Invalid url (ex: http://www.invoiceshelf.com)",
+        "invalid_domain_url": "Invalid url (ex: invoiceshelf.com)",
         "required": "Field is required",
         "email_incorrect": "Incorrect Email.",
         "email_already_taken": "The email has already been taken.",
@@ -1713,22 +1712,6 @@
     "settings.customization.deliverynotes.deliverynote_number_format_description": "Configure the numbering format for delivery notes",
     "settings.customization.deliverynotes.preview_deliverynote_number": "Number preview",
     "settings.customization.deliverynotes.deliverynote_settings_updated": "Delivery note settings updated",
-
-    "invoices.invoice_number_help": "The number will be assigned when the invoice is approved. You can edit it if needed.",
-    "estimates.estimate_number_help": "The number will be assigned when the estimate is sent. You can edit it if needed.",
-    "proforma_invoices.proforma_invoice_number_help": "The number will be assigned when the proforma is sent. You can edit it if needed.",
-    "delivery_notes.delivery_note_number_help": "The number will be assigned when the delivery note is sent. You can edit it if needed.",
-
-    "invoices.draft_number": "(draft)",
-    "estimates.draft_number": "(draft)",
-    "proforma_invoices.draft_number": "(draft)",
-    "delivery_notes.draft_number": "(draft)",
-
-    "invoices.invoice_number_placeholder": "Will be assigned automatically",
-    "estimates.estimate_number_placeholder": "Will be assigned automatically",
-    "proforma_invoices.proforma_invoice_number_placeholder": "Will be assigned automatically",
-    "delivery_notes.delivery_note_number_placeholder": "Will be assigned automatically",
-
     "general.mark_as_sent": "Mark as sent",
     "verifactu.title": "VeriFactu",
     "verifactu.enable": "Enable VeriFactu",
@@ -1743,5 +1726,13 @@
     "verifactu.before_approve_title": "Before approving",
     "verifactu.before_approve_message": "Once approved, the document cannot be deleted and you will not be able to edit the contact, issue date, number, amounts or description. In case of error, you can void it or create a corrective document.",
     "verifactu.approved": "Approved",
-    "verifactu.pending": "Pending VeriFactu..."
+    "verifactu.pending": "Pending VeriFactu...",
+    "verifactu.request_activation_description": "If you want to enable VeriFactu to automatically send your invoices to AEAT, request it from our team. We will contact you to gather the required information and get everything ready.",
+    "verifactu.request_activation_button": "Request activation",
+    "verifactu.request_activation_modal_title": "Request VeriFactu activation",
+    "verifactu.request_activation_modal_message": "We will send a notification to our support team with your account details so they can contact you and guide you through the VeriFactu activation. Do you want to continue?",
+    "verifactu.request_activation_modal_confirm": "Send request",
+    "verifactu.request_activation_sent": "Request sent. We will contact you soon to activate VeriFactu.",
+    "verifactu.request_activation_error": "Could not send the request. Please try again or email us at soporte@onfactu.com.",
+    "verifactu.asistencia_hint": "VeriFactu activation for customers is managed from Settings → App Config (Activate VeriFactu toggle)."
 }

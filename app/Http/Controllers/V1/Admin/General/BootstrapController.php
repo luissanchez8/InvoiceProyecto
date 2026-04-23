@@ -76,6 +76,13 @@ class BootstrapController extends Controller
             }
         }
 
+        // Onfactu: VeriFactu sólo está "activo" si:
+        //   1. La empresa tiene verifactu_enabled = 'YES' en CompanySettings.
+        //   2. Y Asistencia ha puesto OPCION_VERIFACTU = 1 en app_config.
+        // Si OPCION_VERIFACTU es 0 (o no existe), el usuario ve un botón
+        // "Solicitar activación" en lugar del toggle.
+        $opcionVerifactu = (int) app_cfg('OPCION_VERIFACTU', 0) === 1;
+
         return response()->json([
             'current_user' => new UserResource($current_user),
             'current_user_settings' => $current_user_settings,
@@ -90,6 +97,7 @@ class BootstrapController extends Controller
             'setting_menu' => $setting_menu,
             'modules' => Module::where('enabled', true)->pluck('name'),
             'disabled_menu_options' => $disabledMenuOptions,
+            'opcion_verifactu' => $opcionVerifactu,
         ]);
     }
 }

@@ -195,7 +195,16 @@ Route::prefix('/v1')->group(function () {
     Route::middleware(['auth:sanctum', 'company'])->group(function () {
         
         Route::post('verifactu/invoices/{invoice}', [VerifactuController::class, 'send']);
-        
+
+        // Onfactu: solicitud de activación de VeriFactu por usuario normal.
+        // NO requiere middleware bouncer porque cualquier usuario autenticado
+        // de la instancia puede pedirlo; la decisión de activarlo o no la toma
+        // Asistencia desde su panel.
+        Route::post('verifactu/request-activation', [
+            \App\Http\Controllers\V1\Admin\Verifactu\VerifactuActivationRequestController::class,
+            'store'
+        ]);
+
         Route::middleware(['bouncer', 'check-menu'])->group(function () {
 
             // Bootstrap
@@ -306,9 +315,6 @@ Route::prefix('/v1')->group(function () {
             Route::post('/delivery-notes/{delivery_note}/status', [\App\Http\Controllers\V1\Admin\DeliveryNote\ChangeDeliveryNoteStatusController::class, '__invoke']);
 
             Route::post('/delivery-notes/{delivery_note}/clone', [\App\Http\Controllers\V1\Admin\DeliveryNote\CloneDeliveryNoteController::class, '__invoke']);
-
-            // Onfactu — Convertir albarán a factura (numeración diferida)
-            Route::post('/delivery-notes/{delivery_note}/convert-to-invoice', \App\Http\Controllers\V1\Admin\DeliveryNote\ConvertDeliveryNoteToInvoiceController::class);
 
             Route::post('/delivery-notes/{delivery_note}/send', [\App\Http\Controllers\V1\Admin\DeliveryNote\SendDeliveryNoteController::class, '__invoke']);
 
