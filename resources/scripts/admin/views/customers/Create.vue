@@ -98,7 +98,15 @@
               />
             </BaseInputGroup>
 
+            <!--
+              Onfactu: Se oculta el selector de moneda. La moneda queda fijada
+              al € de la empresa (currency_id se asigna automáticamente en el
+              store desde companyStore.selectedCompanyCurrency). Si en el futuro
+              se necesita soportar múltiples monedas por cliente, restaurar
+              este bloque quitando v-if="false".
+            -->
             <BaseInputGroup
+              v-if="false"
               :label="$t('customers.primary_currency')"
               :content-loading="isFetchingInitialData"
               :error="

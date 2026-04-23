@@ -35,7 +35,13 @@
                 />
               </BaseInputGroup>
 
+              <!--
+                Onfactu: selector de moneda oculto. Moneda fija al € de la
+                empresa (currency_id asignado automáticamente desde el store).
+                Ver Create.vue para contexto completo del cambio.
+              -->
               <BaseInputGroup
+                v-if="false"
                 :label="$t('settings.currencies.currency')"
                 required
                 :error="
