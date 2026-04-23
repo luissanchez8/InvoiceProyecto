@@ -238,6 +238,7 @@
         "billing_address": "Billing Address",
         "shipping_address": "Shipping Address",
         "copy_billing_address": "Copy from Billing",
+        "copy_basic_info": "Copy basic info",
         "no_customers": "No customers yet!",
         "no_customers_found": "No customers found!",
         "no_contact": "No contact",
@@ -1532,8 +1533,8 @@
     },
     "validation": {
         "invalid_phone": "Invalid Phone Number",
-        "invalid_url": "Invalid url (ex: http://www.invoiceshelf.com)",
-        "invalid_domain_url": "Invalid url (ex: invoiceshelf.com)",
+        "invalid_url": "Invalid url (ex: http://www.onfactu.com)",
+        "invalid_domain_url": "Invalid url (ex: onfactu.com)",
         "required": "Field is required",
         "email_incorrect": "Incorrect Email.",
         "email_already_taken": "The email has already been taken.",
@@ -1712,14 +1713,22 @@
     "settings.customization.deliverynotes.deliverynote_number_format_description": "Configure the numbering format for delivery notes",
     "settings.customization.deliverynotes.preview_deliverynote_number": "Number preview",
     "settings.customization.deliverynotes.deliverynote_settings_updated": "Delivery note settings updated",
+
     "invoices.invoice_number_help": "The number will be assigned when the invoice is approved. You can edit it if needed.",
     "estimates.estimate_number_help": "The number will be assigned when the estimate is sent. You can edit it if needed.",
     "proforma_invoices.proforma_invoice_number_help": "The number will be assigned when the proforma is sent. You can edit it if needed.",
     "delivery_notes.delivery_note_number_help": "The number will be assigned when the delivery note is sent. You can edit it if needed.",
+
     "invoices.draft_number": "(draft)",
     "estimates.draft_number": "(draft)",
     "proforma_invoices.draft_number": "(draft)",
     "delivery_notes.draft_number": "(draft)",
+
+    "invoices.invoice_number_placeholder": "Will be assigned automatically",
+    "estimates.estimate_number_placeholder": "Will be assigned automatically",
+    "proforma_invoices.proforma_invoice_number_placeholder": "Will be assigned automatically",
+    "delivery_notes.delivery_note_number_placeholder": "Will be assigned automatically",
+
     "general.mark_as_sent": "Mark as sent",
     "verifactu.title": "VeriFactu",
     "verifactu.enable": "Enable VeriFactu",
