@@ -6,12 +6,44 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 class AppConfigController extends Controller
 {
+    /**
+     * Claves de app_config que DEBEN existir siempre (con valor por defecto).
+     * Si una instancia no las tiene, se crean automáticamente al acceder al panel.
+     *
+     * Esto evita que al añadir un toggle nuevo (como OPCION_VERIFACTU en v1.8.5)
+     * haya que hacer migración manual en cada instancia existente: con solo
+     * abrir el panel de Asistencia por primera vez tras el deploy, el toggle
+     * aparece con su valor por defecto.
+     */
+    private const DEFAULT_KEYS = [
+        'OPCION_MENU_FACTURAS'       => '1',
+        'OPCION_MENU_PRESUPUESTOS'   => '1',
+        'OPCION_MENU_PROFORMAS'      => '1',
+        'OPCION_MENU_ALBARANES'      => '1',
+        'OPCION_MENU_FRA_RECURRENTE' => '1',
+        'OPCION_MENU_PAGOS'          => '1',
+        'OPCION_MENU_GASTOS'         => '1',
+        'OPCION_VERIFACTU'           => '0', // VeriFactu desactivado por defecto
+    ];
+
     public function index(Request $request)
     {
         $user = $request->user();
         if ($user->role !== 'asistencia') {
             return response()->json(['error' => 'No autorizado'], 403);
         }
+
+        // Asegurar que todas las claves esperadas existen en BD (auto-seed).
+        $existing = AppConfig::whereIn('key', array_keys(self::DEFAULT_KEYS))
+            ->pluck('key')
+            ->toArray();
+
+        foreach (self::DEFAULT_KEYS as $key => $defaultValue) {
+            if (!in_array($key, $existing, true)) {
+                AppConfig::create(['key' => $key, 'value' => $defaultValue]);
+            }
+        }
+
         $configs = AppConfig::all()->map(function ($item) {
             return ['id' => $item->id, 'key' => $item->key, 'value' => $item->value];
         });
