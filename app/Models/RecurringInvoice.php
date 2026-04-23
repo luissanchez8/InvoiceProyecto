@@ -377,11 +377,17 @@ class RecurringInvoice extends Model
 
         // send automatically
         if ($this->send_automatically == true) {
+            // Onfactu: asunto en castellano con el número de la factura generada.
+            // Antes usaba trans('invoices')['new_invoice'] que dependía del locale
+            // del servidor y salía como "New Invoice" aunque el panel estuviese
+            // en español.
+            $subject = 'Nueva factura ' . ($invoice->invoice_number ?? '');
+
             $data = [
                 'body' => CompanySetting::getSetting('invoice_mail_body', $this->company_id),
                 'from' => config('mail.from.address'),
                 'to' => $this->customer->email,
-                'subject' => trans('invoices')['new_invoice'],
+                'subject' => $subject,
                 'invoice' => $invoice->toArray(),
                 'customer' => $invoice->customer->toArray(),
                 'company' => Company::find($invoice->company_id),
