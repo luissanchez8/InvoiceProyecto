@@ -1,12 +1,10 @@
 <template>
   <div v-if="shouldShow" class="trial-banner" :class="bannerClass">
-    <div class="trial-banner__icon">
-      <BaseIcon :name="iconName" class="h-5 w-5" />
+    <div class="trial-banner__header">
+      <BaseIcon :name="iconName" class="trial-banner__icon" />
+      <span class="trial-banner__title">{{ title }}</span>
     </div>
-    <div class="trial-banner__content">
-      <p class="trial-banner__title">{{ title }}</p>
-      <p class="trial-banner__subtitle">{{ subtitle }}</p>
-    </div>
+    <p class="trial-banner__subtitle">{{ subtitle }}</p>
     <a
       v-if="portalUrl"
       :href="portalUrl"
@@ -20,17 +18,6 @@
 </template>
 
 <script setup>
-/**
- * Onfactu: banner que se muestra en el sidebar cuando la instancia está
- * en trial o en período de gracia. Consume /api/v1/stripe/plan-status
- * y según el estado muestra:
- *  - Trial normal:     azul, "Te quedan X días de prueba".
- *  - Trial <=7 días:   naranja, urgencia.
- *  - Gracia:           rojo, "Añade tarjeta antes del DD/MM".
- *  - Canceled/paused:  rojo, "Suscripción no activa".
- *
- * Se refresca al montar y cada 5 minutos mientras la sesión esté abierta.
- */
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import axios from 'axios'
 import { useI18n } from 'vue-i18n'
@@ -55,14 +42,12 @@ async function fetchPlanStatus() {
     graceEndsAt.value = data.grace_ends_at
     portalUrl.value = data.portal_url
   } catch (err) {
-    // Silencioso: si falla, no mostramos banner.
     console.warn('TrialBanner: no se pudo cargar plan-status', err)
   }
 }
 
 onMounted(() => {
   fetchPlanStatus()
-  // Refrescar cada 5 minutos mientras el usuario está en la app.
   refreshTimer = setInterval(fetchPlanStatus, 5 * 60 * 1000)
 })
 
@@ -70,13 +55,11 @@ onUnmounted(() => {
   if (refreshTimer) clearInterval(refreshTimer)
 })
 
-// Mostrar solo si hay algún estado no-normal que comunicar.
 const shouldShow = computed(() => {
   if (!planStatus.value) return false
   if (planStatus.value === 'trialing') return true
   if (planStatus.value === 'paused' || planStatus.value === 'past_due') return true
   if (planStatus.value === 'canceled') return true
-  // active normal → no banner
   return false
 })
 
@@ -120,14 +103,21 @@ const subtitle = computed(() => {
 </script>
 
 <style scoped>
+/*
+ * Onfactu: el banner va dentro del sidebar estrecho (~224-256px). Forzamos
+ * display explícito con !important en cada elemento porque el contenedor
+ * padre hereda flex-direction: column y convertía el texto en vertical.
+ */
 .trial-banner {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  padding: 12px;
+  display: block !important;
+  padding: 10px 12px;
   border-radius: 8px;
-  margin: 12px 8px;
+  margin: 8px;
   font-size: 12px;
+  line-height: 1.4;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  box-sizing: border-box;
 }
 
 .trial-banner--info {
@@ -143,34 +133,49 @@ const subtitle = computed(() => {
   color: #991b1b;
 }
 
-.trial-banner__icon {
-  flex-shrink: 0;
-  margin-top: 2px;
+.trial-banner__header {
+  display: flex !important;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
 }
-.trial-banner__content {
-  flex: 1;
-  min-width: 0;
+.trial-banner__icon {
+  width: 16px !important;
+  height: 16px !important;
+  flex-shrink: 0;
 }
 .trial-banner__title {
-  font-weight: 600;
-  margin: 0;
+  display: inline !important;
+  font-weight: 700;
+  font-size: 12px;
+  line-height: 1.3;
+  word-break: normal;
+  white-space: normal;
 }
 .trial-banner__subtitle {
+  display: block !important;
   font-weight: 400;
-  margin: 2px 0 0 0;
+  margin: 0;
   opacity: 0.85;
+  font-size: 11px;
+  line-height: 1.35;
+  word-break: normal;
+  white-space: normal;
 }
 .trial-banner__button {
-  display: inline-block;
+  display: block !important;
   margin-top: 8px;
-  padding: 6px 10px;
+  padding: 6px 8px;
   background: currentColor;
   color: white !important;
   border-radius: 6px;
   font-weight: 600;
   text-decoration: none;
   text-align: center;
-  width: 100%;
+  font-size: 11px;
+  line-height: 1.2;
+  word-break: normal;
+  white-space: normal;
 }
 .trial-banner__button:hover {
   opacity: 0.9;

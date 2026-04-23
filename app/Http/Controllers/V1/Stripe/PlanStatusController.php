@@ -30,8 +30,10 @@ class PlanStatusController extends Controller
                 $end = Carbon::parse($trialEndsAt);
 
                 if (now()->lt($end)) {
-                    // Trial en curso: cuantos días quedan.
-                    $daysLeft = now()->diffInDays($end, false) + 1;
+                    // Trial en curso: cuantos días quedan (redondeo hacia arriba
+                    // para que el último día parcial cuente como 1 día completo).
+                    $daysLeft = (int) ceil(now()->diffInHours($end, false) / 24);
+                    if ($daysLeft < 1) $daysLeft = 1;
                 }
 
                 // Período de gracia tras fin de trial (7 días hard-coded).
@@ -39,7 +41,8 @@ class PlanStatusController extends Controller
                 $graceEndsAt = $graceEnd->toIso8601String();
 
                 if (now()->gt($end) && now()->lt($graceEnd)) {
-                    $graceDaysLeft = now()->diffInDays($graceEnd, false) + 1;
+                    $graceDaysLeft = (int) ceil(now()->diffInHours($graceEnd, false) / 24);
+                    if ($graceDaysLeft < 1) $graceDaysLeft = 1;
                 }
             } catch (\Throwable $e) {
                 // Si la fecha viene mal, ignorar sin romper.
