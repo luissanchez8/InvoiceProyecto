@@ -66,7 +66,7 @@ const shouldShow = computed(() => {
 const bannerClass = computed(() => {
   if (planStatus.value === 'trialing') {
     if (daysLeft.value !== null && daysLeft.value <= 7) return 'trial-banner--warning'
-    return 'trial-banner--info'
+    return 'trial-banner--ok'
   }
   return 'trial-banner--danger'
 })
@@ -104,33 +104,72 @@ const subtitle = computed(() => {
 
 <style scoped>
 /*
- * Onfactu: el banner va dentro del sidebar estrecho (~224-256px). Forzamos
- * display explícito con !important en cada elemento porque el contenedor
- * padre hereda flex-direction: column y convertía el texto en vertical.
+ * Onfactu: banner integrado en el sidebar navy (#070322) con la paleta
+ * corporativa. El sidebar hereda flex-direction:column a sus hijos, así que
+ * forzamos display explícito con !important para evitar que el texto salga
+ * en vertical.
+ *
+ * Paleta:
+ *   - verde corporativo #38d587 (logo, botones activos).
+ *   - navy #070322 (fondo sidebar).
+ *   - blanco sobre oscuro para el cuerpo; acento en color cuando hay urgencia.
  */
 .trial-banner {
   display: block !important;
-  padding: 10px 12px;
-  border-radius: 8px;
-  margin: 8px;
+  padding: 12px;
+  border-radius: 10px;
+  margin: 10px 8px;
   font-size: 12px;
   line-height: 1.4;
   word-wrap: break-word;
   overflow-wrap: break-word;
   box-sizing: border-box;
+  border: 1px solid;
 }
 
-.trial-banner--info {
-  background: #eff6ff;
-  color: #1e40af;
+/* Estado OK (trial con margen): verde corporativo */
+.trial-banner--ok {
+  background: rgba(56, 213, 135, 0.12);    /* #38d587 con alpha */
+  border-color: rgba(56, 213, 135, 0.35);
+  color: #ffffff;
 }
+.trial-banner--ok .trial-banner__icon,
+.trial-banner--ok .trial-banner__title {
+  color: #38d587;
+}
+.trial-banner--ok .trial-banner__button {
+  background: #38d587;
+  color: #070322 !important;
+}
+
+/* Estado WARNING (<= 7 días de trial): naranja */
 .trial-banner--warning {
-  background: #fef3c7;
-  color: #92400e;
+  background: rgba(251, 146, 60, 0.12);
+  border-color: rgba(251, 146, 60, 0.35);
+  color: #ffffff;
 }
+.trial-banner--warning .trial-banner__icon,
+.trial-banner--warning .trial-banner__title {
+  color: #fb923c;
+}
+.trial-banner--warning .trial-banner__button {
+  background: #fb923c;
+  color: #070322 !important;
+}
+
+/* Estado DANGER (gracia / cancelado): rojo */
 .trial-banner--danger {
-  background: #fee2e2;
-  color: #991b1b;
+  background: rgba(248, 113, 113, 0.12);
+  border-color: rgba(248, 113, 113, 0.35);
+  color: #ffffff;
+}
+.trial-banner--danger .trial-banner__icon,
+.trial-banner--danger .trial-banner__title {
+  color: #f87171;
+}
+.trial-banner--danger .trial-banner__button {
+  background: #f87171;
+  color: #ffffff !important;
 }
 
 .trial-banner__header {
@@ -156,28 +195,28 @@ const subtitle = computed(() => {
   display: block !important;
   font-weight: 400;
   margin: 0;
-  opacity: 0.85;
+  opacity: 0.8;
   font-size: 11px;
   line-height: 1.35;
   word-break: normal;
   white-space: normal;
+  color: rgba(255, 255, 255, 0.75);
 }
 .trial-banner__button {
   display: block !important;
   margin-top: 8px;
-  padding: 6px 8px;
-  background: currentColor;
-  color: white !important;
+  padding: 7px 10px;
   border-radius: 6px;
-  font-weight: 600;
+  font-weight: 700;
   text-decoration: none;
   text-align: center;
   font-size: 11px;
   line-height: 1.2;
   word-break: normal;
   white-space: normal;
+  transition: opacity 0.15s;
 }
 .trial-banner__button:hover {
-  opacity: 0.9;
+  opacity: 0.85;
 }
 </style>
