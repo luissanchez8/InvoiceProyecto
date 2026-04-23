@@ -1,13 +1,12 @@
 <script setup>
 import { useI18n } from 'vue-i18n'
 import axios from 'axios'
-import { computed, reactive, ref, watch, onMounted, onUnmounted } from 'vue'
+import { computed, reactive, ref, watch, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { debounce } from 'lodash'
 
 import { useInvoiceStore } from '@/scripts/admin/stores/invoice'
 import { useCompanyStore } from '@/scripts/admin/stores/company'
-import { useGlobalStore } from '@/scripts/admin/stores/global'
 import { useModalStore } from '@/scripts/stores/modal'
 import { useUserStore } from '@/scripts/admin/stores/user'
 import { useDialogStore } from '@/scripts/stores/dialog'
@@ -71,16 +70,7 @@ function stopVerifactuPolling() {
 
 onUnmounted(() => stopVerifactuPolling())
 
-const globalStore = useGlobalStore()
-
-// Ver Index.vue — refrescar bootstrap al abrir la vista detalle.
-onMounted(() => {
-  globalStore.bootstrap().catch(() => {})
-})
-
-// Ver Index.vue para explicación.
 const verifactuEnabled = computed(() =>
-  globalStore.opcionVerifactu === true &&
   companyStore.selectedCompanySettings.verifactu_enabled === 'YES'
 )
 
@@ -95,7 +85,10 @@ const searchData = reactive({
   searchText: null,
 })
 
-const pageTitle = computed(() => invoiceData.value.invoice_number)
+const pageTitle = computed(() =>
+  // Onfactu: si la factura está en borrador aún no tiene número de serie.
+  invoiceData.value.invoice_number || `#${invoiceData.value.id}`
+)
 
 const getOrderBy = computed(() => {
   if (searchData.orderBy === 'asc' || searchData.orderBy == null) {
@@ -591,7 +584,7 @@ onSearched = debounce(onSearched, 500)
                   text-gray-600
                 "
               >
-                {{ invoice.invoice_number }}
+                {{ invoice.invoice_number || `#${invoice.id}` }}
               </div>
               <BaseEstimateStatusBadge
                 :status="invoice.verifactu_status === 'PENDING' ? 'VERIFACTU_PENDING' : invoice.status"

@@ -56,10 +56,36 @@
             </BaseButton>
           </router-link>
 
+          <!--
+            Onfactu: dos botones separados.
+             - "Guardar como borrador" (gris/outline): status=DRAFT, sin número
+               de serie asignado. Solo visible para facturas nuevas o borradores.
+             - "Guardar" (verde primary): status=SAVED y se asigna número de serie.
+            El botón "Aprobar VeriFactu" existente se mantiene como estaba.
+          -->
+          <BaseButton
+            v-if="showDraftButton"
+            :loading="isSavingDraft"
+            :disabled="isSavingDraft || isSaving || isApproving"
+            variant="primary-outline"
+            type="button"
+            class="mr-3"
+            @click="saveAsDraft"
+          >
+            <template #left="slotProps">
+              <BaseIcon
+                v-if="!isSavingDraft"
+                name="DocumentIcon"
+                :class="slotProps.class"
+              />
+            </template>
+            {{ $t('invoices.save_as_draft') }}
+          </BaseButton>
+
           <BaseButton
             :loading="isSaving"
-            :disabled="isSaving || isApproving"
-            variant="primary-outline"
+            :disabled="isSaving || isSavingDraft || isApproving"
+            variant="primary"
             type="submit"
             class="mr-3"
           >
@@ -70,13 +96,13 @@
                 :class="slotProps.class"
               />
             </template>
-            {{ verifactuEnabled ? $t('verifactu.save_as_draft') : $t('invoices.save_invoice') }}
+            {{ $t('invoices.save_invoice') }}
           </BaseButton>
 
           <BaseButton
             v-if="verifactuEnabled"
             :loading="isApproving"
-            :disabled="isSaving || isApproving"
+            :disabled="isSaving || isSavingDraft || isApproving"
             variant="primary"
             type="button"
             @click="approveForm"
@@ -179,7 +205,6 @@ import { useInvoiceStore } from '@/scripts/admin/stores/invoice'
 import { useModuleStore } from '@/scripts/admin/stores/module'
 import { useNotesStore } from '@/scripts/admin/stores/note'
 import { useCompanyStore } from '@/scripts/admin/stores/company'
-import { useGlobalStore } from '@/scripts/admin/stores/global'
 import { useCustomFieldStore } from '@/scripts/admin/stores/custom-field'
 import { useDialogStore } from '@/scripts/stores/dialog'
 
@@ -208,20 +233,12 @@ let router = useRouter()
 
 const invoiceValidationScope = 'newInvoice'
 let isSaving = ref(false)
+let isSavingDraft = ref(false)
 let isApproving = ref(false)
 const showApproveDialog = ref(false)
 const isMarkAsDefault = ref(false)
 
-const globalStore = useGlobalStore()
-
-// Ver Index.vue — refrescar bootstrap al crear/editar factura.
-onMounted(() => {
-  globalStore.bootstrap().catch(() => {})
-})
-
-// Ver Index.vue para explicación.
 const verifactuEnabled = computed(() =>
-  globalStore.opcionVerifactu === true &&
   companyStore.selectedCompanySettings.verifactu_enabled === 'YES'
 )
 
@@ -249,6 +266,14 @@ const salesTaxEnabled = computed(() => {
 })
 
 let isEdit = computed(() => route.name === 'invoices.edit')
+
+// Onfactu: el botón "Guardar como borrador" solo aparece para facturas
+// nuevas o para borradores ya existentes. Si la factura ya tiene número
+// de serie asignado (no es DRAFT), no se puede volver a borrador.
+const showDraftButton = computed(() => {
+  if (!isEdit.value) return true
+  return invoiceStore.newInvoice.status === 'DRAFT'
+})
 
 const rules = {
   invoice_date: {
@@ -299,6 +324,16 @@ watch(
 )
 
 async function submitForm() {
+  await doSave('SAVED')
+}
+
+// Onfactu: invocado por el botón "Guardar como borrador". Marca status=DRAFT
+// antes de enviar para que el backend no asigne número de serie.
+async function saveAsDraft() {
+  await doSave('DRAFT')
+}
+
+async function doSave(targetStatus) {
   v$.value.$touch()
 
   if (v$.value.$invalid) {
@@ -306,10 +341,16 @@ async function submitForm() {
     return false
   }
 
-  isSaving.value = true
+  const isDraft = targetStatus === 'DRAFT'
+  if (isDraft) {
+    isSavingDraft.value = true
+  } else {
+    isSaving.value = true
+  }
 
   let data = cloneDeep({
     ...invoiceStore.newInvoice,
+    status: targetStatus,
     sub_total: invoiceStore.getSubTotal,
     total: invoiceStore.getTotal,
     tax: invoiceStore.getTotalTax,
@@ -346,6 +387,7 @@ async function submitForm() {
   }
 
   isSaving.value = false
+  isSavingDraft.value = false
 }
 
 function approveForm() {

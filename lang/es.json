@@ -1778,5 +1778,9 @@
     "trial.blocked_canceled_message": "Tu suscripción ha sido cancelada. Contacta con soporte o contrata de nuevo para recuperar el acceso.",
     "trial.blocked_generic_title": "Suscripción no activa",
     "trial.blocked_generic_message": "Tu suscripción no está activa. Añade un método de pago o contacta con soporte.",
-    "trial.blocked_grace_deadline": "Tienes hasta:"
+    "trial.blocked_grace_deadline": "Tienes hasta:",
+    "invoices.save_as_draft": "Guardar como borrador",
+    "estimates.save_as_draft": "Guardar como borrador",
+    "proforma_invoices.save_as_draft": "Guardar como borrador",
+    "delivery_notes.save_as_draft": "Guardar como borrador"
 }

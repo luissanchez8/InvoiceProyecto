@@ -1773,5 +1773,9 @@
     "trial.blocked_canceled_message": "Your subscription has been canceled. Contact support or subscribe again to restore access.",
     "trial.blocked_generic_title": "Subscription inactive",
     "trial.blocked_generic_message": "Your subscription is not active. Add a payment method or contact support.",
-    "trial.blocked_grace_deadline": "You have until:"
+    "trial.blocked_grace_deadline": "You have until:",
+    "invoices.save_as_draft": "Save as draft",
+    "estimates.save_as_draft": "Save as draft",
+    "proforma_invoices.save_as_draft": "Save as draft",
+    "delivery_notes.save_as_draft": "Save as draft"
 }

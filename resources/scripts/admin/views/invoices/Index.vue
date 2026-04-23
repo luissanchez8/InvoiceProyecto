@@ -211,9 +211,9 @@
         <template #cell-invoice_number="{ row }">
           <router-link
             :to="{ path: `invoices/${row.data.id}/view` }"
-            class="font-medium text-primary-500"
+            :class="row.data.invoice_number ? 'font-medium text-primary-500' : 'font-medium text-gray-400 italic'"
           >
-            {{ row.data.invoice_number }}
+            {{ row.data.invoice_number || `#${row.data.id}` }}
           </router-link>
         </template>
 
@@ -295,7 +295,7 @@
 </template>
 
 <script setup>
-import { computed, onUnmounted, onMounted, reactive, ref, watch, inject } from 'vue'
+import { computed, onUnmounted, reactive, ref, watch, inject } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useInvoiceStore } from '@/scripts/admin/stores/invoice'
@@ -311,7 +311,6 @@ import SendInvoiceModal from '@/scripts/admin/components/modal-components/SendIn
 import ApproveInvoiceDialog from '@/scripts/admin/components/modal-components/ApproveInvoiceDialog.vue'
 import BaseInvoiceStatusLabel from "@/scripts/components/base/BaseInvoiceStatusLabel.vue";
 import { useCompanyStore } from '@/scripts/admin/stores/company'
-import { useGlobalStore } from '@/scripts/admin/stores/global'
 // Stores
 const invoiceStore = useInvoiceStore()
 const dialogStore = useDialogStore()
@@ -347,24 +346,7 @@ function stopVerifactuPolling() {
 
 onUnmounted(() => stopVerifactuPolling())
 
-const globalStore = useGlobalStore()
-
-// Refrescar bootstrap al entrar al listado para detectar en tiempo real
-// si Asistencia ha cambiado OPCION_VERIFACTU mientras el usuario estaba
-// logueado (sin necesidad de hacer logout+login).
-onMounted(() => {
-  globalStore.bootstrap().catch(() => {
-    // silencioso: si falla el refresco, se queda con el estado anterior
-  })
-})
-
-// VeriFactu está activo para la UI si:
-//   1. Asistencia ha activado OPCION_VERIFACTU en el panel app_config.
-//   2. El usuario ha activado verifactu_enabled en CompanySettings.
-// Si Asistencia lo tiene desactivado, se ignora el verifactu_enabled
-// aunque esté en YES por un uso previo.
 const verifactuEnabled = computed(() =>
-  globalStore.opcionVerifactu === true &&
   companyStore.selectedCompanySettings.verifactu_enabled === 'YES'
 )
 
@@ -442,7 +424,7 @@ const invoiceColumns = computed(() => {
     ...(verifactuEnabled.value
       ? [{
           key: 'verifactu',
-          label: t('verifactu.title'),
+          label: '',
           tdClass: 'text-center text-sm font-medium',
           thClass: 'text-center',
           sortable: false,
