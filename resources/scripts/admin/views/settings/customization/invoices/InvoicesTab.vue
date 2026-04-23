@@ -15,10 +15,10 @@
     VeriFactu
     ---------
     Comportamiento:
-    - Usuario normal (no asistencia):
-      · Si Asistencia ha activado OPCION_VERIFACTU → ve el toggle tradicional.
-      · Si no → ve un botón "Solicitar activación" que envía email a soporte.
-    - Usuario asistencia: nunca ve esta tarjeta; gestiona VeriFactu desde
+    - Usuario normal (no asistencia): SIEMPRE ve el botón "Solicitar activación".
+      No ve el toggle, aunque Asistencia haya activado OPCION_VERIFACTU. La
+      activación real se hace desde el panel de Asistencia.
+    - Usuario asistencia: ve una nota informativa; gestiona VeriFactu desde
       Ajustes → Configuración App.
   -->
   <div>
@@ -26,17 +26,8 @@
       {{ $t('verifactu.title') }}
     </h3>
 
-    <!-- Usuario normal con VeriFactu habilitado por Asistencia: toggle normal -->
-    <ul v-if="!isAsistencia && isVerifactuAllowed" class="mt-2 divide-y divide-gray-200">
-      <BaseSwitchSection
-        v-model="verifactuEnabledField"
-        :title="$t('verifactu.enable')"
-        :description="$t('verifactu.enable_description')"
-      />
-    </ul>
-
-    <!-- Usuario normal sin VeriFactu habilitado: botón de solicitud -->
-    <div v-else-if="!isAsistencia" class="mt-4 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+    <!-- Usuario normal: botón de solicitud de activación -->
+    <div v-if="!isAsistencia" class="mt-4 p-4 bg-gray-50 border border-gray-200 rounded-lg">
       <p class="text-sm text-gray-700 mb-3">
         {{ $t('verifactu.request_activation_description') }}
       </p>
