@@ -31,7 +31,7 @@
               <td class="px-4 py-3 text-sm">
                 <router-link
                   v-if="viewRoute"
-                  :to="`/admin/${viewRoute}/${row.id}/view`"
+                  :to="`/admin/${viewRoute}/${row.id}/${routeAction}`"
                   class="font-medium text-primary-500 hover:text-primary-700"
                 >
                   {{ row.number_label }}
@@ -97,6 +97,12 @@ const lastPage = ref(1)
 // Pagos y Gastos no tienen estado → no mostramos esa columna en esas pestañas.
 const hasStatusColumn = computed(() =>
   !['payments', 'expenses'].includes(props.docType)
+)
+
+// Gastos no tiene pantalla /view, solo /edit. El resto van a /view.
+// Si en el futuro algún tipo nuevo solo tuviese edit, añadirlo aquí.
+const routeAction = computed(() =>
+  props.docType === 'expenses' ? 'edit' : 'view'
 )
 
 // Columnas dinámicas en función del tipo de documento.

@@ -40,6 +40,8 @@ const labelStatus = computed(() => {
       return t('estimates.accepted')
     case 'REJECTED':
       return t('estimates.rejected')
+    case 'EXPIRED':
+      return t('estimates.expired')
     case 'DELIVERED':
       return t('general.delivered')
     case 'APPROVED':
