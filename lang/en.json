@@ -163,8 +163,8 @@
         "percent": "Percent",
         "compound_tax": "Compound Tax",
         "percentage": "Percentage",
-        "fixed_amount": "Fixed Amount",
-        "tax_type": "Tax Type"
+        "fixed_amount": "Fixed amount",
+        "tax_type": "Tax type"
     },
     "global_search": {
         "search": "Search...",
@@ -1211,7 +1211,7 @@
             "amount": "Amount",
             "percent": "Percent",
             "fixed_amount": "Fixed Amount",
-            "calculation_type": "Calculation Type",
+            "calculation_type": "Calculation type",
             "percentage": "Percentage",
             "fixed": "Fixed",
             "action": "Action",
@@ -1734,5 +1734,7 @@
     "verifactu.request_activation_modal_confirm": "Send request",
     "verifactu.request_activation_sent": "Request sent. We will contact you soon to activate VeriFactu.",
     "verifactu.request_activation_error": "Could not send the request. Please try again or email us at soporte@onfactu.com.",
-    "verifactu.asistencia_hint": "VeriFactu activation for customers is managed from Settings → App Config (Activate VeriFactu toggle)."
+    "verifactu.asistencia_hint": "VeriFactu activation for customers is managed from Settings → App Config (Activate VeriFactu toggle).",
+    "customers.copy_basic_info": "Copy basic info",
+    "invoices.invoice_number_help": "The last 6 characters of the number are random."
 }

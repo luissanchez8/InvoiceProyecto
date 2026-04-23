@@ -163,7 +163,10 @@
         "name": "Nombre",
         "description": "Descripción",
         "percent": "Por ciento",
-        "compound_tax": "Impuesto compuesto"
+        "compound_tax": "Impuesto compuesto",
+        "tax_type": "Tipo de impuesto",
+        "percentage": "Porcentaje",
+        "fixed_amount": "Importe fijo"
     },
     "global_search": {
         "search": "Buscar...",
@@ -1214,7 +1217,9 @@
             "updated_message": "Tipo de impuesto actualizado correctamente",
             "deleted_message": "Tipo de impuesto eliminado correctamente",
             "confirm_delete": "No podrá recuperar este tipo de impuesto",
-            "already_in_use": "El impuesto ya está en uso."
+            "already_in_use": "El impuesto ya está en uso.",
+            "calculation_type": "Tipo de cálculo",
+            "amount": "Importe"
         },
         "payment_modes": {
             "title": "Formas de pago",
@@ -1734,5 +1739,7 @@
     "verifactu.request_activation_modal_confirm": "Enviar solicitud",
     "verifactu.request_activation_sent": "Solicitud enviada. Te contactaremos pronto para activar VeriFactu.",
     "verifactu.request_activation_error": "No se pudo enviar la solicitud. Inténtalo de nuevo o escríbenos a soporte@onfactu.com.",
-    "verifactu.asistencia_hint": "La activación de VeriFactu para los clientes se gestiona desde Ajustes → Configuración App (toggle Activar VeriFactu)."
+    "verifactu.asistencia_hint": "La activación de VeriFactu para los clientes se gestiona desde Ajustes → Configuración App (toggle Activar VeriFactu).",
+    "customers.copy_basic_info": "Copiar info básica",
+    "invoices.invoice_number_help": "Los últimos 6 caracteres del número son aleatorios."
 }

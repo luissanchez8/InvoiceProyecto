@@ -1,7 +1,7 @@
 <script setup>
 import { useI18n } from 'vue-i18n'
 import axios from 'axios'
-import { computed, reactive, ref, watch, onUnmounted } from 'vue'
+import { computed, reactive, ref, watch, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { debounce } from 'lodash'
 
@@ -72,6 +72,11 @@ function stopVerifactuPolling() {
 onUnmounted(() => stopVerifactuPolling())
 
 const globalStore = useGlobalStore()
+
+// Ver Index.vue — refrescar bootstrap al abrir la vista detalle.
+onMounted(() => {
+  globalStore.bootstrap().catch(() => {})
+})
 
 // Ver Index.vue para explicación.
 const verifactuEnabled = computed(() =>

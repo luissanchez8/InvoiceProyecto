@@ -77,7 +77,7 @@
 </template>
 
 <script setup>
-import { computed, reactive, inject, ref, watch } from 'vue'
+import { computed, reactive, inject, ref, watch, onMounted } from 'vue'
 import axios from 'axios'
 import { useCompanyStore } from '@/scripts/admin/stores/company'
 import { useUserStore } from '@/scripts/admin/stores/user'
@@ -97,6 +97,12 @@ const dialogStore = useDialogStore()
 const notificationStore = useNotificationStore()
 const { t } = useI18n()
 const utils = inject('utils')
+
+// Refrescar bootstrap al abrir esta tab para que el usuario vea en tiempo
+// real si Asistencia ha cambiado OPCION_VERIFACTU.
+onMounted(() => {
+  globalStore.bootstrap().catch(() => {})
+})
 
 // rol desde userStore
 const isAsistencia = computed(() =>

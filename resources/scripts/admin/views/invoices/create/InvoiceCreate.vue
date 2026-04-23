@@ -214,6 +214,11 @@ const isMarkAsDefault = ref(false)
 
 const globalStore = useGlobalStore()
 
+// Ver Index.vue — refrescar bootstrap al crear/editar factura.
+onMounted(() => {
+  globalStore.bootstrap().catch(() => {})
+})
+
 // Ver Index.vue para explicación.
 const verifactuEnabled = computed(() =>
   globalStore.opcionVerifactu === true &&

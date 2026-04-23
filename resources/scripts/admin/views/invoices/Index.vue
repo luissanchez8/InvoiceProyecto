@@ -295,7 +295,7 @@
 </template>
 
 <script setup>
-import { computed, onUnmounted, reactive, ref, watch, inject } from 'vue'
+import { computed, onUnmounted, onMounted, reactive, ref, watch, inject } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useInvoiceStore } from '@/scripts/admin/stores/invoice'
@@ -348,6 +348,15 @@ function stopVerifactuPolling() {
 onUnmounted(() => stopVerifactuPolling())
 
 const globalStore = useGlobalStore()
+
+// Refrescar bootstrap al entrar al listado para detectar en tiempo real
+// si Asistencia ha cambiado OPCION_VERIFACTU mientras el usuario estaba
+// logueado (sin necesidad de hacer logout+login).
+onMounted(() => {
+  globalStore.bootstrap().catch(() => {
+    // silencioso: si falla el refresco, se queda con el estado anterior
+  })
+})
 
 // VeriFactu está activo para la UI si:
 //   1. Asistencia ha activado OPCION_VERIFACTU en el panel app_config.

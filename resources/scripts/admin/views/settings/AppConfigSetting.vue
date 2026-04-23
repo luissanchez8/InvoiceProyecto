@@ -79,6 +79,7 @@
 import { ref, computed, onMounted } from 'vue'
 import axios from 'axios'
 import { useNotificationStore } from '@/scripts/stores/notification'
+import { useGlobalStore } from '@/scripts/admin/stores/global'
 
 const notificationStore = useNotificationStore()
 const configs = ref([])
@@ -200,6 +201,18 @@ async function saveConfig() {
       }))
 
     await axios.put('/api/v1/app-config', { configs: payload })
+
+    // Refrescar bootstrap para propagar cambios (OPCION_VERIFACTU, etc.)
+    // al resto de stores en tiempo real sin necesidad de recargar la página.
+    try {
+      const globalStore = useGlobalStore()
+      await globalStore.bootstrap()
+    } catch (e) {
+      // Si falla el refresco, no es crítico — solo significa que el usuario
+      // verá los cambios al recargar manualmente.
+      console.warn('No se pudo refrescar bootstrap tras guardar config', e)
+    }
+
     notificationStore.showNotification({
       type: 'success',
       message: 'Configuración guardada correctamente',
