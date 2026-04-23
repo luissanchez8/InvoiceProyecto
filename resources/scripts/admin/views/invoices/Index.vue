@@ -433,7 +433,7 @@ const invoiceColumns = computed(() => {
     ...(verifactuEnabled.value
       ? [{
           key: 'verifactu',
-          label: '',
+          label: t('verifactu.title'),
           tdClass: 'text-center text-sm font-medium',
           thClass: 'text-center',
           sortable: false,
