@@ -140,6 +140,12 @@ export default [
     component: LayoutInstallation,
     meta: { requiresAuth: false },
     children: [
+        {
+          path: 'trial-blocked',
+          name: 'trial.blocked',
+          component: () => import('./views/trial/BlockedScreen.vue'),
+          meta: { ability: 'all' },
+        },
       {
         path: '/installation',
         component: Installation,

@@ -138,6 +138,9 @@
       </div>
     </div>
 
+    <!-- Onfactu: banner de estado de trial/suscripción -->
+    <TrialBanner />
+
     <!-- DESKTOP: Sección inferior fija -->
     <div class="onf-sidebar-bottom">
       <div v-if="planName" class="onf-sidebar-plan">
@@ -154,6 +157,7 @@
 
 <script setup>
 import MainLogo from '@/scripts/components/icons/MainLogo.vue'
+import TrialBanner from '@/scripts/admin/components/TrialBanner.vue'
 import axios from 'axios'
 
 import {

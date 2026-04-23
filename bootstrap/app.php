@@ -49,6 +49,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'bouncer' => \App\Http\Middleware\ScopeBouncer::class,
             'check-menu' => \App\Http\Middleware\CheckMenuOption::class,
             'company' => \App\Http\Middleware\CompanyMiddleware::class,
+            'check-plan-status' => \App\Http\Middleware\CheckPlanStatus::class,
             'cron-job' => \App\Http\Middleware\CronJobMiddleware::class,
             'customer' => \App\Http\Middleware\CustomerRedirectIfAuthenticated::class,
             'customer-guest' => \App\Http\Middleware\CustomerGuest::class,

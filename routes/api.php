@@ -192,7 +192,7 @@ Route::prefix('/v1')->group(function () {
         Route::post('/finish', FinishController::class);
     });
 
-    Route::middleware(['auth:sanctum', 'company'])->group(function () {
+    Route::middleware(['auth:sanctum', 'company', 'check-plan-status'])->group(function () {
         
         Route::post('verifactu/invoices/{invoice}', [VerifactuController::class, 'send']);
 
@@ -601,4 +601,14 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/v1/app-config', [\App\Http\Controllers\V1\Admin\Settings\AppConfigController::class, 'update']);
     Route::get('/v1/app-config/plan-from-stripe', [\App\Http\Controllers\V1\Admin\Settings\AppConfigController::class, 'planFromStripe']);
     Route::get('/v1/app-config/my-plan', [\App\Http\Controllers\V1\Admin\Settings\AppConfigController::class, 'myPlan']);
+});
+
+// ─── Onfactu: Trial / Estado de suscripción ────────────────────────────────
+Route::post('/v1/stripe/update-plan-status',
+    \App\Http\Controllers\V1\Stripe\UpdatePlanStatusController::class
+);
+Route::middleware(['auth:sanctum'])->group(function () {
+    Route::get('/v1/stripe/plan-status',
+        \App\Http\Controllers\V1\Stripe\PlanStatusController::class
+    );
 });
