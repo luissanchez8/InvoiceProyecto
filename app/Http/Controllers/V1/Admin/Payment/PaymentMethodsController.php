@@ -11,6 +11,21 @@ use Illuminate\Http\Request;
 class PaymentMethodsController extends Controller
 {
     /**
+     * Onfactu: solo el rol "asistencia" puede crear, editar o borrar modos de
+     * pago. Centraliza la comprobación en un método privado usado desde los
+     * endpoints de escritura. El listado (index) y el detalle (show) siguen
+     * abiertos a los demás roles — sólo necesitan leerlos.
+     */
+    private function ensureAsistencia(Request $request)
+    {
+        $user = $request->user();
+        $role = $user ? strtolower(trim((string) $user->role)) : '';
+        if ($role !== 'asistencia') {
+            abort(403, 'Solo Asistencia puede gestionar los modos de pago.');
+        }
+    }
+
+    /**
      * Display a listing of the resource.
      *
      * @return \Illuminate\Http\Response
@@ -38,6 +53,7 @@ class PaymentMethodsController extends Controller
      */
     public function store(PaymentMethodRequest $request)
     {
+        $this->ensureAsistencia($request);
         $this->authorize('create', PaymentMethod::class);
 
         $paymentMethod = PaymentMethod::createPaymentMethod($request);
@@ -65,6 +81,7 @@ class PaymentMethodsController extends Controller
      */
     public function update(PaymentMethodRequest $request, PaymentMethod $paymentMethod)
     {
+        $this->ensureAsistencia($request);
         $this->authorize('update', $paymentMethod);
 
         $paymentMethod->update($request->getPaymentMethodPayload());
@@ -77,8 +94,9 @@ class PaymentMethodsController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
-    public function destroy(PaymentMethod $paymentMethod)
+    public function destroy(Request $request, PaymentMethod $paymentMethod)
     {
+        $this->ensureAsistencia($request);
         $this->authorize('delete', $paymentMethod);
 
         if ($paymentMethod->payments()->exists()) {

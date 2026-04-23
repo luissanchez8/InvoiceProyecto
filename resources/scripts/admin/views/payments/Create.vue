@@ -167,7 +167,7 @@
               :placeholder="$t('payments.select_payment_mode')"
               searchable
             >
-              <template #action>
+              <template v-if="isAsistencia" #action>
                 <BaseSelectAction @click="addPaymentMode">
                   <BaseIcon
                     name="PlusIcon"
@@ -278,6 +278,7 @@ import { usePaymentStore } from '@/scripts/admin/stores/payment'
 import { useNotificationStore } from '@/scripts/stores/notification'
 import { useCustomFieldStore } from '@/scripts/admin/stores/custom-field'
 import { useCompanyStore } from '@/scripts/admin/stores/company'
+import { useUserStore } from '@/scripts/admin/stores/user'
 import { useModalStore } from '@/scripts/stores/modal'
 import { useInvoiceStore } from '@/scripts/admin/stores/invoice'
 import { useGlobalStore } from '@/scripts/admin/stores/global'
@@ -297,9 +298,16 @@ const companyStore = useCompanyStore()
 const modalStore = useModalStore()
 const invoiceStore = useInvoiceStore()
 const globalStore = useGlobalStore()
+const userStore = useUserStore()
 
 const utils = inject('utils')
 const { t } = useI18n()
+
+// Solo Asistencia puede crear nuevos modos de pago. Para el resto,
+// se oculta el botón "Agregar modo de pago" del selector.
+const isAsistencia = computed(() =>
+  ((userStore.currentUser?.role || '') + '').trim().toLowerCase() === 'asistencia'
+)
 
 let isSaving = ref(false)
 let isLoadingInvoices = ref(false)
