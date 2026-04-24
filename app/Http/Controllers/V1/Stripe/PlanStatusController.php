@@ -32,7 +32,7 @@ class PlanStatusController extends Controller
                 if (now()->lt($end)) {
                     // Trial en curso: cuantos días quedan (redondeo hacia arriba
                     // para que el último día parcial cuente como 1 día completo).
-                    $daysLeft = (int) ceil(now()->diffInHours($end, false) / 24);
+                    $daysLeft = (int) floor(now()->diffInSeconds($end, false) / 86400);
                     if ($daysLeft < 1) $daysLeft = 1;
                 }
 
@@ -41,7 +41,7 @@ class PlanStatusController extends Controller
                 $graceEndsAt = $graceEnd->toIso8601String();
 
                 if (now()->gt($end) && now()->lt($graceEnd)) {
-                    $graceDaysLeft = (int) ceil(now()->diffInHours($graceEnd, false) / 24);
+                    $graceDaysLeft = (int) floor(now()->diffInSeconds($graceEnd, false) / 86400);
                     if ($graceDaysLeft < 1) $graceDaysLeft = 1;
                 }
             } catch (\Throwable $e) {
