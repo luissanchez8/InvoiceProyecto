@@ -267,12 +267,12 @@ const salesTaxEnabled = computed(() => {
 
 let isEdit = computed(() => route.name === 'invoices.edit')
 
-// Onfactu: el botón "Guardar como borrador" solo aparece para facturas
-// nuevas o para borradores ya existentes. Si la factura ya tiene número
-// de serie asignado (no es DRAFT), no se puede volver a borrador.
+// Onfactu: el botón "Guardar como borrador" solo aparece si aún no hay número
+// de serie asignado (factura nueva o borrador-sin-número). Si ya tiene número,
+// no se puede volver a borrador-sin-número.
 const showDraftButton = computed(() => {
   if (!isEdit.value) return true
-  return invoiceStore.newInvoice.status === 'DRAFT'
+  return !invoiceStore.newInvoice.invoice_number
 })
 
 const rules = {
@@ -324,25 +324,35 @@ watch(
 )
 
 async function submitForm() {
-  await doSave('SAVED')
+  // Onfactu: pulsar "Guardar" respeta el invoice_number del formulario.
+  // Si estamos editando un borrador y el form tiene número → se finaliza
+  // (se asigna sequence). Si ya era factura con número → se guarda sin más.
+  await doSave({ clearNumber: false })
 }
 
-// Onfactu: invocado por el botón "Guardar como borrador". Marca status=DRAFT
-// antes de enviar para que el backend no asigne número de serie.
+// Onfactu: "Guardar como borrador" → envía invoice_number vacío para que
+// el backend NO consuma número de serie. Sigue en status=DRAFT.
 async function saveAsDraft() {
-  await doSave('DRAFT')
+  await doSave({ clearNumber: true })
 }
 
-async function doSave(targetStatus) {
+async function doSave({ clearNumber }) {
   v$.value.$touch()
 
+  // Al guardar como borrador no validamos invoice_number (el required es
+  // para el otro botón). Si el usuario pulsa "Guardar como borrador" y el
+  // resto de campos están OK, seguimos adelante aunque invoice_number
+  // tenga error de validación.
   if (v$.value.$invalid) {
-    console.log('Form is invalid:', v$.value.$errors)
-    return false
+    const onlyInvoiceNumberError = clearNumber
+      && v$.value.$errors.every((e) => e.$property === 'invoice_number')
+    if (!onlyInvoiceNumberError) {
+      console.log('Form is invalid:', v$.value.$errors)
+      return false
+    }
   }
 
-  const isDraft = targetStatus === 'DRAFT'
-  if (isDraft) {
+  if (clearNumber) {
     isSavingDraft.value = true
   } else {
     isSaving.value = true
@@ -350,11 +360,18 @@ async function doSave(targetStatus) {
 
   let data = cloneDeep({
     ...invoiceStore.newInvoice,
-    status: targetStatus,
     sub_total: invoiceStore.getSubTotal,
     total: invoiceStore.getTotal,
     tax: invoiceStore.getTotalTax,
   })
+
+  if (clearNumber) {
+    // Guardar como borrador → vaciar número para que el backend no lo use.
+    data.invoice_number = null
+    data.sequence_number = null
+    data.status = 'DRAFT'
+  }
+
   if (data.discount_per_item === 'YES') {
     data.items.forEach((item, index) => {
       if (item.discount_type === 'fixed'){

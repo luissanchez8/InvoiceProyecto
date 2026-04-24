@@ -87,7 +87,7 @@ const searchData = reactive({
 
 const pageTitle = computed(() =>
   // Onfactu: si la factura está en borrador aún no tiene número de serie.
-  invoiceData.value.invoice_number || `#${invoiceData.value.id}`
+  invoiceData.value.invoice_number || t('general.draft').toUpperCase()
 )
 
 const getOrderBy = computed(() => {
@@ -584,7 +584,7 @@ onSearched = debounce(onSearched, 500)
                   text-gray-600
                 "
               >
-                {{ invoice.invoice_number || `#${invoice.id}` }}
+                {{ invoice.invoice_number || $t('general.draft').toUpperCase() }}
               </div>
               <BaseEstimateStatusBadge
                 :status="invoice.verifactu_status === 'PENDING' ? 'VERIFACTU_PENDING' : invoice.status"

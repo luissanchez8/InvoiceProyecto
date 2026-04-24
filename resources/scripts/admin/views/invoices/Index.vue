@@ -213,7 +213,7 @@
             :to="{ path: `invoices/${row.data.id}/view` }"
             :class="row.data.invoice_number ? 'font-medium text-primary-500' : 'font-medium text-gray-400 italic'"
           >
-            {{ row.data.invoice_number || `#${row.data.id}` }}
+            {{ row.data.invoice_number || $t('general.draft').toUpperCase() }}
           </router-link>
         </template>
 

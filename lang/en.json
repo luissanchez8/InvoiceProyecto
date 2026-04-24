@@ -1777,5 +1777,8 @@
     "invoices.save_as_draft": "Save as draft",
     "estimates.save_as_draft": "Save as draft",
     "proforma_invoices.save_as_draft": "Save as draft",
-    "delivery_notes.save_as_draft": "Save as draft"
+    "delivery_notes.save_as_draft": "Save as draft",
+    "general.draft": "Draft",
+    "invoices.save_invoice": "Save invoice",
+    "invoices.draft": "Draft"
 }

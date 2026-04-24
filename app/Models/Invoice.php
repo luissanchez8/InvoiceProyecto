@@ -332,19 +332,21 @@ class Invoice extends Model implements HasMedia
             $data['status'] = Invoice::STATUS_SENT;
         }
 
-        // Onfactu: si se guarda como borrador no se asigna número de serie
-        // hasta que el usuario lo finalice. Así evitamos gastar números
-        // consecutivos en facturas que todavía pueden borrarse.
-        $isDraft = ($data['status'] ?? null) === Invoice::STATUS_DRAFT;
+        // Onfactu: si el frontend NO envió invoice_number, es un borrador sin
+        // número. No consumimos serie. Si sí envió invoice_number, se guarda
+        // con el número que toque (puede ser una factura finalizada directamente
+        // o un borrador que se acaba de finalizar).
+        $savedAsDraftWithoutNumber = empty($data['invoice_number']);
 
-        if ($isDraft) {
+        if ($savedAsDraftWithoutNumber) {
             $data['invoice_number']  = null;
             $data['sequence_number'] = null;
+            $data['status'] = Invoice::STATUS_DRAFT;
         }
 
         $invoice = Invoice::create($data);
 
-        if (! $isDraft) {
+        if (! $savedAsDraftWithoutNumber) {
             $serial = (new SerialNumberFormatter)
                 ->setModel($invoice)
                 ->setCompany($invoice->company_id)
@@ -401,19 +403,27 @@ class Invoice extends Model implements HasMedia
             return 'total_invoice_amount_must_be_more_than_paid_amount';
         }
 
-        // Onfactu: detectar transición DRAFT → no-DRAFT para asignar número
-        // de serie en ese momento. Si sigue siendo DRAFT no se toca el número
-        // (queda NULL). Si ya no era DRAFT antes, se mantiene su número.
-        $wasDraft     = $this->status === Invoice::STATUS_DRAFT;
-        $nextStatus   = $data['status'] ?? $this->status;
-        $stillDraft   = $nextStatus === Invoice::STATUS_DRAFT;
-        $finalizeNow  = $wasDraft && ! $stillDraft;
-        $needsSerial  = $finalizeNow || (! $wasDraft && empty($this->invoice_number));
+        // Onfactu: se distingue borrador-sin-número del resto por tener o no
+        // invoice_number. Si antes era borrador sin número y ahora se envía
+        // un invoice_number, estamos "finalizando" el borrador y hay que
+        // asignarle sequence_number con el SerialNumberFormatter (no lo que
+        // venga del payload, para evitar huecos).
+        $wasDraftWithoutNumber  = empty($this->invoice_number);
+        $nowHasNumber           = ! empty($data['invoice_number'] ?? null);
+        $finalizingDraft        = $wasDraftWithoutNumber && $nowHasNumber;
+        $stillDraftNoNumber     = $wasDraftWithoutNumber && ! $nowHasNumber;
 
-        if ($finalizeNow) {
-            // Al finalizar un borrador no dejamos que el payload traiga un
-            // invoice_number arbitrario: lo calculamos con el Serializer.
-            unset($data['invoice_number'], $data['sequence_number']);
+        if ($stillDraftNoNumber) {
+            // Sigue siendo borrador-sin-número: no tocar número/sequence.
+            $data['invoice_number']  = null;
+            $data['sequence_number'] = null;
+            $data['status']          = Invoice::STATUS_DRAFT;
+        }
+
+        if ($finalizingDraft) {
+            // Al finalizar el borrador ignoramos cualquier sequence_number
+            // que pueda venir del payload; lo calculamos ahora.
+            unset($data['sequence_number']);
         }
 
         $serial = (new SerialNumberFormatter)
@@ -423,7 +433,7 @@ class Invoice extends Model implements HasMedia
             ->setModelObject($this->id)
             ->setNextNumbers();
 
-        if (! $stillDraft) {
+        if (! $stillDraftNoNumber) {
             $data['customer_sequence_number'] = $serial->nextCustomerSequenceNumber;
         }
 
@@ -438,9 +448,8 @@ class Invoice extends Model implements HasMedia
 
         $this->update($data);
 
-        // Si acabamos de finalizar un borrador, generar el número de serie.
-        if ($needsSerial) {
-            $this->invoice_number  = $serial->getNextNumber();
+        // Si acabamos de finalizar un borrador, asignar sequence_number.
+        if ($finalizingDraft) {
             $this->sequence_number = $serial->nextSequenceNumber;
             $this->save();
         }

@@ -1782,5 +1782,8 @@
     "invoices.save_as_draft": "Guardar como borrador",
     "estimates.save_as_draft": "Guardar como borrador",
     "proforma_invoices.save_as_draft": "Guardar como borrador",
-    "delivery_notes.save_as_draft": "Guardar como borrador"
+    "delivery_notes.save_as_draft": "Guardar como borrador",
+    "general.draft": "Borrador",
+    "invoices.save_invoice": "Guardar factura",
+    "invoices.draft": "Borrador"
 }
