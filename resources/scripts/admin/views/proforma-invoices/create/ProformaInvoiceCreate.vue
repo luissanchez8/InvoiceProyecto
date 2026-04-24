@@ -18,11 +18,13 @@
   <SelectTemplateModal />
   <ItemModal />
   <TaxTypeModal />
-  <NumberCollisionDialog
-    :visible="showCollisionDialog"
-    :details="numberCollision"
-    doc-type="proforma-invoice"
-    @close="numberCollision = null"
+  <NumberWarningDialog
+    :visible="showNumberWarning"
+    :loading="isSaving || isSavingDraft"
+    :title="$t('proforma_invoices.number_warning_title')"
+    :messages="numberWarningMessages"
+    @confirm="onConfirmNumberWarning"
+    @cancel="onCancelNumberWarning"
   />
 
   <BasePage class="relative invoice-create-page">
@@ -37,8 +39,23 @@
 
         <template #actions>
           <BaseButton
+            v-if="showDraftButton"
+            :loading="isSavingDraft"
+            :disabled="isSavingDraft || isSaving"
+            variant="primary-outline"
+            type="button"
+            class="mr-3"
+            @click="saveAsDraft"
+          >
+            <template #left="slotProps">
+              <BaseIcon v-if="!isSavingDraft" name="DocumentIcon" :class="slotProps.class" />
+            </template>
+            {{ $t('proforma_invoices.save_as_draft') }}
+          </BaseButton>
+
+          <BaseButton
             :loading="isSaving"
-            :disabled="isSaving"
+            :disabled="isSaving || isSavingDraft"
             variant="primary"
             type="submit"
           >
@@ -95,13 +112,12 @@
           <BaseInputGroup
             :label="$t('pdf_proforma_invoice_number')"
             :content-loading="isLoadingContent"
-            :help-text="$t('proforma_invoices.proforma_invoice_number_help')"
             :error="v$.proforma_invoice_number.$error && v$.proforma_invoice_number.$errors[0].$message"
+            required
           >
             <BaseInput
               v-model="proformaInvoiceStore.newProformaInvoice.proforma_invoice_number"
               :content-loading="isLoadingContent"
-              :placeholder="$t('proforma_invoices.proforma_invoice_number_placeholder')"
               @input="v$.proforma_invoice_number.$touch()"
             />
           </BaseInputGroup>
@@ -200,7 +216,8 @@ import CreateCustomFields from '@/scripts/admin/components/custom-fields/CreateC
 import SelectTemplateModal from '@/scripts/admin/components/modal-components/SelectTemplateModal.vue'
 import TaxTypeModal from '@/scripts/admin/components/modal-components/TaxTypeModal.vue'
 import ItemModal from '@/scripts/admin/components/modal-components/ItemModal.vue'
-import NumberCollisionDialog from '@/scripts/admin/components/modal-components/NumberCollisionDialog.vue'
+import NumberWarningDialog from '@/scripts/admin/components/dialogs/NumberWarningDialog.vue'
+import axios from 'axios'
 
 const proformaInvoiceStore = useProformaInvoiceStore()
 const companyStore = useCompanyStore()
@@ -212,12 +229,24 @@ const router = useRouter()
 
 const validationScope = 'newProformaInvoice'
 let isSaving = ref(false)
+let isSavingDraft = ref(false)
+
+// Onfactu: modal de aviso
+const showNumberWarning = ref(false)
+const numberWarningMessages = ref([])
+const pendingSaveOptions = ref(null)
 
 // Lista de tipos de notas disponibles en el selector
 const noteFieldList = ref(['customer', 'company', 'customerCustom', 'invoice', 'invoiceCustom'])
 
 // Detectar si estamos en modo edición por el nombre de la ruta
 let isEdit = computed(() => route.name === 'proformaInvoices.edit')
+
+// Onfactu: botón borrador solo si aún no hay número.
+const showDraftButton = computed(() => {
+  if (!isEdit.value) return true
+  return !proformaInvoiceStore.newProformaInvoice.proforma_invoice_number
+})
 
 let isLoadingContent = computed(
   () => proformaInvoiceStore.isFetchingProformaInvoice || proformaInvoiceStore.isFetchingInitialSettings
@@ -236,12 +265,7 @@ const rules = {
     required: helpers.withMessage(t('validation.required'), required),
   },
   proforma_invoice_number: {
-    // Onfactu — numeración diferida: OPCIONAL.
-    // Si se deja vacío, se asigna al enviar la proforma.
-    maxLength: helpers.withMessage(
-      t('validation.name_max_length'),
-      maxLength(100)
-    ),
+    required: helpers.withMessage(t('validation.required'), required),
   },
 }
 
@@ -281,42 +305,98 @@ watch(
 
 /**
  * Envía el formulario al backend.
- * Prepara los datos calculando subtotal, total e impuestos desde los getters.
+ * Onfactu: antes de guardar, consulta el endpoint y si detecta hueco de
+ * número, fecha anterior o año distinto, muestra modal. Si no, guarda.
  */
-
-// ── Onfactu — numeración diferida ──────────────────────────────────────────
-const numberCollision = ref(null)
-const showCollisionDialog = computed({
-  get: () => numberCollision.value !== null,
-  set: (val) => {
-    if (!val) numberCollision.value = null
-  },
-})
-
-function isUnchangedSuggestion(numberInForm) {
-  const suggestion = proformaInvoiceStore.suggestedProformaInvoiceNumber
-  if (!suggestion) return false
-  return String(numberInForm || '').trim() === String(suggestion).trim()
-}
-
-// Al guardar como borrador, opción C:
-//  - Sugerencia "clean" (MAX+1 puro) y no tocada → null (libera el número).
-//  - Sugerencia "skipped" (salto por hueco) y no tocada → se persiste literal.
-//  - Usuario cambió el número → se respeta el valor manual.
-function resolveNumberForDraft(data) {
-  if (isUnchangedSuggestion(data.proforma_invoice_number)) {
-    if (!proformaInvoiceStore.suggestedProformaInvoiceNumberIsSkipped) {
-      data.proforma_invoice_number = null
-    }
-  }
-  return data
-}
-
 async function submitForm() {
+  await preSave({ clearNumber: false })
+}
+
+async function saveAsDraft() {
+  await doSave({ clearNumber: true })
+}
+
+async function preSave({ clearNumber }) {
   v$.value.$touch()
   if (v$.value.$invalid) return false
 
-  isSaving.value = true
+  let info = null
+  try {
+    const resp = await axios.get('/api/v1/proforma-invoices/next-number-info')
+    info = resp.data
+  } catch (err) {
+    console.warn('Could not fetch proforma next-number-info:', err)
+    return doSave({ clearNumber })
+  }
+
+  const warnings = []
+  const currentNumber = proformaInvoiceStore.newProformaInvoice.proforma_invoice_number
+  const currentDate = proformaInvoiceStore.newProformaInvoice.proforma_invoice_date
+
+  if (info.next_expected_sequence !== null && info.next_expected_sequence !== undefined && currentNumber) {
+    const expectedSeq = parseInt(info.next_expected_sequence)
+    const match = String(currentNumber).match(/(\d+)$/)
+    if (match) {
+      const enteredSeq = parseInt(match[1], 10)
+      if (enteredSeq > expectedSeq) {
+        const prefixMatch = String(currentNumber).match(/^(.*?)(\d+)$/)
+        const prefix = prefixMatch ? prefixMatch[1] : ''
+        const width = match[1].length
+        const expectedNumber = prefix + String(expectedSeq).padStart(width, '0')
+        warnings.push(t('proforma_invoices.warning_number_skip', { expected: expectedNumber, entered: currentNumber }))
+      } else if (enteredSeq < expectedSeq && !isEdit.value) {
+        warnings.push(t('proforma_invoices.warning_number_below', { entered: currentNumber, last: info.last_number }))
+      }
+    }
+  }
+
+  if (info.last_numbered_date && currentDate) {
+    if (new Date(currentDate) < new Date(info.last_numbered_date)) {
+      warnings.push(t('proforma_invoices.warning_date_earlier', { date: info.last_numbered_date }))
+    }
+  }
+
+  if (currentDate) {
+    const entered = new Date(currentDate)
+    if (!isNaN(entered.getTime())) {
+      const enteredYear = entered.getFullYear()
+      const currentYear = new Date().getFullYear()
+      if (enteredYear !== currentYear) {
+        warnings.push(t('proforma_invoices.warning_year_mismatch', { entered: enteredYear, current: currentYear }))
+      }
+    }
+  }
+
+  if (warnings.length > 0) {
+    numberWarningMessages.value = warnings
+    pendingSaveOptions.value = { clearNumber }
+    showNumberWarning.value = true
+    return
+  }
+
+  return doSave({ clearNumber })
+}
+
+function onConfirmNumberWarning() {
+  showNumberWarning.value = false
+  const opts = pendingSaveOptions.value || { clearNumber: false }
+  pendingSaveOptions.value = null
+  doSave(opts)
+}
+
+function onCancelNumberWarning() {
+  showNumberWarning.value = false
+  pendingSaveOptions.value = null
+  isSaving.value = false
+  isSavingDraft.value = false
+}
+
+async function doSave({ clearNumber }) {
+  if (clearNumber) {
+    isSavingDraft.value = true
+  } else {
+    isSaving.value = true
+  }
 
   // Clonar datos del store y añadir cálculos
   let data = cloneDeep({
@@ -326,8 +406,11 @@ async function submitForm() {
     tax: proformaInvoiceStore.getTotalTax,
   })
 
-  // Numeración diferida: descarta sugerencia no tocada
-  data = resolveNumberForDraft(data)
+  if (clearNumber) {
+    data.proforma_invoice_number = null
+    data.sequence_number         = null
+    data.status                  = 'DRAFT'
+  }
 
   // Convertir descuentos fijos a céntimos para el backend
   if (data.discount_per_item === 'YES') {
@@ -350,16 +433,10 @@ async function submitForm() {
     const response = await action(data)
     router.push(`/admin/proforma-invoices/${response.data.data.id}/view`)
   } catch (err) {
-    // Captura colisión 409 también aquí por si el usuario puso un número ya ocupado
-    const status = err?.response?.status
-    const errorCode = err?.response?.data?.error_code
-    if (status === 409 && errorCode === 'number_collision') {
-      numberCollision.value = err.response.data.details || {}
-    } else {
-      console.error(err)
-    }
+    console.error(err)
   }
 
   isSaving.value = false
+  isSavingDraft.value = false
 }
 </script>

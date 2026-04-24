@@ -33,7 +33,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
-use Illuminate\Support\Facades\DB;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 use Vinkla\Hashids\Facades\Hashids;
@@ -69,7 +68,6 @@ class ProformaInvoice extends Model implements HasMedia
         'formattedProformaInvoiceDate',
         'formattedExpiryDate',
         'proformaInvoicePdfUrl',
-        'allow_edit',
     ];
 
     protected function casts(): array
@@ -269,6 +267,15 @@ class ProformaInvoice extends Model implements HasMedia
      * Crea una factura proforma a partir de los datos del request.
      * Genera número de secuencia, hash único y crea ítems + impuestos.
      */
+    public static function extractSequenceFromNumber(?string $number): ?int
+    {
+        if (! $number) return null;
+        if (preg_match('/(\d+)\s*$/', $number, $m)) {
+            return (int) $m[1];
+        }
+        return null;
+    }
+
     public static function createProformaInvoice($request)
     {
         $data = $request->getProformaInvoicePayload();
@@ -277,15 +284,31 @@ class ProformaInvoice extends Model implements HasMedia
             $data['status'] = self::STATUS_SENT;
         }
 
-        // Onfactu — numeración diferida:
-        // proforma_invoice_number y sequence_number quedan NULL en borrador.
-        // Si el usuario ha escrito un número manualmente, se respeta.
-        // El número se asignará al ENVIAR la proforma (DRAFT → SENT).
-        if (empty($data['proforma_invoice_number'])) {
+        // Onfactu: borrador sin número.
+        $savedAsDraftWithoutNumber = empty($data['proforma_invoice_number']);
+
+        if ($savedAsDraftWithoutNumber) {
             $data['proforma_invoice_number'] = null;
+            $data['sequence_number']         = null;
+            $data['status']                  = self::STATUS_DRAFT;
         }
 
         $proformaInvoice = self::create($data);
+
+        if (! $savedAsDraftWithoutNumber) {
+            $serial = (new SerialNumberFormatter)
+                ->setModel($proformaInvoice)
+                ->setCompany($proformaInvoice->company_id)
+                ->setCustomer($proformaInvoice->customer_id)
+                ->setNextNumbers();
+
+            $parsedSeq = self::extractSequenceFromNumber($proformaInvoice->proforma_invoice_number);
+            $proformaInvoice->sequence_number = $parsedSeq !== null
+                ? $parsedSeq
+                : $serial->nextSequenceNumber;
+
+            $proformaInvoice->customer_sequence_number = $serial->nextCustomerSequenceNumber;
+        }
 
         $proformaInvoice->unique_hash = Hashids::connection(self::class)->encode($proformaInvoice->id);
         $proformaInvoice->save();
@@ -319,15 +342,44 @@ class ProformaInvoice extends Model implements HasMedia
      */
     public function updateProformaInvoice($request)
     {
-        // Onfactu — numeración diferida:
-        // No recalculamos sequence_number en update. Se asigna al enviar.
         $data = $request->getProformaInvoicePayload();
 
-        if (empty($data['proforma_invoice_number'])) {
+        // Onfactu: detectar transición borrador-sin-número → con número.
+        $wasDraftWithoutNumber = empty($this->proforma_invoice_number);
+        $nowHasNumber          = ! empty($data['proforma_invoice_number'] ?? null);
+        $finalizingDraft       = $wasDraftWithoutNumber && $nowHasNumber;
+        $stillDraftNoNumber    = $wasDraftWithoutNumber && ! $nowHasNumber;
+
+        if ($stillDraftNoNumber) {
             $data['proforma_invoice_number'] = null;
+            $data['sequence_number']         = null;
+            $data['status']                  = self::STATUS_DRAFT;
+        }
+
+        if ($finalizingDraft) {
+            unset($data['sequence_number']);
+        }
+
+        $serial = (new SerialNumberFormatter)
+            ->setModel($this)
+            ->setCompany($this->company_id)
+            ->setCustomer($request->customer_id)
+            ->setModelObject($this->id)
+            ->setNextNumbers();
+
+        if (! $stillDraftNoNumber) {
+            $data['customer_sequence_number'] = $serial->nextCustomerSequenceNumber;
         }
 
         $this->update($data);
+
+        if ($finalizingDraft) {
+            $parsedSeq = self::extractSequenceFromNumber($this->proforma_invoice_number);
+            $this->sequence_number = $parsedSeq !== null
+                ? $parsedSeq
+                : $serial->nextSequenceNumber;
+            $this->save();
+        }
 
         // Registrar tipo de cambio
         $company_currency = CompanySetting::getSetting('currency', $request->header('company'));
@@ -472,11 +524,22 @@ class ProformaInvoice extends Model implements HasMedia
             'sales_tax_address_type' => $this->sales_tax_address_type,
         ]);
 
-        // Onfactu — numeración diferida:
-        // La factura resultante nace como un borrador sin número. El número
-        // se asignará cuando el usuario apruebe la factura (VeriFactu).
-        // sequence_number y customer_sequence_number quedan NULL.
+        // Generar número y secuencia de la factura
+        $serial = (new SerialNumberFormatter)
+            ->setModel($invoice)
+            ->setCompany($invoice->company_id)
+            ->setCustomer($invoice->customer_id)
+            ->setNextNumbers();
+
+        $invoice->sequence_number = $serial->nextSequenceNumber;
+        $invoice->customer_sequence_number = $serial->nextCustomerSequenceNumber;
         $invoice->unique_hash = Hashids::connection(Invoice::class)->encode($invoice->id);
+        $invoice->invoice_number = (new SerialNumberFormatter)
+            ->setModel(new Invoice)
+            ->setCompany($invoice->company_id)
+            ->setCustomer($invoice->customer_id)
+            ->setModelObject($invoice->id)
+            ->getNextNumber();
         $invoice->save();
 
         // Copiar ítems de la proforma a la factura
@@ -501,196 +564,6 @@ class ProformaInvoice extends Model implements HasMedia
         ]);
 
         return $invoice;
-    }
-
-    /**
-     * Asigna número de proforma — Onfactu numeración diferida.
-     *
-     * Se invoca al ENVIAR la proforma (DRAFT → SENT). Mismo patrón que
-     * Invoice::assignNumber() y Estimate::assignNumber().
-     */
-    public function assignNumber(): self
-    {
-        return DB::transaction(function () {
-            $this->acquireNumberLock();
-
-            $lastAuto = ProformaInvoice::where('company_id', $this->company_id)
-                ->whereNotNull('sequence_number')
-                ->max('sequence_number');
-
-            $nextSeq = ($lastAuto ? (int) $lastAuto : 0) + 1;
-            $autoCandidate = $this->formatSerialForSequence($nextSeq);
-
-            if (! empty($this->proforma_invoice_number)) {
-                $autoSeq = $this->detectAutoSequenceNumber($this->proforma_invoice_number, $nextSeq);
-                $isAutoCandidate = ($autoSeq !== null);
-
-                $conflict = ProformaInvoice::where('company_id', $this->company_id)
-                    ->where('proforma_invoice_number', $this->proforma_invoice_number)
-                    ->where('id', '<>', $this->id)
-                    ->first();
-
-                if ($conflict) {
-                    if ($conflict->status === self::STATUS_DRAFT) {
-                        throw new \App\Exceptions\NumberCollisionException(
-                            "Ya existe un borrador con el número '{$this->proforma_invoice_number}'. "
-                            . 'Para continuar, edita ese borrador y cambia o libera su número, o elimínalo.',
-                            [
-                                'conflicting_id' => $conflict->id,
-                                'conflicting_number' => $conflict->proforma_invoice_number,
-                                'conflicting_status' => $conflict->status,
-                                'attempted_number' => $this->proforma_invoice_number,
-                            ]
-                        );
-                    }
-
-                    if ($isAutoCandidate) {
-                        [$nextSeq, $newCandidate] = $this->findNextFreeSequence($nextSeq);
-                        $this->proforma_invoice_number = $newCandidate;
-                        $this->sequence_number = $nextSeq;
-                    } else {
-                        throw new \App\Exceptions\NumberCollisionException(
-                            "El número '{$this->proforma_invoice_number}' ya está asignado a una proforma {$conflict->status} y no puede reutilizarse.",
-                            [
-                                'conflicting_id' => $conflict->id,
-                                'conflicting_number' => $conflict->proforma_invoice_number,
-                                'conflicting_status' => $conflict->status,
-                                'attempted_number' => $this->proforma_invoice_number,
-                            ]
-                        );
-                    }
-                } else {
-                    if ($isAutoCandidate) {
-                        $this->sequence_number = $nextSeq;
-                    }
-                }
-            } else {
-                $candidate = $autoCandidate;
-
-                $conflict = ProformaInvoice::where('company_id', $this->company_id)
-                    ->where('proforma_invoice_number', $candidate)
-                    ->where('id', '<>', $this->id)
-                    ->first();
-
-                if ($conflict) {
-                    if ($conflict->status === self::STATUS_DRAFT) {
-                        throw new \App\Exceptions\NumberCollisionException(
-                            "Ya existe un borrador con el número '{$candidate}'. "
-                            . 'Para continuar, edita ese borrador y cambia o libera su número, o elimínalo.',
-                            [
-                                'conflicting_id' => $conflict->id,
-                                'conflicting_number' => $conflict->proforma_invoice_number,
-                                'conflicting_status' => $conflict->status,
-                                'attempted_number' => $candidate,
-                            ]
-                        );
-                    }
-                    [$nextSeq, $candidate] = $this->findNextFreeSequence($nextSeq);
-                }
-
-                $this->proforma_invoice_number = $candidate;
-                $this->sequence_number = $nextSeq;
-            }
-
-            if (empty($this->customer_sequence_number)) {
-                $lastCustSeq = ProformaInvoice::where('company_id', $this->company_id)
-                    ->where('customer_id', $this->customer_id)
-                    ->whereNotNull('customer_sequence_number')
-                    ->max('customer_sequence_number');
-                $this->customer_sequence_number = ($lastCustSeq ? (int) $lastCustSeq : 0) + 1;
-            }
-
-            $this->save();
-
-            return $this->fresh();
-        });
-    }
-
-    /**
-     * @return array{0:int, 1:string}
-     */
-    protected function findNextFreeSequence(int $startSeq): array
-    {
-        $maxAttempts = 1000;
-        $seq = $startSeq + 1;
-
-        for ($i = 0; $i < $maxAttempts; $i++) {
-            $candidate = $this->formatSerialForSequence($seq);
-
-            $exists = ProformaInvoice::where('company_id', $this->company_id)
-                ->where('proforma_invoice_number', $candidate)
-                ->where('id', '<>', $this->id)
-                ->exists();
-
-            if (! $exists) {
-                return [$seq, $candidate];
-            }
-
-            $seq++;
-        }
-
-        throw new \RuntimeException(
-            'No se encontró un número libre tras ' . $maxAttempts . ' intentos.'
-        );
-    }
-
-    /**
-     * Lock serializado por empresa. Ver Invoice::acquireNumberLock().
-     */
-    protected function acquireNumberLock(): void
-    {
-        $driver = DB::connection()->getDriverName();
-        $companyId = (int) $this->company_id;
-
-        if ($driver === 'pgsql') {
-            // Onfactu — int32 signed safety (ver Invoice::acquireNumberLock).
-            $tableKey = crc32('proforma_invoices') & 0x7FFFFFFF;
-            DB::statement('SELECT pg_advisory_xact_lock(?, ?)', [$tableKey, $companyId]);
-        } elseif ($driver === 'mysql') {
-            $lockName = "proforma_invoices_numbering_{$companyId}";
-            DB::statement('SELECT GET_LOCK(?, 10)', [$lockName]);
-        }
-    }
-
-    /**
-     * Formatea un proforma_invoice_number para un sequence_number concreto.
-     */
-    protected function formatSerialForSequence(int $sequence): string
-    {
-        $format = CompanySetting::getSetting('proformainvoice_number_format', $this->company_id)
-            ?: '{{SERIES:PRF}}{{DELIMITER:-}}{{SEQUENCE:6}}';
-
-        $placeholders = SerialNumberFormatter::getPlaceholders($format);
-
-        $result = '';
-        foreach ($placeholders as $p) {
-            $name = $p['name'];
-            $value = $p['value'];
-
-            switch ($name) {
-                case 'SEQUENCE':
-                    $value = $value ?: 6;
-                    $result .= str_pad((string) $sequence, (int) $value, '0', STR_PAD_LEFT);
-                    break;
-                case 'DATE_FORMAT':
-                    $result .= date($value ?: 'Y');
-                    break;
-                case 'RANDOM_SEQUENCE':
-                    $value = $value ?: 6;
-                    $result .= substr(bin2hex(random_bytes((int) $value)), 0, (int) $value);
-                    break;
-                case 'CUSTOMER_SERIES':
-                    $result .= ($this->customer && $this->customer->prefix) ? $this->customer->prefix : 'CST';
-                    break;
-                case 'CUSTOMER_SEQUENCE':
-                    $result .= str_pad((string) ($this->customer_sequence_number ?? 1), (int) ($value ?: 6), '0', STR_PAD_LEFT);
-                    break;
-                default:
-                    $result .= $value;
-            }
-        }
-
-        return $result;
     }
 
     // =====================================================================

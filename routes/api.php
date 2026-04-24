@@ -50,6 +50,8 @@ use App\Http\Controllers\V1\Admin\Invoice\SendInvoiceController;
 use App\Http\Controllers\V1\Admin\Invoice\SendInvoicePreviewController;
 use App\Http\Controllers\V1\Admin\Invoice\VerifactuController;
 use App\Http\Controllers\V1\Admin\Invoice\NextNumberController as InvoiceNextNumberController;
+use App\Http\Controllers\V1\Admin\ProformaInvoice\NextNumberController as ProformaNextNumberController;
+use App\Http\Controllers\V1\Admin\DeliveryNote\NextNumberController as DeliveryNextNumberController;
 use App\Http\Controllers\V1\Admin\Invoice\ApproveInvoiceController;
 use App\Http\Controllers\V1\Admin\Item\ItemsController;
 use App\Http\Controllers\V1\Admin\Item\UnitsController;
@@ -311,6 +313,8 @@ Route::prefix('/v1')->group(function () {
 
             Route::post('/proforma-invoices/delete', [\App\Http\Controllers\V1\Admin\ProformaInvoice\ProformaInvoicesController::class, 'delete']);
 
+            Route::get('/proforma-invoices/next-number-info', ProformaNextNumberController::class);
+
             Route::apiResource('proforma-invoices', \App\Http\Controllers\V1\Admin\ProformaInvoice\ProformaInvoicesController::class);
 
             // Delivery Notes (Albaranes)
@@ -323,6 +327,8 @@ Route::prefix('/v1')->group(function () {
             Route::post('/delivery-notes/{delivery_note}/send', [\App\Http\Controllers\V1\Admin\DeliveryNote\SendDeliveryNoteController::class, '__invoke']);
 
             Route::post('/delivery-notes/delete', [\App\Http\Controllers\V1\Admin\DeliveryNote\DeliveryNotesController::class, 'delete']);
+
+            Route::get('/delivery-notes/next-number-info', DeliveryNextNumberController::class);
 
             Route::apiResource('delivery-notes', \App\Http\Controllers\V1\Admin\DeliveryNote\DeliveryNotesController::class);
 

@@ -15,7 +15,6 @@ import { useDialogStore } from '@/scripts/stores/dialog'
 import { useModalStore } from '@/scripts/stores/modal'
 import { useUserStore } from '@/scripts/admin/stores/user'
 import SendInvoiceModal from '@/scripts/admin/components/modal-components/SendInvoiceModal.vue'
-import NumberCollisionDialog from '@/scripts/admin/components/modal-components/NumberCollisionDialog.vue'
 import DeliveryNoteDropdown from '@/scripts/admin/components/dropdowns/DeliveryNoteIndexDropdown.vue'
 import LoadingIcon from '@/scripts/components/icons/LoadingIcon.vue'
 import abilities from '@/scripts/admin/stub/abilities'
@@ -37,22 +36,13 @@ const lastPageNumber = ref(1)
 const sidebarListSection = ref(null)
 const isLoading = ref(false)
 
-// Onfactu — numeración diferida: modal de colisión al marcar como enviado
-const numberCollision = ref(null)
-const showCollisionDialog = computed({
-  get: () => numberCollision.value !== null,
-  set: (val) => {
-    if (!val) numberCollision.value = null
-  },
-})
-
 const searchData = reactive({
   orderBy: null,
   orderByField: null,
   searchText: null,
 })
 
-const pageTitle = computed(() => deliveryNoteData.value?.delivery_note_number || t('delivery_notes.draft_number'))
+const pageTitle = computed(() => deliveryNoteData.value?.delivery_note_number || t('general.draft').toUpperCase())
 
 const shareableLink = computed(() => {
   if (!deliveryNoteData.value?.unique_hash) return ''
@@ -146,26 +136,8 @@ async function onMarkAsSent() {
     variant: 'primary',
   })
   if (confirmed) {
-    try {
-      await deliveryNoteStore.markAsSent({ id: deliveryNoteData.value.id })
-      deliveryNoteData.value.status = 'SENT'
-
-      // Refrescar para ver el número recién asignado
-      deliveryNoteStore.fetchDeliveryNote(deliveryNoteData.value.id).then((res) => {
-        if (res?.data?.data) {
-          deliveryNoteData.value = res.data.data
-        }
-      }).catch(() => {})
-    } catch (err) {
-      // Onfactu — numeración diferida: captura 409 de colisión
-      const status = err?.response?.status
-      const errorCode = err?.response?.data?.error_code
-      if (status === 409 && errorCode === 'number_collision') {
-        numberCollision.value = err.response.data.details || {}
-      } else {
-        console.error(err)
-      }
-    }
+    await deliveryNoteStore.markAsSent({ id: deliveryNoteData.value.id })
+    deliveryNoteData.value.status = 'SENT'
   }
 }
 
@@ -210,12 +182,6 @@ onSearched = debounce(onSearched, 500)
 
 <template>
   <SendInvoiceModal @update="updateSentDeliveryNote" />
-  <NumberCollisionDialog
-    :visible="showCollisionDialog"
-    :details="numberCollision"
-    doc-type="delivery-note"
-    @close="numberCollision = null"
-  />
 
   <BasePage v-if="deliveryNoteData" class="xl:pl-96 xl:ml-8">
     <BasePageHeader :title="pageTitle">
@@ -298,7 +264,7 @@ onSearched = debounce(onSearched, 500)
                 class="pr-2 mb-2 text-sm not-italic font-normal leading-5 text-black capitalize truncate"
               />
               <div class="mt-1 mb-2 text-xs not-italic font-medium leading-5 text-gray-600">
-                {{ item.delivery_note_number || $t('delivery_notes.draft_number') }}
+                {{ item.delivery_note_number || $t('general.draft').toUpperCase() }}
               </div>
               <BaseInvoiceStatusBadge :status="item.status" class="px-1 text-xs">
                 <BaseInvoiceStatusLabel :status="item.status" />

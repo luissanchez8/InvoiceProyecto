@@ -15,7 +15,6 @@ import { useDialogStore } from '@/scripts/stores/dialog'
 import { useModalStore } from '@/scripts/stores/modal'
 import { useUserStore } from '@/scripts/admin/stores/user'
 import SendInvoiceModal from '@/scripts/admin/components/modal-components/SendInvoiceModal.vue'
-import NumberCollisionDialog from '@/scripts/admin/components/modal-components/NumberCollisionDialog.vue'
 import ProformaInvoiceDropdown from '@/scripts/admin/components/dropdowns/ProformaInvoiceIndexDropdown.vue'
 import LoadingIcon from '@/scripts/components/icons/LoadingIcon.vue'
 import abilities from '@/scripts/admin/stub/abilities'
@@ -38,15 +37,6 @@ const lastPageNumber = ref(1)
 const sidebarListSection = ref(null)
 const isLoading = ref(false)
 
-// Onfactu — numeración diferida: modal de colisión
-const numberCollision = ref(null)
-const showCollisionDialog = computed({
-  get: () => numberCollision.value !== null,
-  set: (val) => {
-    if (!val) numberCollision.value = null
-  },
-})
-
 const searchData = reactive({
   orderBy: null,
   orderByField: null,
@@ -54,7 +44,7 @@ const searchData = reactive({
 })
 
 // --- Computados ---
-const pageTitle = computed(() => proformaInvoiceData.value?.proforma_invoice_number || t('proforma_invoices.draft_number'))
+const pageTitle = computed(() => proformaInvoiceData.value?.proforma_invoice_number || t('general.draft').toUpperCase())
 
 const shareableLink = computed(() => {
   if (!proformaInvoiceData.value?.unique_hash) return ''
@@ -159,26 +149,8 @@ async function onMarkAsSent() {
     variant: 'primary',
   })
   if (confirmed) {
-    try {
-      await proformaInvoiceStore.markAsSent({ id: proformaInvoiceData.value.id })
-      proformaInvoiceData.value.status = 'SENT'
-
-      // Refrescar la proforma para ver el número recién asignado
-      proformaInvoiceStore.fetchProformaInvoice(proformaInvoiceData.value.id).then((res) => {
-        if (res?.data?.data) {
-          proformaInvoiceData.value = res.data.data
-        }
-      }).catch(() => {})
-    } catch (err) {
-      // Onfactu — numeración diferida: captura 409 de colisión
-      const status = err?.response?.status
-      const errorCode = err?.response?.data?.error_code
-      if (status === 409 && errorCode === 'number_collision') {
-        numberCollision.value = err.response.data.details || {}
-      } else {
-        console.error(err)
-      }
-    }
+    await proformaInvoiceStore.markAsSent({ id: proformaInvoiceData.value.id })
+    proformaInvoiceData.value.status = 'SENT'
   }
 }
 
@@ -224,12 +196,6 @@ onSearched = debounce(onSearched, 500)
 
 <template>
   <SendInvoiceModal @update="updateSentProformaInvoice" />
-  <NumberCollisionDialog
-    :visible="showCollisionDialog"
-    :details="numberCollision"
-    doc-type="proforma-invoice"
-    @close="numberCollision = null"
-  />
 
   <BasePage v-if="proformaInvoiceData" class="xl:pl-96 xl:ml-8">
     <!-- Cabecera con botones de acción -->
@@ -315,7 +281,7 @@ onSearched = debounce(onSearched, 500)
                 class="pr-2 mb-2 text-sm not-italic font-normal leading-5 text-black capitalize truncate"
               />
               <div class="mt-1 mb-2 text-xs not-italic font-medium leading-5 text-gray-600">
-                {{ item.proforma_invoice_number || $t('proforma_invoices.draft_number') }}
+                {{ item.proforma_invoice_number || $t('general.draft').toUpperCase() }}
               </div>
               <BaseInvoiceStatusBadge :status="item.status" class="px-1 text-xs">
                 <BaseInvoiceStatusLabel :status="item.status" />

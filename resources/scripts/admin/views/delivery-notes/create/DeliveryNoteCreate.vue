@@ -9,11 +9,13 @@
   <SelectTemplateModal />
   <ItemModal />
   <TaxTypeModal />
-  <NumberCollisionDialog
-    :visible="showCollisionDialog"
-    :details="numberCollision"
-    doc-type="delivery-note"
-    @close="numberCollision = null"
+  <NumberWarningDialog
+    :visible="showNumberWarning"
+    :loading="isSaving || isSavingDraft"
+    :title="$t('delivery_notes.number_warning_title')"
+    :messages="numberWarningMessages"
+    @confirm="onConfirmNumberWarning"
+    @cancel="onCancelNumberWarning"
   />
 
   <BasePage class="relative invoice-create-page">
@@ -27,8 +29,23 @@
 
         <template #actions>
           <BaseButton
+            v-if="showDraftButton"
+            :loading="isSavingDraft"
+            :disabled="isSavingDraft || isSaving"
+            variant="primary-outline"
+            type="button"
+            class="mr-3"
+            @click="saveAsDraft"
+          >
+            <template #left="slotProps">
+              <BaseIcon v-if="!isSavingDraft" name="DocumentIcon" :class="slotProps.class" />
+            </template>
+            {{ $t('delivery_notes.save_as_draft') }}
+          </BaseButton>
+
+          <BaseButton
             :loading="isSaving"
-            :disabled="isSaving"
+            :disabled="isSaving || isSavingDraft"
             variant="primary"
             type="submit"
           >
@@ -84,13 +101,12 @@
           <BaseInputGroup
             :label="$t('pdf_delivery_note_number')"
             :content-loading="isLoadingContent"
-            :help-text="$t('delivery_notes.delivery_note_number_help')"
             :error="v$.delivery_note_number.$error && v$.delivery_note_number.$errors[0].$message"
+            required
           >
             <BaseInput
               v-model="deliveryNoteStore.newDeliveryNote.delivery_note_number"
               :content-loading="isLoadingContent"
-              :placeholder="$t('delivery_notes.delivery_note_number_placeholder')"
               @input="v$.delivery_note_number.$touch()"
             />
           </BaseInputGroup>
@@ -159,7 +175,7 @@
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { required, maxLength, helpers } from '@vuelidate/validators'
+import { required, helpers } from '@vuelidate/validators'
 import useVuelidate from '@vuelidate/core'
 import { cloneDeep } from 'lodash'
 
@@ -175,7 +191,8 @@ import CreateCustomFields from '@/scripts/admin/components/custom-fields/CreateC
 import SelectTemplateModal from '@/scripts/admin/components/modal-components/SelectTemplateModal.vue'
 import TaxTypeModal from '@/scripts/admin/components/modal-components/TaxTypeModal.vue'
 import ItemModal from '@/scripts/admin/components/modal-components/ItemModal.vue'
-import NumberCollisionDialog from '@/scripts/admin/components/modal-components/NumberCollisionDialog.vue'
+import NumberWarningDialog from '@/scripts/admin/components/dialogs/NumberWarningDialog.vue'
+import axios from 'axios'
 
 const deliveryNoteStore = useDeliveryNoteStore()
 const companyStore = useCompanyStore()
@@ -187,10 +204,22 @@ const router = useRouter()
 
 const validationScope = 'newDeliveryNote'
 let isSaving = ref(false)
+let isSavingDraft = ref(false)
+
+// Onfactu: modal de aviso
+const showNumberWarning = ref(false)
+const numberWarningMessages = ref([])
+const pendingSaveOptions = ref(null)
 
 const noteFieldList = ref(['customer', 'company', 'customerCustom', 'invoice', 'invoiceCustom'])
 
 let isEdit = computed(() => route.name === 'deliveryNotes.edit')
+
+// Onfactu: botón borrador solo si aún no hay número.
+const showDraftButton = computed(() => {
+  if (!isEdit.value) return true
+  return !deliveryNoteStore.newDeliveryNote.delivery_note_number
+})
 
 let isLoadingContent = computed(
   () => deliveryNoteStore.isFetchingDeliveryNote || deliveryNoteStore.isFetchingInitialSettings
@@ -208,12 +237,7 @@ const rules = {
     required: helpers.withMessage(t('validation.required'), required),
   },
   delivery_note_number: {
-    // Onfactu — numeración diferida: OPCIONAL.
-    // Si se deja vacío, se asigna al enviar el albarán.
-    maxLength: helpers.withMessage(
-      t('validation.name_max_length'),
-      maxLength(100)
-    ),
+    required: helpers.withMessage(t('validation.required'), required),
   },
 }
 
@@ -245,39 +269,95 @@ watch(
   }
 )
 
-// ── Onfactu — numeración diferida ────────────────────────────────────────────
-const numberCollision = ref(null)
-const showCollisionDialog = computed({
-  get: () => numberCollision.value !== null,
-  set: (val) => {
-    if (!val) numberCollision.value = null
-  },
-})
-
-function isUnchangedSuggestion(numberInForm) {
-  const suggestion = deliveryNoteStore.suggestedDeliveryNoteNumber
-  if (!suggestion) return false
-  return String(numberInForm || '').trim() === String(suggestion).trim()
-}
-
-// Al guardar como borrador, opción C:
-//  - Sugerencia "clean" (MAX+1 puro) y no tocada → null (libera el número).
-//  - Sugerencia "skipped" (salto por hueco) y no tocada → se persiste literal.
-//  - Usuario cambió el número → se respeta el valor manual.
-function resolveNumberForDraft(data) {
-  if (isUnchangedSuggestion(data.delivery_note_number)) {
-    if (!deliveryNoteStore.suggestedDeliveryNoteNumberIsSkipped) {
-      data.delivery_note_number = null
-    }
-  }
-  return data
-}
-
 async function submitForm() {
+  await preSave({ clearNumber: false })
+}
+
+async function saveAsDraft() {
+  await doSave({ clearNumber: true })
+}
+
+async function preSave({ clearNumber }) {
   v$.value.$touch()
   if (v$.value.$invalid) return false
 
-  isSaving.value = true
+  let info = null
+  try {
+    const resp = await axios.get('/api/v1/delivery-notes/next-number-info')
+    info = resp.data
+  } catch (err) {
+    console.warn('Could not fetch delivery-notes next-number-info:', err)
+    return doSave({ clearNumber })
+  }
+
+  const warnings = []
+  const currentNumber = deliveryNoteStore.newDeliveryNote.delivery_note_number
+  const currentDate = deliveryNoteStore.newDeliveryNote.delivery_note_date
+
+  if (info.next_expected_sequence !== null && info.next_expected_sequence !== undefined && currentNumber) {
+    const expectedSeq = parseInt(info.next_expected_sequence)
+    const match = String(currentNumber).match(/(\d+)$/)
+    if (match) {
+      const enteredSeq = parseInt(match[1], 10)
+      if (enteredSeq > expectedSeq) {
+        const prefixMatch = String(currentNumber).match(/^(.*?)(\d+)$/)
+        const prefix = prefixMatch ? prefixMatch[1] : ''
+        const width = match[1].length
+        const expectedNumber = prefix + String(expectedSeq).padStart(width, '0')
+        warnings.push(t('delivery_notes.warning_number_skip', { expected: expectedNumber, entered: currentNumber }))
+      } else if (enteredSeq < expectedSeq && !isEdit.value) {
+        warnings.push(t('delivery_notes.warning_number_below', { entered: currentNumber, last: info.last_number }))
+      }
+    }
+  }
+
+  if (info.last_numbered_date && currentDate) {
+    if (new Date(currentDate) < new Date(info.last_numbered_date)) {
+      warnings.push(t('delivery_notes.warning_date_earlier', { date: info.last_numbered_date }))
+    }
+  }
+
+  if (currentDate) {
+    const entered = new Date(currentDate)
+    if (!isNaN(entered.getTime())) {
+      const enteredYear = entered.getFullYear()
+      const currentYear = new Date().getFullYear()
+      if (enteredYear !== currentYear) {
+        warnings.push(t('delivery_notes.warning_year_mismatch', { entered: enteredYear, current: currentYear }))
+      }
+    }
+  }
+
+  if (warnings.length > 0) {
+    numberWarningMessages.value = warnings
+    pendingSaveOptions.value = { clearNumber }
+    showNumberWarning.value = true
+    return
+  }
+
+  return doSave({ clearNumber })
+}
+
+function onConfirmNumberWarning() {
+  showNumberWarning.value = false
+  const opts = pendingSaveOptions.value || { clearNumber: false }
+  pendingSaveOptions.value = null
+  doSave(opts)
+}
+
+function onCancelNumberWarning() {
+  showNumberWarning.value = false
+  pendingSaveOptions.value = null
+  isSaving.value = false
+  isSavingDraft.value = false
+}
+
+async function doSave({ clearNumber }) {
+  if (clearNumber) {
+    isSavingDraft.value = true
+  } else {
+    isSaving.value = true
+  }
 
   let data = cloneDeep({
     ...deliveryNoteStore.newDeliveryNote,
@@ -286,8 +366,11 @@ async function submitForm() {
     tax: deliveryNoteStore.getTotalTax,
   })
 
-  // Numeración diferida: descarta sugerencia no tocada
-  data = resolveNumberForDraft(data)
+  if (clearNumber) {
+    data.delivery_note_number = null
+    data.sequence_number      = null
+    data.status               = 'DRAFT'
+  }
 
   if (data.discount_per_item === 'YES') {
     data.items.forEach((item, index) => {
@@ -309,16 +392,10 @@ async function submitForm() {
     const response = await action(data)
     router.push(`/admin/delivery-notes/${response.data.data.id}/view`)
   } catch (err) {
-    // Captura colisión 409
-    const status = err?.response?.status
-    const errorCode = err?.response?.data?.error_code
-    if (status === 409 && errorCode === 'number_collision') {
-      numberCollision.value = err.response.data.details || {}
-    } else {
-      console.error(err)
-    }
+    console.error(err)
   }
 
   isSaving.value = false
+  isSavingDraft.value = false
 }
 </script>

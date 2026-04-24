@@ -145,11 +145,9 @@
         <template #cell-proforma_invoice_number="{ row }">
           <router-link
             :to="{ path: `proforma-invoices/${row.data.id}/view` }"
-            :class="row.data.proforma_invoice_number
-              ? 'font-medium text-primary-500'
-              : 'italic text-gray-400'"
+            :class="row.data.proforma_invoice_number ? 'font-medium text-primary-500' : 'font-medium text-gray-400 italic'"
           >
-            {{ row.data.proforma_invoice_number || $t('proforma_invoices.draft_number') }}
+            {{ row.data.proforma_invoice_number || $t('general.draft').toUpperCase() }}
           </router-link>
         </template>
 

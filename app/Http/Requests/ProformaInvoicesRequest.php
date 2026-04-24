@@ -6,11 +6,6 @@
  * Valida los datos del formulario de creación/edición de facturas proforma.
  * Replica la lógica de InvoicesRequest pero sin campos de pago.
  * El método getProformaInvoicePayload() prepara los datos para el modelo.
- *
- * Onfactu — numeración diferida:
- *  - proforma_invoice_number es OPCIONAL al crear/editar un borrador.
- *  - Si el usuario lo escribe, debe ser único en la empresa.
- *  - Si se deja vacío, se asigna automáticamente al enviar (SENT).
  */
 
 namespace App\Http\Requests;
@@ -35,9 +30,9 @@ class ProformaInvoicesRequest extends FormRequest
             'expiry_date' => ['nullable'],
             'customer_id' => ['required'],
             'proforma_invoice_number' => [
+                // Onfactu: opcional si se guarda como borrador.
+                Rule::requiredIf(fn () => ($this->status ?? null) !== ProformaInvoice::STATUS_DRAFT),
                 'nullable',
-                'string',
-                'max:100',
                 Rule::unique('proforma_invoices')->where('company_id', $this->header('company')),
             ],
             'exchange_rate' => ['nullable'],
@@ -54,43 +49,26 @@ class ProformaInvoicesRequest extends FormRequest
             'items.*.description' => ['nullable'],
         ];
 
+        // Tipo de cambio requerido si la moneda del cliente difiere de la empresa
         $companyCurrency = CompanySetting::getSetting('currency', $this->header('company'));
         $customer = Customer::find($this->customer_id);
         if ($customer && $companyCurrency && (string) $customer->currency_id !== $companyCurrency) {
             $rules['exchange_rate'] = ['required'];
         }
 
+        // En PUT, ignorar el registro actual para la validación de unicidad
         if ($this->isMethod('PUT')) {
-            $proforma = $this->route('proforma_invoice');
-
-            // Si la proforma ya está en estado emitido (no DRAFT), el número
-            // no se puede cambiar.
-            if ($proforma && $proforma->status !== ProformaInvoice::STATUS_DRAFT && ! empty($proforma->proforma_invoice_number)) {
-                $rules['proforma_invoice_number'] = [
-                    'required',
-                    Rule::in([$proforma->proforma_invoice_number]),
-                ];
-            } else {
-                $rules['proforma_invoice_number'] = [
-                    'nullable',
-                    'string',
-                    'max:100',
-                    Rule::unique('proforma_invoices')
-                        ->ignore($proforma->id)
-                        ->where('company_id', $this->header('company')),
-                ];
-            }
+            $rules['proforma_invoice_number'] = [
+                // Onfactu: opcional si se sigue guardando como borrador.
+                Rule::requiredIf(fn () => ($this->status ?? null) !== ProformaInvoice::STATUS_DRAFT),
+                'nullable',
+                Rule::unique('proforma_invoices')
+                    ->ignore($this->route('proforma_invoice')->id)
+                    ->where('company_id', $this->header('company')),
+            ];
         }
 
         return $rules;
-    }
-
-    public function messages(): array
-    {
-        return [
-            'proforma_invoice_number.unique' => 'Ya existe una proforma con ese número en esta empresa. Elige otro o deja el campo vacío para asignar uno automáticamente al enviar.',
-            'proforma_invoice_number.in' => 'No se puede cambiar el número de una proforma ya enviada.',
-        ];
     }
 
     /**
@@ -104,12 +82,16 @@ class ProformaInvoicesRequest extends FormRequest
         $exchange_rate = $company_currency != $current_currency ? $this->exchange_rate : 1;
         $currency = Customer::find($this->customer_id)->currency_id;
 
+        // Onfactu: respetar el status que envía el frontend.
+        $status = $this->status
+            ?? ($this->has('proformaInvoiceSend')
+                ? ProformaInvoice::STATUS_SENT
+                : ProformaInvoice::STATUS_DRAFT);
+
         return collect($this->except('items', 'taxes'))
             ->merge([
                 'creator_id' => $this->user()->id ?? null,
-                'status' => $this->has('proformaInvoiceSend')
-                    ? ProformaInvoice::STATUS_SENT
-                    : ProformaInvoice::STATUS_DRAFT,
+                'status' => $status,
                 'company_id' => $this->header('company'),
                 'tax_per_item' => CompanySetting::getSetting('tax_per_item', $this->header('company')) ?? 'NO',
                 'discount_per_item' => CompanySetting::getSetting('discount_per_item', $this->header('company')) ?? 'NO',
