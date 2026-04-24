@@ -29,103 +29,23 @@ class ApproveInvoiceController extends Controller
             ], 400);
         }
 
-        // ── Numeración diferida (Onfactu) ───────────────────────────────────
-        // Asignar invoice_number ANTES de publicar a VeriFactu. Dos casos:
-        //  1. El usuario ya puso un número manualmente → se valida unicidad y
-        //     se respeta tal cual.
-        //  2. No hay número → se genera automáticamente (transacción + lock).
-        //     Si colisiona con otro borrador manual, NO se salta: se devuelve
-        //     error 409 con los datos del conflicto para que el usuario pueda
-        //     resolverlo (editando o eliminando la factura conflictiva).
-        try {
-            $invoice = $invoice->assignNumber();
-        } catch (\App\Exceptions\NumberCollisionException $e) {
-            Log::warning('Colisión al asignar número de factura', [
-                'invoice_id' => $invoice->id,
-                'details' => $e->getDetails(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'error' => $e->getMessage(),
-                'error_code' => 'number_collision',
-                'details' => $e->getDetails(),
-            ], 409);
-        } catch (\Throwable $e) {
-            Log::error('Error al asignar número de factura al aprobar', [
-                'invoice_id' => $invoice->id,
-                'invoice_number' => $invoice->invoice_number,
-                'error' => $e->getMessage(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'error' => $e->getMessage(),
-            ], 422);
+        // Onfactu: una factura aprobada en VeriFactu no puede no tener número
+        // de serie. Si era borrador sin número, se le asigna aquí antes de
+        // enviar a la cola.
+        if (empty($invoice->invoice_number)) {
+            $invoice->assignNumber();
+            $invoice->refresh();
         }
-        // ────────────────────────────────────────────────────────────────────
 
         // Marcar como pendiente de aprobación VeriFactu
         $invoice->verifactu_status = Invoice::VERIFACTU_PENDING;
         $invoice->save();
 
-        // Onfactu — approve asíncrono vía fastcgi_finish_request():
-        // Responder al navegador YA (sin esperar a RabbitMQ) y luego publicar
-        // el mensaje con el script ya "desconectado" del cliente HTTP.
-        //
-        // Esto evita el toast "Please check your internet connection" cuando
-        // Rabbit tarda en abrir el socket, sin necesidad de montar un worker
-        // de Laravel (queue:work) ni supervisor. El trade-off es que si el
-        // publish falla, no hay reintentos automáticos: la factura queda en
-        // VERIFACTU_ERROR con el mensaje y hay que reaprobarla desde la UI.
-        //
-        // Para esto preparamos la respuesta, llamamos a flush() + finish() y
-        // seguimos ejecutando el publish. Si el SAPI no soporta
-        // fastcgi_finish_request (p.ej. en CLI durante tests), caemos a
-        // publicar síncronamente (comportamiento legacy).
-        $response = response()->json([
-            'success' => true,
-            'data' => $invoice->fresh(),
-        ]);
-
-        // En entornos PHP-FPM, flush + finish envían la respuesta al cliente
-        // y cierran la conexión TCP con el navegador, pero el script PHP
-        // sigue vivo ejecutando lo que venga después.
-        if (function_exists('fastcgi_finish_request')) {
-            // Enviamos los headers y el body al cliente
-            $response->send();
-
-            // Cerramos la conexión con el cliente. A partir de aquí el
-            // navegador ya tiene la respuesta y nos da igual lo que tardemos.
-            fastcgi_finish_request();
-
-            // Ahora sí, publicamos a Rabbit sin presión de timeout HTTP.
-            try {
-                $this->publishToVerifactu($invoice);
-            } catch (\Throwable $e) {
-                Log::error('Error al publicar en cola VeriFactu (post-response)', [
-                    'invoice_id' => $invoice->id,
-                    'error' => $e->getMessage(),
-                ]);
-
-                // Como ya respondimos 200 al cliente, no podemos devolver
-                // error HTTP. Marcamos el estado para que lo vea el frontend
-                // vía polling de verifactu_status.
-                $invoice->verifactu_status = Invoice::VERIFACTU_ERROR;
-                $invoice->verifactu_error = $e->getMessage();
-                $invoice->save();
-            }
-
-            // El return aquí no tiene efecto (la respuesta ya se envió),
-            // pero lo dejamos por claridad de flujo.
-            return $response;
-        }
-
-        // Fallback (CLI, tests, SAPI sin FastCGI): comportamiento síncrono.
+        // Publicar en cola RabbitMQ
         try {
             $this->publishToVerifactu($invoice);
         } catch (\Throwable $e) {
-            Log::error('Error al publicar en cola VeriFactu (sync fallback)', [
+            Log::error('Error al publicar en cola VeriFactu', [
                 'invoice_id' => $invoice->id,
                 'error' => $e->getMessage(),
             ]);
@@ -140,7 +60,10 @@ class ApproveInvoiceController extends Controller
             ], 500);
         }
 
-        return $response;
+        return response()->json([
+            'success' => true,
+            'data' => $invoice->fresh(),
+        ]);
     }
 
     private function publishToVerifactu(Invoice $invoice): void
