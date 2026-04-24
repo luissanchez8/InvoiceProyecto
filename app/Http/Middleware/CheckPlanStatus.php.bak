@@ -100,23 +100,7 @@ class CheckPlanStatus
     private function isExemptRoute(Request $request): bool
     {
         $path = trim($request->path(), '/');
-
-        // Rutas esenciales para que la SPA arranque y el usuario pueda llegar
-        // a la pantalla de bloqueo (donde añade la tarjeta). Si estas rutas
-        // se bloqueasen, el frontend ni siquiera podría renderizar la
-        // BlockedScreen y quedaría colgado en el loader.
-        $exemptPrefixes = [
-            'api/v1/stripe/',      // Para desbloquear (update-plan-status, plan-status)
-            'api/v1/bootstrap',    // Carga inicial de la SPA (usuario, abilities)
-            'api/v1/auth/',        // Login/logout
-            'logo-url',            // Logo del layout
-            'favicons/',           // Favicons
-        ];
-
-        foreach ($exemptPrefixes as $prefix) {
-            if (str_starts_with($path, $prefix)) return true;
-        }
-        return false;
+        return str_starts_with($path, 'api/v1/stripe/');
     }
 
     /**
