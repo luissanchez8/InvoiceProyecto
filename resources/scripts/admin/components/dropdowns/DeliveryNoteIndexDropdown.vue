@@ -53,13 +53,13 @@
       {{ $t('general.mark_as_sent') }}
     </BaseDropdownItem>
 
-    <!-- Convert to Invoice (Onfactu) -->
+    <!-- Onfactu: Mark as delivered -->
     <BaseDropdownItem
-      v-if="row.status !== 'DRAFT' && userStore.hasAbilities(abilities.CREATE_INVOICE)"
-      @click="convertToInvoice(row)"
+      v-if="row.status !== 'DELIVERED'"
+      @click="onMarkAsDelivered(row.id)"
     >
-      <BaseIcon name="DocumentTextIcon" class="w-5 h-5 mr-3 text-gray-400 group-hover:text-gray-500" />
-      {{ $t('convert_to_invoice') }}
+      <BaseIcon name="CheckBadgeIcon" class="w-5 h-5 mr-3 text-gray-400 group-hover:text-gray-500" />
+      {{ $t('delivery_notes.mark_as_delivered') }}
     </BaseDropdownItem>
 
     <!-- Clone -->
@@ -159,6 +159,28 @@ async function onMarkAsSent(id) {
     })
 }
 
+// Onfactu: marca el albarán como entregado. El backend asigna número
+// automáticamente si era borrador sin número.
+async function onMarkAsDelivered(id) {
+  dialogStore
+    .openDialog({
+      title: t('general.are_you_sure'),
+      message: t('delivery_notes.confirm_deliver'),
+      yesLabel: t('general.ok'),
+      noLabel: t('general.cancel'),
+      variant: 'primary',
+      hideNoButton: false,
+      size: 'lg',
+    })
+    .then((response) => {
+      if (response) {
+        deliveryNoteStore.markAsDelivered({ id }).then(() => {
+          props.table && props.table.refresh()
+        })
+      }
+    })
+}
+
 async function sendDeliveryNote(deliveryNote) {
   modalStore.openModal({
     title: t('general.send') + ' ' + t('delivery_note'),
@@ -188,37 +210,6 @@ async function cloneDeliveryNoteData(data) {
         })
       }
     })
-}
-
-// Onfactu — convertir albarán a factura
-async function convertToInvoice(row) {
-  const confirmed = await dialogStore.openDialog({
-    title: t('convert_to_invoice'),
-    message: '¿Quieres crear una factura nueva a partir de este albarán? La factura nacerá como borrador, podrás revisarla antes de aprobarla.',
-    yesLabel: t('general.ok'),
-    noLabel: t('general.cancel'),
-    variant: 'primary',
-    hideNoButton: false,
-    size: 'lg',
-  })
-
-  if (!confirmed) return
-
-  try {
-    const res = await deliveryNoteStore.convertToInvoice(row.id)
-    if (res?.data?.data?.id) {
-      notificationStore.showNotification({
-        type: 'success',
-        message: 'Factura creada a partir del albarán',
-      })
-      router.push(`/admin/invoices/${res.data.data.id}/edit`)
-    }
-  } catch (err) {
-    notificationStore.showNotification({
-      type: 'error',
-      message: err?.response?.data?.message || t('general.action_failed'),
-    })
-  }
 }
 
 function copyPdfUrl() {

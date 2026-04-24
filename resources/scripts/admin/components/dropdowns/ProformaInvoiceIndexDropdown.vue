@@ -53,13 +53,22 @@
       {{ $t('general.mark_as_sent') }}
     </BaseDropdownItem>
 
-    <!-- Convert to Invoice (Onfactu) -->
+    <!-- Onfactu: Mark as accepted (solo si no lo está ya ni rechazado) -->
     <BaseDropdownItem
-      v-if="row.status !== 'DRAFT' && userStore.hasAbilities(abilities.CREATE_INVOICE)"
-      @click="convertToInvoice(row)"
+      v-if="row.status !== 'ACCEPTED' && row.status !== 'REJECTED'"
+      @click="onChangeStatus(row.id, 'ACCEPTED')"
     >
-      <BaseIcon name="DocumentTextIcon" class="w-5 h-5 mr-3 text-gray-400 group-hover:text-gray-500" />
-      {{ $t('convert_to_invoice') }}
+      <BaseIcon name="CheckBadgeIcon" class="w-5 h-5 mr-3 text-gray-400 group-hover:text-gray-500" />
+      {{ $t('proforma_invoices.mark_as_accepted') }}
+    </BaseDropdownItem>
+
+    <!-- Onfactu: Mark as rejected -->
+    <BaseDropdownItem
+      v-if="row.status !== 'ACCEPTED' && row.status !== 'REJECTED'"
+      @click="onChangeStatus(row.id, 'REJECTED')"
+    >
+      <BaseIcon name="XCircleIcon" class="w-5 h-5 mr-3 text-gray-400 group-hover:text-gray-500" />
+      {{ $t('proforma_invoices.mark_as_rejected') }}
     </BaseDropdownItem>
 
     <!-- Clone -->
@@ -159,6 +168,31 @@ async function onMarkAsSent(id) {
     })
 }
 
+// Onfactu: cambia el estado a ACCEPTED o REJECTED. Al aceptar, el backend
+// asigna número automáticamente si el documento era borrador sin número.
+async function onChangeStatus(id, status) {
+  const isAccepted = status === 'ACCEPTED'
+  dialogStore
+    .openDialog({
+      title: t('general.are_you_sure'),
+      message: isAccepted
+        ? t('proforma_invoices.confirm_accept')
+        : t('proforma_invoices.confirm_reject'),
+      yesLabel: t('general.ok'),
+      noLabel: t('general.cancel'),
+      variant: isAccepted ? 'primary' : 'danger',
+      hideNoButton: false,
+      size: 'lg',
+    })
+    .then((response) => {
+      if (response) {
+        proformaInvoiceStore.changeStatus({ id, status }).then(() => {
+          props.table && props.table.refresh()
+        })
+      }
+    })
+}
+
 async function sendProformaInvoice(proformaInvoice) {
   modalStore.openModal({
     title: t('general.send') + ' ' + t('proforma_invoice'),
@@ -188,39 +222,6 @@ async function cloneProformaInvoiceData(data) {
         })
       }
     })
-}
-
-// Onfactu — convertir proforma a factura
-async function convertToInvoice(row) {
-  const confirmed = await dialogStore.openDialog({
-    title: t('convert_to_invoice'),
-    message: '¿Quieres crear una factura nueva a partir de esta proforma? La factura nacerá como borrador, podrás revisarla antes de aprobarla.',
-    yesLabel: t('general.ok'),
-    noLabel: t('general.cancel'),
-    variant: 'primary',
-    hideNoButton: false,
-    size: 'lg',
-  })
-
-  if (!confirmed) return
-
-  try {
-    const res = await proformaInvoiceStore.convertToInvoice(row.id)
-    if (res?.data?.data?.id) {
-      notificationStore.showNotification({
-        type: 'success',
-        message: 'Factura creada a partir de la proforma',
-      })
-      // Llevar al usuario a editar la nueva factura para que pueda revisar
-      // antes de aprobar (la factura nace como borrador SIN número).
-      router.push(`/admin/invoices/${res.data.data.id}/edit`)
-    }
-  } catch (err) {
-    notificationStore.showNotification({
-      type: 'error',
-      message: err?.response?.data?.message || t('general.action_failed'),
-    })
-  }
 }
 
 function copyPdfUrl() {

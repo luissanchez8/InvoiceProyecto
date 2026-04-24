@@ -45,10 +45,6 @@ export const useDeliveryNoteStore = (useWindow = false) => {
       showExchangeRate: false,
       isFetchingInitialSettings: false,
       isFetchingDeliveryNote: false,
-      // Onfactu — numeración diferida:
-      suggestedDeliveryNoteNumber: null,
-      suggestedDeliveryNoteNumberIsSkipped: false,
-      naturalNextDeliveryNoteNumber: null,
       newDeliveryNote: { ...deliveryNoteStub() },
     }),
 
@@ -133,29 +129,19 @@ export const useDeliveryNoteStore = (useWindow = false) => {
           itemStore.fetchItems({ filter: {}, orderByField: '', orderBy: '' }),
           this.resetSelectedNote(),
           this.fetchInvoiceTemplates(),
-          // Onfactu: en edit pasamos model_id para excluir el propio documento.
-          this.getNextNumber(isEdit ? { model_id: route.params.id } : undefined),
+          this.getNextNumber(),
           taxTypeStore.fetchTaxTypes({ limit: 'all' }),
           ...editActions,
         ]).then(async ([res1, res2, res3, res4, res5, res6]) => {
           if (!isEdit) {
-            // Onfactu — numeración diferida: pre-rellenamos + guardamos sugerencia + isSkipped + naturalNext
             if (res4.data) {
               this.newDeliveryNote.delivery_note_number = res4.data.nextNumber
-              this.suggestedDeliveryNoteNumber = res4.data.nextNumber
-              this.suggestedDeliveryNoteNumberIsSkipped = !!res4.data.isSkipped
-              this.naturalNextDeliveryNoteNumber = res4.data.naturalNext || res4.data.nextNumber
             }
             if (res3.data && this.templates.length) {
               let defaultTpl = this.templates.find(t => t.name === 'invoice4')
               this.setTemplate(defaultTpl ? 'invoice4' : this.templates[0].name)
             }
           } else if (res6) {
-            if (res4.data) {
-              this.suggestedDeliveryNoteNumber = res4.data.nextNumber
-              this.suggestedDeliveryNoteNumberIsSkipped = !!res4.data.isSkipped
-              this.naturalNextDeliveryNoteNumber = res4.data.naturalNext || res4.data.nextNumber
-            }
             this.setDeliveryNoteData(res6.data.data)
           }
 
@@ -340,30 +326,11 @@ export const useDeliveryNoteStore = (useWindow = false) => {
         })
       },
 
-      // Onfactu — convertir albarán a factura (factura nace sin número)
-      convertToInvoice(id) {
-        return new Promise((resolve, reject) => {
-          axios
-            .post(`/api/v1/delivery-notes/${id}/convert-to-invoice`)
-            .then((response) => { resolve(response) })
-            .catch((err) => { reject(err) })
-        })
-      },
-
       markAsSent(data) {
         return new Promise((resolve, reject) => {
           axios.post(`/api/v1/delivery-notes/${data.id}/status`, { status: 'SENT' })
             .then((response) => { resolve(response) })
-            .catch((err) => {
-              // Onfactu — numeración diferida: 409 manejada por la view
-              const status = err?.response?.status
-              const errorCode = err?.response?.data?.error_code
-              const isCollision = status === 409 && errorCode === 'number_collision'
-              if (!isCollision) {
-                handleError(err)
-              }
-              reject(err)
-            })
+            .catch((err) => { handleError(err); reject(err) })
         })
       },
 
@@ -379,13 +346,7 @@ export const useDeliveryNoteStore = (useWindow = false) => {
               resolve(response)
             })
             .catch((err) => {
-              // Onfactu — 409 de colisión manejada por la view
-              const status = err?.response?.status
-              const errorCode = err?.response?.data?.error_code
-              const isCollision = status === 409 && errorCode === 'number_collision'
-              if (!isCollision) {
-                handleError(err)
-              }
+              handleError(err)
               reject(err)
             })
         })

@@ -64,6 +64,7 @@ class DeliveryNote extends Model implements HasMedia
         'formattedDeliveryNoteDate',
         'formattedDeliveryDate',
         'deliveryNotePdfUrl',
+        'allow_edit',
     ];
 
     protected function casts(): array
@@ -268,8 +269,6 @@ class DeliveryNote extends Model implements HasMedia
 
         return $this;
     }
-
-    /**
 
     public static function createDeliveryNote($request)
     {

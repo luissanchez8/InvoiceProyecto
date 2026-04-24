@@ -1801,5 +1801,11 @@
     "delivery_notes.warning_number_skip": "Non-consecutive numbering. Next in series: {expected}.",
     "delivery_notes.warning_number_below": "Number below last assigned: {last}.",
     "delivery_notes.warning_date_earlier": "Date earlier than last numbered document ({date}).",
-    "delivery_notes.warning_year_mismatch": "Year {entered} differs from current ({current})."
+    "delivery_notes.warning_year_mismatch": "Year {entered} differs from current ({current}).",
+    "proforma_invoices.mark_as_accepted": "Mark as accepted",
+    "proforma_invoices.mark_as_rejected": "Mark as rejected",
+    "proforma_invoices.confirm_accept": "Accepting the proforma will assign a serial number if it doesn't have one yet.",
+    "proforma_invoices.confirm_reject": "Mark this proforma as rejected?",
+    "delivery_notes.mark_as_delivered": "Mark as delivered",
+    "delivery_notes.confirm_deliver": "Marking as delivered will assign a serial number if it doesn't have one yet."
 }
