@@ -242,6 +242,42 @@ class DeliveryNote extends Model implements HasMedia
         return null;
     }
 
+    /**
+     * Onfactu: asigna número de serie a un borrador sin número.
+     */
+    public function assignNumber()
+    {
+        if (! empty($this->delivery_note_number)) {
+            return $this;
+        }
+
+        $serial = (new SerialNumberFormatter)
+            ->setModel($this)
+            ->setCompany($this->company_id)
+            ->setCustomer($this->customer_id)
+            ->setNextNumbers();
+
+        $this->sequence_number      = $serial->nextSequenceNumber;
+        $this->delivery_note_number = $serial->getNextNumber();
+
+        if (empty($this->customer_sequence_number)) {
+            $this->customer_sequence_number = $serial->nextCustomerSequenceNumber;
+        }
+
+        $this->save();
+
+        return $this;
+    }
+
+    /**
+     * Onfactu: accessor usado por el dropdown para mostrar/ocultar el botón
+     * "Editar". Permitimos edición mientras no esté entregado.
+     */
+    public function getAllowEditAttribute(): bool
+    {
+        return $this->status !== self::STATUS_DELIVERED;
+    }
+
     public static function createDeliveryNote($request)
     {
         $data = $request->getDeliveryNotePayload();

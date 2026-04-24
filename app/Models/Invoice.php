@@ -327,8 +327,8 @@ class Invoice extends Model implements HasMedia
     /**
      * Onfactu: extrae el número de secuencia de un invoice_number del tipo
      * "FAC-000042". Devuelve 42 como integer, o null si el formato no tiene
-     * sufijo numérico reconocible. Se usa para sincronizar sequence_number
-     * con el invoice_number que escribe el usuario manualmente.
+     * sufijo numérico. Se usa para sincronizar sequence_number con el número
+     * que escribe el usuario manualmente.
      */
     public static function extractSequenceFromNumber(?string $number): ?int
     {
@@ -337,6 +337,36 @@ class Invoice extends Model implements HasMedia
             return (int) $m[1];
         }
         return null;
+    }
+
+    /**
+     * Onfactu: asigna el número de serie a un borrador sin número.
+     * Lo llaman los controllers de Send/Approve/ChangeStatus cuando un
+     * documento pasa de DRAFT sin número a estado enviado/aprobado. Si ya
+     * tiene número (fue finalizado con el botón Guardar), no hace nada.
+     */
+    public function assignNumber()
+    {
+        if (! empty($this->invoice_number)) {
+            return $this;
+        }
+
+        $serial = (new SerialNumberFormatter)
+            ->setModel($this)
+            ->setCompany($this->company_id)
+            ->setCustomer($this->customer_id)
+            ->setNextNumbers();
+
+        $this->sequence_number = $serial->nextSequenceNumber;
+        $this->invoice_number  = $serial->getNextNumber();
+
+        if (empty($this->customer_sequence_number)) {
+            $this->customer_sequence_number = $serial->nextCustomerSequenceNumber;
+        }
+
+        $this->save();
+
+        return $this;
     }
 
     public static function createInvoice($request)
@@ -368,17 +398,7 @@ class Invoice extends Model implements HasMedia
                 ->setCustomer($invoice->customer_id)
                 ->setNextNumbers();
 
-            // Onfactu: si el invoice_number que llegó del frontend contiene un
-            // sufijo numérico (ej "FAC-000004"), usamos ese número como
-            // sequence_number para mantener sincronizados ambos campos. Así,
-            // futuras facturas siguen la secuencia consecutiva correctamente
-            // sin duplicar números ni dejar el sequence desalineado con lo
-            // que muestra invoice_number.
-            $parsedSeq = self::extractSequenceFromNumber($invoice->invoice_number);
-            $invoice->sequence_number = $parsedSeq !== null
-                ? $parsedSeq
-                : $serial->nextSequenceNumber;
-
+            $invoice->sequence_number = $serial->nextSequenceNumber;
             $invoice->customer_sequence_number = $serial->nextCustomerSequenceNumber;
         }
 
@@ -474,13 +494,8 @@ class Invoice extends Model implements HasMedia
         $this->update($data);
 
         // Si acabamos de finalizar un borrador, asignar sequence_number.
-        // Onfactu: si el invoice_number tiene sufijo numérico, usamos ese
-        // número. Así sequence queda sincronizado con invoice_number.
         if ($finalizingDraft) {
-            $parsedSeq = self::extractSequenceFromNumber($this->invoice_number);
-            $this->sequence_number = $parsedSeq !== null
-                ? $parsedSeq
-                : $serial->nextSequenceNumber;
+            $this->sequence_number = $serial->nextSequenceNumber;
             $this->save();
         }
 

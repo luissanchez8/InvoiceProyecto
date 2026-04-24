@@ -190,28 +190,30 @@ async function setInitialData() {
     invoiceMailForm.to = modalData.value.customer?.email || ''
   }
 
-  // Asunto personalizado según tipo de documento
+  // Asunto personalizado según tipo de documento.
+  // Onfactu: texto directo para evitar problemas con claves de
+  // pluralización ('Factura | Facturas') que mezclan ambas formas.
   const docType = modalStore.docType || 'invoice'
   const docData = modalData.value
   let subject = ''
 
   switch (docType) {
     case 'proforma_invoice':
-      subject = 'Nueva ' + t('proforma_invoice') + ' ' + (docData?.proforma_invoice_number || '')
+      subject = 'Nueva proforma ' + (docData?.proforma_invoice_number || '')
       break
     case 'delivery_note':
-      subject = 'Nuevo ' + t('delivery_note') + ' ' + (docData?.delivery_note_number || '')
+      subject = 'Nuevo albarán ' + (docData?.delivery_note_number || '')
       break
     case 'estimate':
-      subject = 'Nuevo ' + t('estimates.estimate') + ' ' + (docData?.estimate_number || '')
+      subject = 'Nuevo presupuesto ' + (docData?.estimate_number || '')
       break
     case 'invoice':
     default:
-      subject = 'Nueva ' + t('invoices.invoice') + ' ' + (docData?.invoice_number || '')
+      subject = 'Nueva factura ' + (docData?.invoice_number || '')
       break
   }
 
-  invoiceMailForm.subject = subject
+  invoiceMailForm.subject = subject.trim()
 
   // cuerpo por defecto según tipo de documento
   const settings = companyStore.selectedCompanySettings

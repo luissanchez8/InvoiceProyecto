@@ -231,6 +231,34 @@ class Estimate extends Model implements HasMedia
         return null;
     }
 
+    /**
+     * Onfactu: asigna número de serie a un borrador sin número. Lo llaman los
+     * controllers de Send/ChangeStatus al pasar de DRAFT a estado posterior.
+     */
+    public function assignNumber()
+    {
+        if (! empty($this->estimate_number)) {
+            return $this;
+        }
+
+        $serial = (new SerialNumberFormatter)
+            ->setModel($this)
+            ->setCompany($this->company_id)
+            ->setCustomer($this->customer_id)
+            ->setNextNumbers();
+
+        $this->sequence_number  = $serial->nextSequenceNumber;
+        $this->estimate_number  = $serial->getNextNumber();
+
+        if (empty($this->customer_sequence_number)) {
+            $this->customer_sequence_number = $serial->nextCustomerSequenceNumber;
+        }
+
+        $this->save();
+
+        return $this;
+    }
+
     public static function createEstimate($request)
     {
         $data = $request->getEstimatePayload();

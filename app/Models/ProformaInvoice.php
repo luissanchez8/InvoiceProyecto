@@ -276,6 +276,42 @@ class ProformaInvoice extends Model implements HasMedia
         return null;
     }
 
+    /**
+     * Onfactu: asigna número de serie a un borrador sin número.
+     */
+    public function assignNumber()
+    {
+        if (! empty($this->proforma_invoice_number)) {
+            return $this;
+        }
+
+        $serial = (new SerialNumberFormatter)
+            ->setModel($this)
+            ->setCompany($this->company_id)
+            ->setCustomer($this->customer_id)
+            ->setNextNumbers();
+
+        $this->sequence_number         = $serial->nextSequenceNumber;
+        $this->proforma_invoice_number = $serial->getNextNumber();
+
+        if (empty($this->customer_sequence_number)) {
+            $this->customer_sequence_number = $serial->nextCustomerSequenceNumber;
+        }
+
+        $this->save();
+
+        return $this;
+    }
+
+    /**
+     * Onfactu: accessor usado por el dropdown para mostrar/ocultar el botón
+     * "Editar". Permitimos edición mientras no esté aceptada.
+     */
+    public function getAllowEditAttribute(): bool
+    {
+        return $this->status !== self::STATUS_ACCEPTED;
+    }
+
     public static function createProformaInvoice($request)
     {
         $data = $request->getProformaInvoicePayload();
