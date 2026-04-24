@@ -15,7 +15,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
@@ -217,6 +216,21 @@ class Estimate extends Model implements HasMedia
         return $query->paginate($limit);
     }
 
+    /**
+     * Onfactu: extrae el número de secuencia de un estimate_number del tipo
+     * "PRE-000042". Devuelve 42 como integer, o null si el formato no tiene
+     * sufijo numérico. Se usa para sincronizar sequence_number con el número
+     * que escribe el usuario manualmente.
+     */
+    public static function extractSequenceFromNumber(?string $number): ?int
+    {
+        if (! $number) return null;
+        if (preg_match('/(\d+)\s*$/', $number, $m)) {
+            return (int) $m[1];
+        }
+        return null;
+    }
+
     public static function createEstimate($request)
     {
         $data = $request->getEstimatePayload();
@@ -225,16 +239,35 @@ class Estimate extends Model implements HasMedia
             $data['status'] = self::STATUS_SENT;
         }
 
-        // Onfactu — numeración diferida:
-        // estimate_number y sequence_number quedan NULL en borrador.
-        // Si el usuario ha escrito un número manualmente, se respeta.
-        // El número se asignará al ENVIAR el presupuesto (DRAFT → SENT).
-        if (empty($data['estimate_number'])) {
-            $data['estimate_number'] = null;
+        // Onfactu: si el frontend NO envió estimate_number, es un borrador sin
+        // número. No consumimos serie.
+        $savedAsDraftWithoutNumber = empty($data['estimate_number']);
+
+        if ($savedAsDraftWithoutNumber) {
+            $data['estimate_number']  = null;
+            $data['sequence_number']  = null;
+            $data['status']           = self::STATUS_DRAFT;
         }
 
         $estimate = self::create($data);
         $estimate->unique_hash = Hashids::connection(Estimate::class)->encode($estimate->id);
+
+        if (! $savedAsDraftWithoutNumber) {
+            $serial = (new SerialNumberFormatter)
+                ->setModel($estimate)
+                ->setCompany($estimate->company_id)
+                ->setCustomer($estimate->customer_id)
+                ->setNextNumbers();
+
+            // Onfactu: sincronizar sequence con el número escrito manualmente.
+            $parsedSeq = self::extractSequenceFromNumber($estimate->estimate_number);
+            $estimate->sequence_number = $parsedSeq !== null
+                ? $parsedSeq
+                : $serial->nextSequenceNumber;
+
+            $estimate->customer_sequence_number = $serial->nextCustomerSequenceNumber;
+        }
+
         $estimate->save();
 
         $company_currency = CompanySetting::getSetting('currency', $request->header('company'));
@@ -262,14 +295,44 @@ class Estimate extends Model implements HasMedia
     {
         $data = $request->getEstimatePayload();
 
-        // Onfactu — numeración diferida:
-        // No recalculamos sequence_number en update. Se asigna al enviar.
-        // Si el usuario dejó vacío el estimate_number, se guarda NULL.
-        if (empty($data['estimate_number'])) {
-            $data['estimate_number'] = null;
+        // Onfactu: detectar transición borrador-sin-número → con número.
+        $wasDraftWithoutNumber = empty($this->estimate_number);
+        $nowHasNumber          = ! empty($data['estimate_number'] ?? null);
+        $finalizingDraft       = $wasDraftWithoutNumber && $nowHasNumber;
+        $stillDraftNoNumber    = $wasDraftWithoutNumber && ! $nowHasNumber;
+
+        if ($stillDraftNoNumber) {
+            $data['estimate_number']  = null;
+            $data['sequence_number']  = null;
+            $data['status']           = self::STATUS_DRAFT;
+        }
+
+        if ($finalizingDraft) {
+            unset($data['sequence_number']);
+        }
+
+        $serial = (new SerialNumberFormatter)
+            ->setModel($this)
+            ->setCompany($this->company_id)
+            ->setCustomer($request->customer_id)
+            ->setModelObject($this->id)
+            ->setNextNumbers();
+
+        if (! $stillDraftNoNumber) {
+            $data['customer_sequence_number'] = $serial->nextCustomerSequenceNumber;
         }
 
         $this->update($data);
+
+        // Si acabamos de finalizar un borrador, asignar sequence sincronizado
+        // con el estimate_number recién escrito.
+        if ($finalizingDraft) {
+            $parsedSeq = self::extractSequenceFromNumber($this->estimate_number);
+            $this->sequence_number = $parsedSeq !== null
+                ? $parsedSeq
+                : $serial->nextSequenceNumber;
+            $this->save();
+        }
 
         $company_currency = CompanySetting::getSetting('currency', $request->header('company'));
 
@@ -306,252 +369,6 @@ class Estimate extends Model implements HasMedia
             'taxes',
         ])
             ->find($this->id);
-    }
-
-    /**
-     * Asigna número de presupuesto — Onfactu numeración diferida.
-     *
-     * Se invoca al ENVIAR el presupuesto (DRAFT → SENT). Misma lógica que
-     * Invoice::assignNumber(): respeta el número manual si existe, o genera
-     * uno automático. En caso de colisión, lanza NumberCollisionException
-     * con los detalles del documento conflictivo (no salta al siguiente).
-     *
-     * Idempotente: si ya tiene número, solo valida unicidad.
-     */
-    public function assignNumber(): self
-    {
-        return DB::transaction(function () {
-            $this->acquireNumberLock();
-
-            $lastAuto = Estimate::where('company_id', $this->company_id)
-                ->whereNotNull('sequence_number')
-                ->max('sequence_number');
-
-            $nextSeq = ($lastAuto ? (int) $lastAuto : 0) + 1;
-            $autoCandidate = $this->formatSerialForSequence($nextSeq);
-
-            if (! empty($this->estimate_number)) {
-                $autoSeq = $this->detectAutoSequenceNumber($this->estimate_number, $nextSeq);
-                $isAutoCandidate = ($autoSeq !== null);
-
-                $conflict = Estimate::where('company_id', $this->company_id)
-                    ->where('estimate_number', $this->estimate_number)
-                    ->where('id', '<>', $this->id)
-                    ->first();
-
-                if ($conflict) {
-                    if ($conflict->status === self::STATUS_DRAFT) {
-                        throw new \App\Exceptions\NumberCollisionException(
-                            "Ya existe un borrador con el número '{$this->estimate_number}'. "
-                            . 'Para continuar, edita ese borrador y cambia o libera su número, o elimínalo.',
-                            [
-                                'conflicting_id' => $conflict->id,
-                                'conflicting_number' => $conflict->estimate_number,
-                                'conflicting_status' => $conflict->status,
-                                'attempted_number' => $this->estimate_number,
-                            ]
-                        );
-                    }
-
-                    if ($isAutoCandidate) {
-                        // Conflicto con emitido + era auto rellenado → saltar
-                        [$newSeq, $newCandidate] = $this->findNextFreeSequence($nextSeq);
-                        $this->estimate_number = $newCandidate;
-                        $this->sequence_number = $newSeq;
-                    } else {
-                        throw new \App\Exceptions\NumberCollisionException(
-                            "El número '{$this->estimate_number}' ya está asignado a un presupuesto {$conflict->status} y no puede reutilizarse.",
-                            [
-                                'conflicting_id' => $conflict->id,
-                                'conflicting_number' => $conflict->estimate_number,
-                                'conflicting_status' => $conflict->status,
-                                'attempted_number' => $this->estimate_number,
-                            ]
-                        );
-                    }
-                } else {
-                    if ($isAutoCandidate) {
-                        $this->sequence_number = $autoSeq;
-                    }
-                }
-            } else {
-                $candidate = $autoCandidate;
-
-                $conflict = Estimate::where('company_id', $this->company_id)
-                    ->where('estimate_number', $candidate)
-                    ->where('id', '<>', $this->id)
-                    ->first();
-
-                if ($conflict) {
-                    if ($conflict->status === self::STATUS_DRAFT) {
-                        throw new \App\Exceptions\NumberCollisionException(
-                            "Ya existe un borrador con el número '{$candidate}'. "
-                            . 'Para continuar, edita ese borrador y cambia o libera su número, o elimínalo.',
-                            [
-                                'conflicting_id' => $conflict->id,
-                                'conflicting_number' => $conflict->estimate_number,
-                                'conflicting_status' => $conflict->status,
-                                'attempted_number' => $candidate,
-                            ]
-                        );
-                    }
-                    [$nextSeq, $candidate] = $this->findNextFreeSequence($nextSeq);
-                }
-
-                $this->estimate_number = $candidate;
-                $this->sequence_number = $nextSeq;
-            }
-
-            if (empty($this->customer_sequence_number)) {
-                $lastCustSeq = Estimate::where('company_id', $this->company_id)
-                    ->where('customer_id', $this->customer_id)
-                    ->whereNotNull('customer_sequence_number')
-                    ->max('customer_sequence_number');
-                $this->customer_sequence_number = ($lastCustSeq ? (int) $lastCustSeq : 0) + 1;
-            }
-
-            $this->save();
-
-            return $this->fresh();
-        });
-    }
-
-    /**
-     * Busca el siguiente sequence libre saltando por encima de números
-     * ya ocupados por registros emitidos.
-     *
-     * @return array{0:int, 1:string}
-     */
-    protected function findNextFreeSequence(int $startSeq): array
-    {
-        $maxAttempts = 1000;
-        $seq = $startSeq + 1;
-
-        for ($i = 0; $i < $maxAttempts; $i++) {
-            $candidate = $this->formatSerialForSequence($seq);
-
-            $exists = Estimate::where('company_id', $this->company_id)
-                ->where('estimate_number', $candidate)
-                ->where('id', '<>', $this->id)
-                ->exists();
-
-            if (! $exists) {
-                return [$seq, $candidate];
-            }
-
-            $seq++;
-        }
-
-        throw new \RuntimeException(
-            'No se encontró un número libre tras ' . $maxAttempts . ' intentos.'
-        );
-    }
-
-    /**
-     * Detecta si el número rellenado por el frontend corresponde a la
-     * sugerencia automática (clean o skipped sobre huecos ocupados).
-     * Ver Invoice::detectAutoSequenceNumber para detalles.
-     *
-     * @return int|null  sequence_number a asignar, o null si es manual.
-     */
-    protected function detectAutoSequenceNumber(string $candidateNumber, int $startSeq): ?int
-    {
-        $maxAttempts = 1000;
-        $seq = $startSeq;
-
-        for ($i = 0; $i < $maxAttempts; $i++) {
-            $formatted = $this->formatSerialForSequence($seq);
-
-            if ($formatted === $candidateNumber) {
-                if ($seq === $startSeq) {
-                    return $seq;
-                }
-                for ($mid = $startSeq; $mid < $seq; $mid++) {
-                    $midFormatted = $this->formatSerialForSequence($mid);
-                    $occupied = Estimate::where('company_id', $this->company_id)
-                        ->where('estimate_number', $midFormatted)
-                        ->where('id', '<>', $this->id)
-                        ->exists();
-                    if (! $occupied) {
-                        return null;
-                    }
-                }
-                return $seq;
-            }
-
-            if (strcmp($formatted, $candidateNumber) > 0) {
-                return null;
-            }
-
-            $seq++;
-        }
-
-        return null;
-    }
-
-    /**
-     * Lock serializado por empresa. Ver Invoice::acquireNumberLock() para
-     * explicación completa.
-     */
-    protected function acquireNumberLock(): void
-    {
-        $driver = DB::connection()->getDriverName();
-        $companyId = (int) $this->company_id;
-
-        if ($driver === 'pgsql') {
-            // Onfactu — int32 signed safety:
-            // PostgreSQL pg_advisory_xact_lock(int, int) requiere int32
-            // con signo (max 2147483647). crc32() en PHP devuelve unsigned
-            // int32 y puede superar ese límite (ej. 'estimates' = 2243473646).
-            // Aplicamos AND con 0x7FFFFFFF para descartar el bit más alto
-            // y garantizar un valor positivo dentro del rango int32.
-            $tableKey = crc32('estimates') & 0x7FFFFFFF;
-            DB::statement('SELECT pg_advisory_xact_lock(?, ?)', [$tableKey, $companyId]);
-        } elseif ($driver === 'mysql') {
-            $lockName = "estimates_numbering_{$companyId}";
-            DB::statement('SELECT GET_LOCK(?, 10)', [$lockName]);
-        }
-    }
-
-    /**
-     * Formatea un estimate_number para un sequence_number concreto.
-     */
-    protected function formatSerialForSequence(int $sequence): string
-    {
-        $format = CompanySetting::getSetting('estimate_number_format', $this->company_id)
-            ?: '{{SERIES:EST}}{{DELIMITER:-}}{{SEQUENCE:6}}';
-
-        $placeholders = SerialNumberFormatter::getPlaceholders($format);
-
-        $result = '';
-        foreach ($placeholders as $p) {
-            $name = $p['name'];
-            $value = $p['value'];
-
-            switch ($name) {
-                case 'SEQUENCE':
-                    $value = $value ?: 6;
-                    $result .= str_pad((string) $sequence, (int) $value, '0', STR_PAD_LEFT);
-                    break;
-                case 'DATE_FORMAT':
-                    $result .= date($value ?: 'Y');
-                    break;
-                case 'RANDOM_SEQUENCE':
-                    $value = $value ?: 6;
-                    $result .= substr(bin2hex(random_bytes((int) $value)), 0, (int) $value);
-                    break;
-                case 'CUSTOMER_SERIES':
-                    $result .= ($this->customer && $this->customer->prefix) ? $this->customer->prefix : 'CST';
-                    break;
-                case 'CUSTOMER_SEQUENCE':
-                    $result .= str_pad((string) ($this->customer_sequence_number ?? 1), (int) ($value ?: 6), '0', STR_PAD_LEFT);
-                    break;
-                default:
-                    $result .= $value;
-            }
-        }
-
-        return $result;
     }
 
     public static function createItems($estimate, $request, $exchange_rate)

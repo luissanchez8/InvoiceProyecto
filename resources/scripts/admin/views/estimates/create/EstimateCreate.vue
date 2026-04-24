@@ -2,11 +2,13 @@
   <SelectTemplateModal />
   <ItemModal />
   <TaxTypeModal />
-  <NumberCollisionDialog
-    :visible="showCollisionDialog"
-    :details="numberCollision"
-    doc-type="estimate"
-    @close="numberCollision = null"
+  <NumberWarningDialog
+    :visible="showNumberWarning"
+    :loading="isSaving || isSavingDraft"
+    :title="$t('estimates.number_warning_title')"
+    :messages="numberWarningMessages"
+    @confirm="onConfirmNumberWarning"
+    @cancel="onCancelNumberWarning"
   />
   <SalesTax
     v-if="salesTaxEnabled && (!isLoadingContent || route.query.customer)"
@@ -55,9 +57,32 @@
             </BaseButton>
           </router-link>
 
+          <!--
+            Onfactu: 'Guardar como borrador' → sin número de serie.
+            'Guardar' → asigna número y status normal.
+          -->
+          <BaseButton
+            v-if="showDraftButton"
+            :loading="isSavingDraft"
+            :disabled="isSavingDraft || isSaving"
+            variant="primary-outline"
+            type="button"
+            class="mr-3"
+            @click="saveAsDraft"
+          >
+            <template #left="slotProps">
+              <BaseIcon
+                v-if="!isSavingDraft"
+                name="DocumentIcon"
+                :class="slotProps.class"
+              />
+            </template>
+            {{ $t('estimates.save_as_draft') }}
+          </BaseButton>
+
           <BaseButton
             :loading="isSaving"
-            :disabled="isSaving"
+            :disabled="isSaving || isSavingDraft"
             :content-loading="isLoadingContent"
             variant="primary"
             type="submit"
@@ -169,8 +194,9 @@ import EstimateBasicFields from './EstimateCreateBasicFields.vue'
 import SelectTemplateModal from '@/scripts/admin/components/modal-components/SelectTemplateModal.vue'
 import TaxTypeModal from '@/scripts/admin/components/modal-components/TaxTypeModal.vue'
 import ItemModal from '@/scripts/admin/components/modal-components/ItemModal.vue'
-import NumberCollisionDialog from '@/scripts/admin/components/modal-components/NumberCollisionDialog.vue'
 import SalesTax from '@/scripts/admin/components/estimate-invoice-common/SalesTax.vue'
+import NumberWarningDialog from '@/scripts/admin/components/dialogs/NumberWarningDialog.vue'
+import axios from 'axios'
 
 const estimateStore = useEstimateStore()
 const moduleStore = useModuleStore()
@@ -180,7 +206,13 @@ const { t } = useI18n()
 
 const estimateValidationScope = 'newEstimate'
 let isSaving = ref(false)
+let isSavingDraft = ref(false)
 const isMarkAsDefault = ref(false)
+
+// Onfactu: aviso de inconsistencia en numeración/fecha.
+const showNumberWarning = ref(false)
+const numberWarningMessages = ref([])
+const pendingSaveOptions = ref(null)
 
 const estimateNoteFieldList = ref([
   'customer',
@@ -201,6 +233,12 @@ let pageTitle = computed(() =>
 
 let isEdit = computed(() => route.name === 'estimates.edit')
 
+// Onfactu: 'Guardar como borrador' solo visible si aún no hay número.
+const showDraftButton = computed(() => {
+  if (!isEdit.value) return true
+  return !estimateStore.newEstimate.estimate_number
+})
+
 const salesTaxEnabled = computed(() => {
   return (
     companyStore.selectedCompanySettings.sales_tax_us_enabled === 'YES' &&
@@ -213,13 +251,10 @@ const rules = {
     required: helpers.withMessage(t('validation.required'), required),
   },
   estimate_number: {
-    // Onfactu — numeración diferida: estimate_number es OPCIONAL.
-    // Si el usuario lo deja vacío, se asigna al enviar el presupuesto.
-    // Si lo rellena, el backend valida que sea único en la empresa.
-    maxLength: helpers.withMessage(
-      t('validation.name_max_length'),
-      maxLength(100)
-    ),
+    // Onfactu: obligatorio solo si no es borrador. Al guardar como borrador
+    // se limpia el número antes de enviar; la validación del backend permite
+    // nullable en ese caso.
+    required: helpers.withMessage(t('validation.required'), required),
   },
   reference_number: {
     maxLength: helpers.withMessage(
@@ -262,45 +297,125 @@ customFieldStore.resetCustomFields()
 v$.value.$reset
 estimateStore.fetchEstimateInitialSettings(isEdit.value)
 
-// ── Onfactu — numeración diferida ────────────────────────────────────────────
-// Modal de colisión (cuando el backend devuelve 409 al marcar como enviado)
-const numberCollision = ref(null)
-const showCollisionDialog = computed({
-  get: () => numberCollision.value !== null,
-  set: (val) => {
-    if (!val) numberCollision.value = null
-  },
-})
-
-// Devuelve true si el input coincide con la sugerencia (usuario no la tocó)
-function isUnchangedSuggestion(numberInForm) {
-  const suggestion = estimateStore.suggestedEstimateNumber
-  if (!suggestion) return false
-  return String(numberInForm || '').trim() === String(suggestion).trim()
-}
-
-// Al guardar como borrador, opción C:
-//  - Sugerencia "clean" (MAX+1 puro) y no tocada → null (libera el número).
-//  - Sugerencia "skipped" (salto por hueco) y no tocada → se persiste el valor
-//    literal para reservar ese hueco concreto.
-//  - Usuario cambió el número → se respeta el valor manual.
-function resolveNumberForDraft(data) {
-  if (isUnchangedSuggestion(data.estimate_number)) {
-    if (!estimateStore.suggestedEstimateNumberIsSkipped) {
-      data.estimate_number = null
-    }
-  }
-  return data
-}
-
 async function submitForm() {
+  await preSave({ clearNumber: false })
+}
+
+// Onfactu: "Guardar como borrador" → sin número de serie.
+async function saveAsDraft() {
+  await doSave({ clearNumber: true })
+}
+
+async function preSave({ clearNumber }) {
   v$.value.$touch()
 
   if (v$.value.$invalid) {
     return false
   }
 
-  isSaving.value = true
+  // Consultar info de la serie al backend.
+  let info = null
+  try {
+    const resp = await axios.get('/api/v1/estimates/next-number-info')
+    info = resp.data
+  } catch (err) {
+    console.warn('Could not fetch estimates next-number-info:', err)
+    return doSave({ clearNumber })
+  }
+
+  const warnings = []
+  const currentNumber = estimateStore.newEstimate.estimate_number
+  const currentDate = estimateStore.newEstimate.estimate_date
+
+  // Aviso 1: salto o número por debajo del esperado.
+  if (info.next_expected_sequence !== null && info.next_expected_sequence !== undefined && currentNumber) {
+    const expectedSeq = parseInt(info.next_expected_sequence)
+    const match = String(currentNumber).match(/(\d+)$/)
+    if (match) {
+      const enteredSeq = parseInt(match[1], 10)
+      if (enteredSeq > expectedSeq) {
+        const prefixMatch = String(currentNumber).match(/^(.*?)(\d+)$/)
+        const prefix = prefixMatch ? prefixMatch[1] : ''
+        const width = match[1].length
+        const expectedNumber = prefix + String(expectedSeq).padStart(width, '0')
+        warnings.push(
+          t('estimates.warning_number_skip', {
+            expected: expectedNumber,
+            entered: currentNumber,
+          })
+        )
+      } else if (enteredSeq < expectedSeq && !isEdit.value) {
+        warnings.push(
+          t('estimates.warning_number_below', {
+            entered: currentNumber,
+            last: info.last_number,
+          })
+        )
+      }
+    }
+  }
+
+  // Aviso 2: fecha anterior a la última creada.
+  if (info.last_numbered_date && currentDate) {
+    const lastDate = new Date(info.last_numbered_date)
+    const curDate = new Date(currentDate)
+    if (curDate < lastDate) {
+      warnings.push(
+        t('estimates.warning_date_earlier', {
+          date: info.last_numbered_date,
+        })
+      )
+    }
+  }
+
+  // Aviso 3: año distinto al actual.
+  if (currentDate) {
+    const entered = new Date(currentDate)
+    if (!isNaN(entered.getTime())) {
+      const enteredYear = entered.getFullYear()
+      const currentYear = new Date().getFullYear()
+      if (enteredYear !== currentYear) {
+        warnings.push(
+          t('estimates.warning_year_mismatch', {
+            entered: enteredYear,
+            current: currentYear,
+          })
+        )
+      }
+    }
+  }
+
+  if (warnings.length > 0) {
+    numberWarningMessages.value = warnings
+    pendingSaveOptions.value = { clearNumber }
+    showNumberWarning.value = true
+    return
+  }
+
+  return doSave({ clearNumber })
+}
+
+function onConfirmNumberWarning() {
+  showNumberWarning.value = false
+  const opts = pendingSaveOptions.value || { clearNumber: false }
+  pendingSaveOptions.value = null
+  doSave(opts)
+}
+
+function onCancelNumberWarning() {
+  showNumberWarning.value = false
+  pendingSaveOptions.value = null
+  isSaving.value = false
+  isSavingDraft.value = false
+}
+
+async function doSave({ clearNumber }) {
+  const isDraft = clearNumber
+  if (isDraft) {
+    isSavingDraft.value = true
+  } else {
+    isSaving.value = true
+  }
 
   let data = cloneDeep({
     ...estimateStore.newEstimate,
@@ -309,8 +424,11 @@ async function submitForm() {
     tax: estimateStore.getTotalTax,
   })
 
-  // Numeración diferida: descarta sugerencia no tocada
-  data = resolveNumberForDraft(data)
+  if (isDraft) {
+    data.estimate_number  = null
+    data.sequence_number  = null
+    data.status           = 'DRAFT'
+  }
 
   if (data.discount_per_item === 'YES') {
     data.items.forEach((item, index) => {
@@ -343,17 +461,10 @@ async function submitForm() {
       router.push(`/admin/estimates/${res.data.data.id}/view`)
     }
   } catch (err) {
-    // Capturamos colisión también aquí por si el usuario escribió un número
-    // manual y ya existe en otro borrador.
-    const status = err?.response?.status
-    const errorCode = err?.response?.data?.error_code
-    if (status === 409 && errorCode === 'number_collision') {
-      numberCollision.value = err.response.data.details || {}
-    } else {
-      console.error(err)
-    }
+    console.error(err)
   }
 
   isSaving.value = false
+  isSavingDraft.value = false
 }
 </script>

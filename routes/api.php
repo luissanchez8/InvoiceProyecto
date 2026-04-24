@@ -15,6 +15,7 @@ use App\Http\Controllers\V1\Admin\Estimate\ChangeEstimateStatusController;
 use App\Http\Controllers\V1\Admin\Estimate\CloneEstimateController;
 use App\Http\Controllers\V1\Admin\Estimate\ConvertEstimateController;
 use App\Http\Controllers\V1\Admin\Estimate\EstimatesController;
+use App\Http\Controllers\V1\Admin\Estimate\NextNumberController as EstimateNextNumberController;
 use App\Http\Controllers\V1\Admin\Estimate\EstimateTemplatesController;
 use App\Http\Controllers\V1\Admin\Estimate\SendEstimateController;
 use App\Http\Controllers\V1\Admin\Estimate\SendEstimatePreviewController;
@@ -354,6 +355,8 @@ Route::prefix('/v1')->group(function () {
             Route::get('/estimates/templates', EstimateTemplatesController::class);
 
             Route::post('/estimates/delete', [EstimatesController::class, 'delete']);
+
+            Route::get('/estimates/next-number-info', EstimateNextNumberController::class);
 
             Route::apiResource('estimates', EstimatesController::class);
 

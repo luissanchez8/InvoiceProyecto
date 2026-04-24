@@ -1,11 +1,5 @@
 <template>
   <SendEstimateModal @update="updateSentEstimate" />
-  <NumberCollisionDialog
-    :visible="showCollisionDialog"
-    :details="numberCollision"
-    doc-type="estimate"
-    @close="numberCollision = null"
-  />
   <BasePage v-if="estimateData" class="xl:pl-96 xl:ml-8">
     <BasePageHeader :title="pageTitle">
       <template #actions>
@@ -210,7 +204,7 @@
                   text-gray-600
                 "
               >
-                {{ estimate.estimate_number || $t('estimates.draft_number') }}
+                {{ estimate.estimate_number || $t('general.draft').toUpperCase() }}
               </div>
 
               <BaseEstimateStatusBadge
@@ -294,7 +288,6 @@ import { useUserStore } from '@/scripts/admin/stores/user'
 
 import EstimateDropDown from '@/scripts/admin/components/dropdowns/EstimateIndexDropdown.vue'
 import SendEstimateModal from '@/scripts/admin/components/modal-components/SendEstimateModal.vue'
-import NumberCollisionDialog from '@/scripts/admin/components/modal-components/NumberCollisionDialog.vue'
 import LoadingIcon from '@/scripts/components/icons/LoadingIcon.vue'
 
 import abilities from '@/scripts/admin/stub/abilities'
@@ -311,15 +304,6 @@ const router = useRouter()
 
 const isMarkAsSent = ref(false)
 const isLoading = ref(false)
-
-// Onfactu — numeración diferida: modal de colisión al marcar como enviado
-const numberCollision = ref(null)
-const showCollisionDialog = computed({
-  get: () => numberCollision.value !== null,
-  set: (val) => {
-    if (!val) numberCollision.value = null
-  },
-})
 const isLoadingEstimate = ref(false)
 
 const estimateList = ref(null)
@@ -333,7 +317,10 @@ const searchData = reactive({
   searchText: null,
 })
 
-const pageTitle = computed(() => estimateData.value.estimate_number || t('estimates.draft_number'))
+const pageTitle = computed(() =>
+  // Onfactu: si es borrador sin número, mostrar BORRADOR.
+  estimateData.value.estimate_number || t('general.draft').toUpperCase()
+)
 
 const getOrderBy = computed(() => {
   if (searchData.orderBy === 'asc' || searchData.orderBy == null) {
@@ -494,33 +481,15 @@ async function onMarkAsSent() {
       hideNoButton: false,
       size: 'lg',
     })
-    .then(async (response) => {
+    .then((response) => {
       isMarkAsSent.value = false
       if (response) {
-        try {
-          await estimateStore.markAsSent({
-            id: estimateData.value.id,
-            status: 'SENT',
-          })
-          estimateData.value.status = 'SENT'
-          isMarkAsSent.value = true
-
-          // Refrescar los datos del estimate para ver el número ya asignado
-          estimateStore.fetchEstimate(estimateData.value.id).then((res) => {
-            if (res?.data?.data) {
-              estimateData.value = res.data.data
-            }
-          }).catch(() => {})
-        } catch (err) {
-          // Onfactu — numeración diferida: captura colisión 409
-          const status = err?.response?.status
-          const errorCode = err?.response?.data?.error_code
-          if (status === 409 && errorCode === 'number_collision') {
-            numberCollision.value = err.response.data.details || {}
-          } else {
-            console.error(err)
-          }
-        }
+        estimateStore.markAsSent({
+          id: estimateData.value.id,
+          status: 'SENT',
+        })
+        estimateData.value.status = 'SENT'
+        isMarkAsSent.value = true
       }
       isMarkAsSent.value = false
     })

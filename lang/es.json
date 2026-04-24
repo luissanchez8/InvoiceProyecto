@@ -1791,5 +1791,10 @@
     "invoices.warning_number_skip": "Vas a asignar el número {entered}, pero el siguiente en la serie sería {expected}. Si continúas, se creará un hueco en la numeración.",
     "invoices.warning_number_below": "El número {entered} es anterior al último asignado ({last}). Si continúas, la numeración dejará de ser consecutiva.",
     "invoices.warning_date_earlier": "Existe un documento con número posterior cuya fecha ({date}) es más reciente que la que estás poniendo. Si continúas, la factura quedará fuera de orden cronológico.",
-    "invoices.warning_year_mismatch": "Vas a asignar una fecha del año {entered} pero el año actual es {current}. Si continúas, la factura quedará registrada en un año distinto al actual."
+    "invoices.warning_year_mismatch": "Vas a asignar una fecha del año {entered} pero el año actual es {current}. Si continúas, la factura quedará registrada en un año distinto al actual.",
+    "estimates.number_warning_title": "Atención en la numeración",
+    "estimates.warning_number_skip": "Vas a asignar el número {entered}, pero el siguiente en la serie sería {expected}. Si continúas, se creará un hueco en la numeración.",
+    "estimates.warning_number_below": "El número {entered} es anterior al último asignado ({last}). Si continúas, la numeración dejará de ser consecutiva.",
+    "estimates.warning_date_earlier": "Existe un documento con número posterior cuya fecha ({date}) es más reciente que la que estás poniendo. Si continúas, el presupuesto quedará fuera de orden cronológico.",
+    "estimates.warning_year_mismatch": "Vas a asignar una fecha del año {entered} pero el año actual es {current}. Si continúas, el presupuesto quedará registrado en un año distinto al actual."
 }
