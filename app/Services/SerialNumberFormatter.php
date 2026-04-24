@@ -114,18 +114,38 @@ class SerialNumberFormatter
 
     /**
      * @return $this
+     *
+     * Onfactu: si el usuario ha asignado manualmente números altos con
+     * saltos (ej. usa el número 99 habiendo solo el 1), MAX+1 saltaría a 100
+     * y se perdería el consecutivo. En su lugar buscamos el primer entero
+     * positivo que no esté ocupado, recorriendo los sequence_number usados
+     * en orden ascendente. Así la serie avanza 1, 2, 3... y solo salta un
+     * número si el usuario lo había reservado manualmente antes.
      */
     public function setNextSequenceNumber()
     {
         $companyId = $this->company;
 
-        $last = $this->model::orderBy('sequence_number', 'desc')
-            ->where('company_id', $companyId)
-            ->where('sequence_number', '<>', null)
-            ->take(1)
-            ->first();
+        $used = $this->model::where('company_id', $companyId)
+            ->whereNotNull('sequence_number')
+            ->orderBy('sequence_number', 'asc')
+            ->pluck('sequence_number')
+            ->map(fn ($n) => (int) $n)
+            ->unique()
+            ->values()
+            ->all();
 
-        $this->nextSequenceNumber = ($last) ? $last->sequence_number + 1 : 1;
+        $candidate = 1;
+        foreach ($used as $n) {
+            if ($n === $candidate) {
+                $candidate++;
+            } elseif ($n > $candidate) {
+                // encontrado hueco: $candidate no está ocupado, lo usamos.
+                break;
+            }
+        }
+
+        $this->nextSequenceNumber = $candidate;
 
         return $this;
     }

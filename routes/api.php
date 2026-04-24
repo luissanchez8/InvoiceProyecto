@@ -48,6 +48,7 @@ use App\Http\Controllers\V1\Admin\Invoice\InvoiceTemplatesController;
 use App\Http\Controllers\V1\Admin\Invoice\SendInvoiceController;
 use App\Http\Controllers\V1\Admin\Invoice\SendInvoicePreviewController;
 use App\Http\Controllers\V1\Admin\Invoice\VerifactuController;
+use App\Http\Controllers\V1\Admin\Invoice\NextNumberController as InvoiceNextNumberController;
 use App\Http\Controllers\V1\Admin\Invoice\ApproveInvoiceController;
 use App\Http\Controllers\V1\Admin\Item\ItemsController;
 use App\Http\Controllers\V1\Admin\Item\UnitsController;
@@ -291,6 +292,8 @@ Route::prefix('/v1')->group(function () {
             Route::post('/invoices/delete', [InvoicesController::class, 'delete']);
 
             Route::get('/invoices/templates', InvoiceTemplatesController::class);
+
+            Route::get('/invoices/next-number-info', InvoiceNextNumberController::class);
 
             Route::apiResource('invoices', InvoicesController::class);
 

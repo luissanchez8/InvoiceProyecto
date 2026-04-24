@@ -6,20 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Models\Invoice;
 use Illuminate\Http\Request;
 
-/**
- * Onfactu: devuelve información de consistencia para el formulario de creación
- * de facturas. El frontend lo usa para avisar al usuario si:
- *
- *   - El invoice_number escrito deja un hueco respecto al siguiente de la serie.
- *   - La fecha escrita es anterior a la de la última factura con número.
- *
- * GET /api/v1/invoices/next-number-info
- *   → {
- *       next_expected_number: "FAC-000002",  // el que tocaría ahora mismo
- *       last_number: "FAC-000001",           // el último asignado
- *       last_numbered_date: "2026-04-20"     // fecha de la última factura con número
- *     }
- */
 class NextNumberController extends Controller
 {
     public function __invoke(Request $request)
@@ -31,12 +17,42 @@ class NextNumberController extends Controller
             ->orderByDesc('sequence_number')
             ->first();
 
+        $lastDate = null;
+        if ($last && $last->invoice_date) {
+            $raw = $last->invoice_date;
+            if (is_string($raw)) {
+                $lastDate = substr($raw, 0, 10);
+            } elseif (method_exists($raw, 'toDateString')) {
+                $lastDate = $raw->toDateString();
+            } else {
+                $lastDate = (string) $raw;
+            }
+        }
+
+        // Onfactu: siguiente sequence libre (primer hueco desde 1).
+        $used = Invoice::where('company_id', $companyId)
+            ->whereNotNull('sequence_number')
+            ->orderBy('sequence_number', 'asc')
+            ->pluck('sequence_number')
+            ->map(fn ($n) => (int) $n)
+            ->unique()
+            ->values()
+            ->all();
+
+        $next = 1;
+        foreach ($used as $n) {
+            if ($n === $next) {
+                $next++;
+            } elseif ($n > $next) {
+                break;
+            }
+        }
+
         return response()->json([
-            'last_number'        => $last?->invoice_number,
-            'last_sequence'      => $last?->sequence_number,
-            'last_numbered_date' => $last?->invoice_date
-                ? $last->invoice_date->toDateString()
-                : null,
+            'last_number'            => $last?->invoice_number,
+            'last_sequence'          => $last?->sequence_number,
+            'last_numbered_date'     => $lastDate,
+            'next_expected_sequence' => $next,
         ]);
     }
 }

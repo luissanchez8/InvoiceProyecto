@@ -377,34 +377,36 @@ async function preSave({ clearNumber }) {
   const currentNumber = invoiceStore.newInvoice.invoice_number
   const currentDate = invoiceStore.newInvoice.invoice_date
 
-  // Aviso 1: si se salta en la numeración.
-  // Calculamos cuál sería el siguiente esperado a partir de last_sequence.
-  if (info.last_sequence !== null && info.last_sequence !== undefined && currentNumber) {
-    const expectedSeq = parseInt(info.last_sequence) + 1
+  // Onfactu: next_expected_sequence viene calculado por el backend como el
+  // primer hueco libre desde 1. Usamos ese valor para detectar saltos. Así,
+  // aunque el usuario haya metido un INV-000099 manualmente, si todavía no
+  // se ha usado el 5 (por ejemplo), escribir INV-000050 avisa (salto de 5 a 50).
+  if (info.next_expected_sequence !== null && info.next_expected_sequence !== undefined && currentNumber) {
+    const expectedSeq = parseInt(info.next_expected_sequence)
     // Intentar extraer el número del invoice_number actual (FAC-000003 -> 3).
     const match = String(currentNumber).match(/(\d+)$/)
     if (match) {
       const enteredSeq = parseInt(match[1], 10)
       if (enteredSeq > expectedSeq) {
+        // Construir el número esperado con el mismo prefijo que el usuario escribió.
+        const prefixMatch = String(currentNumber).match(/^(.*?)(\d+)$/)
+        const prefix = prefixMatch ? prefixMatch[1] : ''
+        const width = match[1].length
+        const expectedNumber = prefix + String(expectedSeq).padStart(width, '0')
         warnings.push(
           t('invoices.warning_number_skip', {
-            expected: info.last_number
-              ? incrementNumberString(info.last_number)
-              : currentNumber,
+            expected: expectedNumber,
             entered: currentNumber,
           })
         )
-      } else if (enteredSeq < expectedSeq && info.last_number !== currentNumber) {
-        // Sólo avisar si el número no coincide con el último (edición).
-        // Es una edición de factura ya creada con su número, no es un salto.
-        if (!isEdit.value) {
-          warnings.push(
-            t('invoices.warning_number_below', {
-              entered: currentNumber,
-              last: info.last_number,
-            })
-          )
-        }
+      } else if (enteredSeq < expectedSeq && !isEdit.value) {
+        // Número ya ocupado (por debajo del siguiente libre) en factura nueva.
+        warnings.push(
+          t('invoices.warning_number_below', {
+            entered: currentNumber,
+            last: info.last_number,
+          })
+        )
       }
     }
   }
