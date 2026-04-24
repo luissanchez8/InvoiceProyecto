@@ -270,13 +270,6 @@ class DeliveryNote extends Model implements HasMedia
     }
 
     /**
-     * Onfactu: accessor usado por el dropdown para mostrar/ocultar el botón
-     * "Editar". Permitimos edición mientras no esté entregado.
-     */
-    public function getAllowEditAttribute(): bool
-    {
-        return $this->status !== self::STATUS_DELIVERED;
-    }
 
     public static function createDeliveryNote($request)
     {

@@ -304,13 +304,6 @@ class ProformaInvoice extends Model implements HasMedia
     }
 
     /**
-     * Onfactu: accessor usado por el dropdown para mostrar/ocultar el botón
-     * "Editar". Permitimos edición mientras no esté aceptada.
-     */
-    public function getAllowEditAttribute(): bool
-    {
-        return $this->status !== self::STATUS_ACCEPTED;
-    }
 
     public static function createProformaInvoice($request)
     {
