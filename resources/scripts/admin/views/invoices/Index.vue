@@ -211,9 +211,9 @@
         <template #cell-invoice_number="{ row }">
           <router-link
             :to="{ path: `invoices/${row.data.id}/view` }"
-            :class="row.data.invoice_number ? 'font-medium text-primary-500' : 'font-medium text-gray-400 italic'"
+            class="font-medium text-primary-500"
           >
-            {{ row.data.invoice_number || $t('general.draft').toUpperCase() }}
+            {{ row.data.invoice_number }}
           </router-link>
         </template>
 
@@ -424,7 +424,7 @@ const invoiceColumns = computed(() => {
     ...(verifactuEnabled.value
       ? [{
           key: 'verifactu',
-          label: '',
+          label: t('verifactu.title'),
           tdClass: 'text-center text-sm font-medium',
           thClass: 'text-center',
           sortable: false,
