@@ -9,6 +9,14 @@
     @save-draft="onApproveSaveDraft"
     @cancel="onApproveCancelled"
   />
+  <NumberWarningDialog
+    :visible="showNumberWarning"
+    :loading="isSaving || isSavingDraft"
+    :title="$t('invoices.number_warning_title')"
+    :messages="numberWarningMessages"
+    @confirm="onConfirmNumberWarning"
+    @cancel="onCancelNumberWarning"
+  />
   <SalesTax
     v-if="salesTaxEnabled && (!isLoadingContent || route.query.customer)"
     :store="invoiceStore"
@@ -219,6 +227,8 @@ import TaxTypeModal from '@/scripts/admin/components/modal-components/TaxTypeMod
 import ItemModal from '@/scripts/admin/components/modal-components/ItemModal.vue'
 import SalesTax from '@/scripts/admin/components/estimate-invoice-common/SalesTax.vue'
 import ApproveInvoiceDialog from '@/scripts/admin/components/modal-components/ApproveInvoiceDialog.vue'
+import NumberWarningDialog from '@/scripts/admin/components/dialogs/NumberWarningDialog.vue'
+import axios from 'axios'
 
 const invoiceStore = useInvoiceStore()
 const companyStore = useCompanyStore()
@@ -237,6 +247,13 @@ let isSavingDraft = ref(false)
 let isApproving = ref(false)
 const showApproveDialog = ref(false)
 const isMarkAsDefault = ref(false)
+
+// Onfactu: aviso de inconsistencia en numeración/fecha. Se muestra modal
+// antes de guardar si el usuario escribió un invoice_number que deja hueco
+// en la serie o si la invoice_date es anterior a la última factura numerada.
+const showNumberWarning = ref(false)
+const numberWarningMessages = ref([])
+const pendingSaveOptions = ref(null)  // { clearNumber: bool }
 
 const verifactuEnabled = computed(() =>
   companyStore.selectedCompanySettings.verifactu_enabled === 'YES'
@@ -324,16 +341,120 @@ watch(
 )
 
 async function submitForm() {
-  // Onfactu: pulsar "Guardar" respeta el invoice_number del formulario.
-  // Si estamos editando un borrador y el form tiene número → se finaliza
-  // (se asigna sequence). Si ya era factura con número → se guarda sin más.
-  await doSave({ clearNumber: false })
+  // Onfactu: comprobar avisos antes de guardar. Si hay warning se muestra
+  // modal; si no, guarda directamente.
+  await preSave({ clearNumber: false })
 }
 
 // Onfactu: "Guardar como borrador" → envía invoice_number vacío para que
 // el backend NO consuma número de serie. Sigue en status=DRAFT.
 async function saveAsDraft() {
+  // Borrador nunca muestra warning porque no tiene número.
   await doSave({ clearNumber: true })
+}
+
+// Onfactu: valida consistencia y, si hay avisos, muestra modal. Si no, guarda.
+async function preSave({ clearNumber }) {
+  v$.value.$touch()
+
+  if (v$.value.$invalid) {
+    console.log('Form is invalid:', v$.value.$errors)
+    return false
+  }
+
+  // Comprobar contra el backend: último número y última fecha.
+  let info = null
+  try {
+    const resp = await axios.get('/api/v1/invoices/next-number-info')
+    info = resp.data
+  } catch (err) {
+    // Si falla la comprobación, seguimos sin warning (no bloqueamos al usuario).
+    console.warn('Could not fetch next-number-info:', err)
+    return doSave({ clearNumber })
+  }
+
+  const warnings = []
+  const currentNumber = invoiceStore.newInvoice.invoice_number
+  const currentDate = invoiceStore.newInvoice.invoice_date
+
+  // Aviso 1: si se salta en la numeración.
+  // Calculamos cuál sería el siguiente esperado a partir de last_sequence.
+  if (info.last_sequence !== null && info.last_sequence !== undefined && currentNumber) {
+    const expectedSeq = parseInt(info.last_sequence) + 1
+    // Intentar extraer el número del invoice_number actual (FAC-000003 -> 3).
+    const match = String(currentNumber).match(/(\d+)$/)
+    if (match) {
+      const enteredSeq = parseInt(match[1], 10)
+      if (enteredSeq > expectedSeq) {
+        warnings.push(
+          t('invoices.warning_number_skip', {
+            expected: info.last_number
+              ? incrementNumberString(info.last_number)
+              : currentNumber,
+            entered: currentNumber,
+          })
+        )
+      } else if (enteredSeq < expectedSeq && info.last_number !== currentNumber) {
+        // Sólo avisar si el número no coincide con el último (edición).
+        // Es una edición de factura ya creada con su número, no es un salto.
+        if (!isEdit.value) {
+          warnings.push(
+            t('invoices.warning_number_below', {
+              entered: currentNumber,
+              last: info.last_number,
+            })
+          )
+        }
+      }
+    }
+  }
+
+  // Aviso 2: fecha anterior a la última factura numerada.
+  if (info.last_numbered_date && currentDate) {
+    const lastDate = new Date(info.last_numbered_date)
+    const curDate = new Date(currentDate)
+    if (curDate < lastDate) {
+      warnings.push(
+        t('invoices.warning_date_earlier', {
+          date: info.last_numbered_date,
+        })
+      )
+    }
+  }
+
+  if (warnings.length > 0) {
+    numberWarningMessages.value = warnings
+    pendingSaveOptions.value = { clearNumber }
+    showNumberWarning.value = true
+    return
+  }
+
+  // Sin avisos → guardar directamente.
+  return doSave({ clearNumber })
+}
+
+// Onfactu: dado un string tipo "FAC-000003" devuelve "FAC-000004".
+function incrementNumberString(str) {
+  const match = String(str).match(/^(.*?)(\d+)$/)
+  if (!match) return str
+  const prefix = match[1]
+  const num = parseInt(match[2], 10) + 1
+  const width = match[2].length
+  return prefix + String(num).padStart(width, '0')
+}
+
+function onConfirmNumberWarning() {
+  showNumberWarning.value = false
+  const opts = pendingSaveOptions.value || { clearNumber: false }
+  pendingSaveOptions.value = null
+  doSave(opts)
+}
+
+function onCancelNumberWarning() {
+  showNumberWarning.value = false
+  pendingSaveOptions.value = null
+  isSaving.value = false
+  isSavingDraft.value = false
 }
 
 async function doSave({ clearNumber }) {
