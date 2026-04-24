@@ -79,7 +79,6 @@
 import { ref, computed, onMounted } from 'vue'
 import axios from 'axios'
 import { useNotificationStore } from '@/scripts/stores/notification'
-import { useGlobalStore } from '@/scripts/admin/stores/global'
 
 const notificationStore = useNotificationStore()
 const configs = ref([])
@@ -96,7 +95,7 @@ const labels = {
   'OPCION_MENU_FRA_RECURRENTE': 'Facturas recurrentes',
   'OPCION_MENU_PAGOS': 'Pagos',
   'OPCION_MENU_GASTOS': 'Gastos',
-  'OPCION_VERIFACTU': 'Activar VeriFactu',
+  'OPCION_VERIFACTU': 'VeriFactu',
   'NOMBRE_EMPRESA': 'Nombre de la empresa',
   'URL_LOGOTIPO': 'URL del logotipo',
   'PLAN_ID': 'Plan contratado',
@@ -109,12 +108,6 @@ const planLabels = {
 }
 
 const readonlyKeys = ['PLAN_ID']
-
-// Claves que se tratan como toggle boolean (valor '1' o '0').
-// Incluye todas las OPCION_MENU_* y OPCION_VERIFACTU.
-function isBooleanToggle(key) {
-  return key.startsWith('OPCION_MENU_') || key === 'OPCION_VERIFACTU'
-}
 
 function labelFor(key) { return labels[key] || key }
 
@@ -129,18 +122,19 @@ const planLabel = computed(() => {
   return planLabels[planId.value] || planId.value
 })
 
+// Onfactu: claves que se muestran como toggle. OPCION_MENU_* muestran/ocultan
+// opciones del menú. OPCION_VERIFACTU activa VeriFactu globalmente (sincroniza
+// con company_settings.verifactu_enabled en el backend).
+function isToggleKey(key) {
+  return key.startsWith('OPCION_MENU_') || key === 'OPCION_VERIFACTU'
+}
+
 const toggleConfigs = computed(() =>
-  configs.value.filter(c =>
-    c.key.startsWith('OPCION_MENU_') || c.key === 'OPCION_VERIFACTU'
-  )
+  configs.value.filter(c => isToggleKey(c.key))
 )
 
 const editableConfigs = computed(() =>
-  configs.value.filter(c =>
-    !c.key.startsWith('OPCION_MENU_') &&
-    c.key !== 'OPCION_VERIFACTU' &&
-    !readonlyKeys.includes(c.key)
-  )
+  configs.value.filter(c => !isToggleKey(c.key) && !readonlyKeys.includes(c.key))
 )
 
 async function fetchConfig() {
@@ -149,7 +143,7 @@ async function fetchConfig() {
     const response = await axios.get('/api/v1/app-config')
     configs.value = response.data.data.map(item => ({
       ...item,
-      enabled: isBooleanToggle(item.key) ? item.value === '1' : undefined,
+      enabled: isToggleKey(item.key) ? item.value === '1' : undefined,
     }))
   } catch (err) {
     notificationStore.showNotification({
@@ -195,24 +189,12 @@ async function saveConfig() {
       .filter(c => !readonlyKeys.includes(c.key))
       .map(c => ({
         key: c.key,
-        value: isBooleanToggle(c.key)
+        value: isToggleKey(c.key)
           ? (c.enabled ? '1' : '0')
           : String(c.value ?? ''),
       }))
 
     await axios.put('/api/v1/app-config', { configs: payload })
-
-    // Refrescar bootstrap para propagar cambios (OPCION_VERIFACTU, etc.)
-    // al resto de stores en tiempo real sin necesidad de recargar la página.
-    try {
-      const globalStore = useGlobalStore()
-      await globalStore.bootstrap()
-    } catch (e) {
-      // Si falla el refresco, no es crítico — solo significa que el usuario
-      // verá los cambios al recargar manualmente.
-      console.warn('No se pudo refrescar bootstrap tras guardar config', e)
-    }
-
     notificationStore.showNotification({
       type: 'success',
       message: 'Configuración guardada correctamente',
