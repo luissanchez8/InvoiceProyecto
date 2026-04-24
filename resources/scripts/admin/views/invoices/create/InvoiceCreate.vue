@@ -424,6 +424,25 @@ async function preSave({ clearNumber }) {
     }
   }
 
+  // Aviso 3: año distinto al año actual. Evita equivocaciones al teclear el
+  // año (típico 2024 en vez de 2025) sin bloquear usos legítimos como
+  // facturas atrasadas de principios de año nuevo.
+  if (currentDate) {
+    const entered = new Date(currentDate)
+    if (!isNaN(entered.getTime())) {
+      const enteredYear = entered.getFullYear()
+      const currentYear = new Date().getFullYear()
+      if (enteredYear !== currentYear) {
+        warnings.push(
+          t('invoices.warning_year_mismatch', {
+            entered: enteredYear,
+            current: currentYear,
+          })
+        )
+      }
+    }
+  }
+
   if (warnings.length > 0) {
     numberWarningMessages.value = warnings
     pendingSaveOptions.value = { clearNumber }

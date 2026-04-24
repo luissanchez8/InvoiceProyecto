@@ -1785,5 +1785,6 @@
     "invoices.number_warning_title": "Numbering warning",
     "invoices.warning_number_skip": "You're about to use number {entered}, but the next number in series would be {expected}. Continuing will leave a gap in the numbering.",
     "invoices.warning_number_below": "The number {entered} is below the last assigned ({last}). Continuing will break the consecutive numbering.",
-    "invoices.warning_date_earlier": "There is a document with a later number whose date ({date}) is more recent than the one you're setting. Continuing will break the chronological order."
+    "invoices.warning_date_earlier": "There is a document with a later number whose date ({date}) is more recent than the one you're setting. Continuing will break the chronological order.",
+    "invoices.warning_year_mismatch": "You're about to set a date in year {entered}, but the current year is {current}. Continuing will record the invoice in a different year than the current one."
 }
