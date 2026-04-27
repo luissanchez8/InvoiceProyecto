@@ -189,7 +189,6 @@ export default [
         path: 'trial-blocked',
         name: 'trial.blocked',
         component: () => import('./views/trial/BlockedScreen.vue'),
-        meta: { ability: 'all' },
       },
       {
         path: 'dashboard',
