@@ -3,6 +3,7 @@
 
 <head>
     <meta charset="utf-8">
+    <meta name="robots" content="noindex, nofollow">
     <title>{{ app_cfg('NOMBRE_EMPRESA', config('app.name')) }} - Onfactu</title>
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <link rel="apple-touch-icon" sizes="180x180" href="/favicons/apple-touch-icon.png">
