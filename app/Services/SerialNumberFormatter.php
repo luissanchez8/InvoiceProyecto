@@ -121,10 +121,24 @@ class SerialNumberFormatter
      * positivo que no esté ocupado, recorriendo los sequence_number usados
      * en orden ascendente. Así la serie avanza 1, 2, 3... y solo salta un
      * número si el usuario lo había reservado manualmente antes.
+     *
+     * v.1.9.2: además, si el cliente tiene configurado un "start_number"
+     * en company_settings (clave <modelo>_start_number), la búsqueda empieza
+     * desde ese valor en lugar de 1. Esto permite a clientes que vienen de
+     * otro programa con N facturas previas empezar por el número N+1 sin
+     * tener que crear facturas dummy.
      */
     public function setNextSequenceNumber()
     {
         $companyId = $this->company;
+
+        // v.1.9.2 — Leer número inicial configurado (default 1)
+        $modelName = strtolower(class_basename($this->model));
+        $startKey = $modelName . '_start_number';
+        $startNumber = (int) (CompanySetting::getSetting($startKey, $companyId) ?: 1);
+        if ($startNumber < 1) {
+            $startNumber = 1;
+        }
 
         $used = $this->model::where('company_id', $companyId)
             ->whereNotNull('sequence_number')
@@ -135,7 +149,7 @@ class SerialNumberFormatter
             ->values()
             ->all();
 
-        $candidate = 1;
+        $candidate = $startNumber;
         foreach ($used as $n) {
             if ($n === $candidate) {
                 $candidate++;

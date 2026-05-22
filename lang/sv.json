@@ -1646,5 +1646,20 @@
   "mail_view_payment": "Visa betalning",
   "notification_view_estimate": "[Notification] Estimate viewed",
   "notification_view_invoice": "[Notification] Invoice viewed",
-  "You have received a new invoice from <b>{COMPANY_NAME}</b>.</br> Please download using the button below:": "You have received a new invoice from <b>{COMPANY_NAME}</b>.</br> Please download using the button below:"
+  "You have received a new invoice from <b>{COMPANY_NAME}</b>.</br> Please download using the button below:": "You have received a new invoice from <b>{COMPANY_NAME}</b>.</br> Please download using the button below:",
+    "settings.customization.invoices.start_number_title": "Starting number",
+    "settings.customization.invoices.start_number_description": "Number from which your invoice numbering will start. Useful if you come from another program: if your last invoice there was 17, enter 18.",
+    "settings.customization.invoices.start_number_label": "Next number",
+    "settings.customization.estimates.start_number_title": "Starting number",
+    "settings.customization.estimates.start_number_description": "Number from which your estimate numbering will start. Useful if you come from another program: if your last estimate there was 17, enter 18.",
+    "settings.customization.estimates.start_number_label": "Next number",
+    "settings.customization.proformainvoices.start_number_title": "Starting number",
+    "settings.customization.proformainvoices.start_number_description": "Number from which your proforma numbering will start. Useful if you come from another program: if your last proforma there was 17, enter 18.",
+    "settings.customization.proformainvoices.start_number_label": "Next number",
+    "settings.customization.deliverynotes.start_number_title": "Starting number",
+    "settings.customization.deliverynotes.start_number_description": "Number from which your delivery note numbering will start. Useful if you come from another program: if your last delivery note there was 17, enter 18.",
+    "settings.customization.deliverynotes.start_number_label": "Next number",
+    "settings.customization.payments.start_number_title": "Starting number",
+    "settings.customization.payments.start_number_description": "Number from which your payment numbering will start. Useful if you come from another program: if your last payment there was 17, enter 18.",
+    "settings.customization.payments.start_number_label": "Next number"
 }
