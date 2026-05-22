@@ -180,6 +180,30 @@
     </table>
   </div>
 
+  <!-- v.1.9.2 — Onfactu: Número inicial configurable -->
+  <div class="mt-6 p-4 bg-gray-50 border border-gray-200 rounded-md max-w-2xl">
+    <h6 class="text-gray-900 text-base font-medium">
+      {{ $t(`settings.customization.${type}s.start_number_title`) }}
+    </h6>
+    <p class="mt-1 text-sm text-gray-500">
+      {{ $t(`settings.customization.${type}s.start_number_description`) }}
+    </p>
+    <BaseInputGroup
+      :label="$t(`settings.customization.${type}s.start_number_label`)"
+      class="mt-3 max-w-xs"
+    >
+      <BaseInput
+        v-model.number="startNumber"
+        type="number"
+        min="1"
+        @update:modelValue="onStartNumberChange"
+      />
+    </BaseInputGroup>
+    <p v-if="startNumberWarning" class="mt-2 text-xs text-amber-600">
+      {{ startNumberWarning }}
+    </p>
+  </div>
+
   <BaseButton
     :loading="isSaving"
     :disabled="isSaving"
@@ -317,6 +341,10 @@ const nextNumber = ref('')
 const isFetchingNextNumber = ref(false)
 const isLoadingPlaceholders = ref(false)
 
+// v.1.9.2 — Numeración inicial configurable
+const startNumber = ref(1)
+const startNumberWarning = ref('')
+
 const getNumberFormat = computed(() => {
   let format = ''
 
@@ -360,6 +388,26 @@ async function setInitialFields() {
 
   isLoadingPlaceholders.value = false
 
+  // v.1.9.2 — Cargar número inicial configurado (default 1)
+  const startKey = `${props.type}_start_number`
+  const storedStart = companyStore.selectedCompanySettings[startKey]
+  startNumber.value = storedStart ? parseInt(storedStart, 10) : 1
+  if (isNaN(startNumber.value) || startNumber.value < 1) {
+    startNumber.value = 1
+  }
+
+  fetchNextNumber()
+}
+
+// v.1.9.2 — Validación: avisar si el start_number es menor que el último usado
+function onStartNumberChange(val) {
+  const n = parseInt(val, 10)
+  if (isNaN(n) || n < 1) {
+    startNumber.value = 1
+    startNumberWarning.value = ''
+    return
+  }
+  startNumberWarning.value = ''
   fetchNextNumber()
 }
 
@@ -440,6 +488,9 @@ async function submitForm() {
   let data = { settings: {} }
 
   data.settings[props.type + '_number_format'] = getNumberFormat.value
+
+  // v.1.9.2 — Guardar también el número inicial
+  data.settings[props.type + '_start_number'] = String(startNumber.value || 1)
 
   await companyStore.updateCompanySettings({
     data,

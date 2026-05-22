@@ -1812,5 +1812,20 @@
     "proforma_invoices.confirm_accept": "Al aceptar la proforma se asignará un número de serie si todavía no lo tiene.",
     "proforma_invoices.confirm_reject": "¿Marcar esta proforma como rechazada?",
     "delivery_notes.mark_as_delivered": "Marcar como entregado",
-    "delivery_notes.confirm_deliver": "Al marcar como entregado se asignará un número de serie si todavía no lo tiene."
+    "delivery_notes.confirm_deliver": "Al marcar como entregado se asignará un número de serie si todavía no lo tiene.",
+    "settings.customization.invoices.start_number_title": "Número inicial",
+    "settings.customization.invoices.start_number_description": "Número desde el que comenzará la numeración de tus facturas. Útil si vienes de otro programa: si tu última factura allí fue la 17, escribe 18.",
+    "settings.customization.invoices.start_number_label": "Próximo número",
+    "settings.customization.estimates.start_number_title": "Número inicial",
+    "settings.customization.estimates.start_number_description": "Número desde el que comenzará la numeración de tus presupuestos. Útil si vienes de otro programa: si tu último presupuesto allí fue el 17, escribe 18.",
+    "settings.customization.estimates.start_number_label": "Próximo número",
+    "settings.customization.proformainvoices.start_number_title": "Número inicial",
+    "settings.customization.proformainvoices.start_number_description": "Número desde el que comenzará la numeración de tus proformas. Útil si vienes de otro programa: si tu última proforma allí fue la 17, escribe 18.",
+    "settings.customization.proformainvoices.start_number_label": "Próximo número",
+    "settings.customization.deliverynotes.start_number_title": "Número inicial",
+    "settings.customization.deliverynotes.start_number_description": "Número desde el que comenzará la numeración de tus albaranes. Útil si vienes de otro programa: si tu último albarán allí fue el 17, escribe 18.",
+    "settings.customization.deliverynotes.start_number_label": "Próximo número",
+    "settings.customization.payments.start_number_title": "Número inicial",
+    "settings.customization.payments.start_number_description": "Número desde el que comenzará la numeración de tus pagos. Útil si vienes de otro programa: si tu último pago allí fue el 17, escribe 18.",
+    "settings.customization.payments.start_number_label": "Próximo número"
 }

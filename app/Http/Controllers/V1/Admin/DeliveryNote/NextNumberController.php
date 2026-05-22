@@ -4,6 +4,7 @@ namespace App\Http\Controllers\V1\Admin\DeliveryNote;
 
 use App\Http\Controllers\Controller;
 use App\Models\DeliveryNote;
+use App\Models\CompanySetting;
 use Illuminate\Http\Request;
 
 /**
@@ -42,7 +43,13 @@ class NextNumberController extends Controller
             ->values()
             ->all();
 
-        $next = 1;
+        // v.1.9.2 — Leer número inicial configurado (default 1)
+        $startNumber = (int) (CompanySetting::getSetting('deliverynote_start_number', $companyId) ?: 1);
+        if ($startNumber < 1) {
+            $startNumber = 1;
+        }
+
+        $next = $startNumber;
         foreach ($used as $n) {
             if ($n === $next) {
                 $next++;
