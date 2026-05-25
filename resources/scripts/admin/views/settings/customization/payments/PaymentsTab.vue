@@ -14,6 +14,11 @@
       />
     </ul>
   </template>
+
+  <BaseDivider class="my-8" />
+
+  <PaymentsTabFooter />
+
 </template>
 
 <script setup>
@@ -22,6 +27,7 @@ import { useCompanyStore } from '@/scripts/admin/stores/company'
 import { useUserStore } from '@/scripts/admin/stores/user'
 import PaymentsTabPaymentNumber from './PaymentsTabPaymentNumber.vue'
 import PaymentsTabDefaultFormats from './PaymentsTabDefaultFormats.vue'
+import PaymentsTabFooter from './PaymentsTabFooter.vue'
 
 const companyStore = useCompanyStore()
 const userStore = useUserStore()

@@ -1169,5 +1169,11 @@
     "settings.customization.deliverynotes.start_number_label": "Next number",
     "settings.customization.payments.start_number_title": "Starting number",
     "settings.customization.payments.start_number_description": "Number from which your payment numbering will start. Useful if you come from another program: if your last payment there was 17, enter 18.",
-    "settings.customization.payments.start_number_label": "Next number"
+    "settings.customization.payments.start_number_label": "Next number",
+    "settings.customization.pdf_footer.title": "Footer and legal notice",
+    "settings.customization.pdf_footer.description": "Customize the footer and legal notice that will appear at the bottom of the PDF. Leave a field empty to hide it.",
+    "settings.customization.pdf_footer.footer_text_label": "Footer text",
+    "settings.customization.pdf_footer.footer_text_help": "Centered text that will appear at the bottom of the PDF. For example: \"Thank you for your trust.\"",
+    "settings.customization.pdf_footer.legal_notice_label": "Legal notice",
+    "settings.customization.pdf_footer.legal_notice_help": "Legal notice or GDPR clause that will appear below the footer text."
 }

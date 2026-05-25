@@ -63,9 +63,10 @@
 
         .header-logo {
             /* position: absolute; */
-            text-transform: capitalize;
-            color: #7675ff;
+            color: #333333;
             padding-top: 0px;
+            font-size: 24px;
+            font-weight: bold;
         }
 
         .company-address-container {
@@ -250,11 +251,12 @@
         }
 
         .content-heading span {
-            font-weight: normal;
+            font-weight: bold;
             font-size: 14px;
             line-height: 25px;
             padding-bottom: 5px;
             border-bottom: 1px solid #B9C1D1;
+            text-transform: uppercase;
         }
 
         /* -- Total Display Box -- */
@@ -284,8 +286,29 @@
             font-size: 14px;
             line-height: 21px;
             text-align: right;
-            color: #5851D8;
+            color: #333333;
             margin-left: 150px;
+        }
+
+        /* Footer fijo abajo: número de página, pie, aviso legal */
+        .pdf-footer-fixed {
+            position: fixed;
+            bottom: 25px;
+            left: 40px;
+            right: 40px;
+            text-align: center;
+            font-size: 8px;
+            color: #888888;
+            line-height: 1.4;
+        }
+        .pdf-footer-pie { margin-bottom: 3px; }
+        .pdf-footer-legal { font-size: 7px; color: #999999; }
+        .pdf-page-number {
+            position: fixed;
+            bottom: 10px;
+            right: 40px;
+            font-size: 8px;
+            color: #999999;
         }
 
     </style>
@@ -340,11 +363,11 @@
                 <table width="100%">
                     <tr>
                         <td class="attribute-label">@lang('pdf_payment_date')</td>
-                        <td class="attribute-value"> &nbsp;{{ $payment->formattedPaymentDate }}</td>
+                        <td class="attribute-value"> &nbsp;<strong>{{ $payment->formattedPaymentDate }}</strong></td>
                     </tr>
                     <tr>
                         <td class="attribute-label">@lang('pdf_payment_number')</td>
-                        <td class="attribute-value"> &nbsp;{{ $payment->payment_number }}</td>
+                        <td class="attribute-value"> &nbsp;<strong>{{ $payment->payment_number }}</strong></td>
                     </tr>
                     <tr>
                         <td class="attribute-label">@lang('pdf_payment_mode')</td>
@@ -368,12 +391,28 @@
     </div>
     <div class="notes">
         @if ($notes)
-            <div class="notes-label">
-                @lang('pdf_notes')
-            </div>
             {!! $notes !!}
         @endif
     </div>
+
+    {{-- ================================================================
+         FOOTER FIJO ABAJO — pie + aviso legal + nº pág
+         ================================================================ --}}
+    @if(!empty($pdf_footer_text) || !empty($pdf_legal_notice_text))
+        <div class="pdf-footer-fixed">
+            @if(!empty($pdf_footer_text))
+                <div class="pdf-footer-pie">{!! nl2br(e($pdf_footer_text)) !!}</div>
+            @endif
+            @if(!empty($pdf_legal_notice_text))
+                <div class="pdf-footer-legal">{!! nl2br(e($pdf_legal_notice_text)) !!}</div>
+            @endif
+        </div>
+    @endif
+
+    <div class="pdf-page-number">
+        @lang('pdf_invoice_page') 1 @lang('pdf_invoice_of') 1
+    </div>
+
 </body>
 
 </html>

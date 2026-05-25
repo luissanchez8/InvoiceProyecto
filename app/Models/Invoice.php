@@ -198,6 +198,11 @@ class Invoice extends Model implements HasMedia
 
     public function getFormattedDueDateAttribute($value)
     {
+        // v.1.9.3 — Si la fecha es null, no devolver "hoy" (bug: Carbon::parse(null) = NOW)
+        if (empty($this->due_date)) {
+            return null;
+        }
+
         $dateFormat = CompanySetting::getSetting('carbon_date_format', $this->company_id);
 
         return Carbon::parse($this->due_date)->translatedFormat($dateFormat);
@@ -685,6 +690,8 @@ class Invoice extends Model implements HasMedia
             'logo' => $logo ?? null,
             'taxes' => $taxes,
             'verifactu_qr' => $this->verifactu_qr ?? null,
+            'pdf_footer_text' => \App\Models\CompanySetting::getSetting('invoice_pdf_footer_text', $this->company_id),
+            'pdf_legal_notice_text' => \App\Models\CompanySetting::getSetting('invoice_pdf_legal_notice_text', $this->company_id),
         ]);
 
         $template = PdfTemplateUtils::findFormattedTemplate('invoice', $invoiceTemplate, '');

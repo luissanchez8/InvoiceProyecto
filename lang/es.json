@@ -1657,7 +1657,7 @@
     "pdf_invoice_number_short": "Nº",
     "pdf_invoice_date_short": "Fecha",
     "pdf_invoice_due_date_short": "Vencimiento",
-    "pdf_invoice_customer_data": "Datos del cliente",
+    "pdf_invoice_customer_data": "CLIENTE",
     "pdf_invoice_shipping_address": "Dirección de envío",
     "pdf_invoice_concept": "Concepto",
     "pdf_invoice_base_amount": "Base Imponible",
@@ -1827,5 +1827,11 @@
     "settings.customization.deliverynotes.start_number_label": "Próximo número",
     "settings.customization.payments.start_number_title": "Número inicial",
     "settings.customization.payments.start_number_description": "Número desde el que comenzará la numeración de tus pagos. Útil si vienes de otro programa: si tu último pago allí fue el 17, escribe 18.",
-    "settings.customization.payments.start_number_label": "Próximo número"
+    "settings.customization.payments.start_number_label": "Próximo número",
+    "settings.customization.pdf_footer.title": "Pie de página y aviso legal",
+    "settings.customization.pdf_footer.description": "Personaliza el pie de página y el aviso legal que aparecerán en la parte inferior del PDF. Si dejas un campo vacío, no se mostrará.",
+    "settings.customization.pdf_footer.footer_text_label": "Pie de página",
+    "settings.customization.pdf_footer.footer_text_help": "Texto centrado que aparecerá en el pie del PDF. Por ejemplo: \"Gracias por su confianza.\"",
+    "settings.customization.pdf_footer.legal_notice_label": "Aviso legal",
+    "settings.customization.pdf_footer.legal_notice_help": "Aviso legal o cláusula RGPD que aparecerá debajo del pie de página."
 }

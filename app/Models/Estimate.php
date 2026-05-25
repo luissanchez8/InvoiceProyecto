@@ -109,6 +109,11 @@ class Estimate extends Model implements HasMedia
 
     public function getFormattedExpiryDateAttribute($value)
     {
+        // v.1.9.3 — Si la fecha es null, no devolver "hoy" (bug: Carbon::parse(null) = NOW)
+        if (empty($this->expiry_date)) {
+            return null;
+        }
+
         $dateFormat = CompanySetting::getSetting('carbon_date_format', $this->company_id);
 
         return Carbon::parse($this->expiry_date)->translatedFormat($dateFormat);
@@ -516,6 +521,8 @@ class Estimate extends Model implements HasMedia
             'billing_address' => $this->getCustomerBillingAddress(),
             'notes' => $this->getNotes(),
             'taxes' => $taxes,
+            'pdf_footer_text' => \App\Models\CompanySetting::getSetting('estimate_pdf_footer_text', $this->company_id),
+            'pdf_legal_notice_text' => \App\Models\CompanySetting::getSetting('estimate_pdf_legal_notice_text', $this->company_id),
         ]);
 
         // Buscar primero en estimate/; si no existe, buscar en invoice/ (fallback)
