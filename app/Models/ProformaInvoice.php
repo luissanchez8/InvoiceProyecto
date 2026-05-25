@@ -162,6 +162,11 @@ class ProformaInvoice extends Model implements HasMedia
     /** Fecha de validez/expiración formateada */
     public function getFormattedExpiryDateAttribute()
     {
+        // v.1.9.3 — Si la fecha es null, no devolver "hoy" (bug: Carbon::parse(null) = NOW)
+        if (empty($this->expiry_date)) {
+            return null;
+        }
+
         $dateFormat = CompanySetting::getSetting('carbon_date_format', $this->company_id);
         return Carbon::parse($this->expiry_date)->translatedFormat($dateFormat);
     }
@@ -642,6 +647,8 @@ class ProformaInvoice extends Model implements HasMedia
             'logo' => $logo ?? null,
             'taxes' => $taxes,
             'is_proforma' => true, // Flag para que la plantilla muestre "FACTURA PROFORMA"
+            'pdf_footer_text' => \App\Models\CompanySetting::getSetting('proforma_pdf_footer_text', $this->company_id),
+            'pdf_legal_notice_text' => \App\Models\CompanySetting::getSetting('proforma_pdf_legal_notice_text', $this->company_id),
         ]);
 
         // Buscar plantilla en la carpeta proforma-invoice/; si no existe, usar invoice/

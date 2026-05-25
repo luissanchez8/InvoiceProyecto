@@ -382,6 +382,8 @@ class Payment extends Model implements HasMedia
             'billing_address' => $this->getCustomerBillingAddress(),
             'notes' => $this->getNotes(),
             'logo' => $logo ?? null,
+            'pdf_footer_text' => \App\Models\CompanySetting::getSetting('payment_pdf_footer_text', $this->company_id),
+            'pdf_legal_notice_text' => \App\Models\CompanySetting::getSetting('payment_pdf_legal_notice_text', $this->company_id),
         ]);
 
         if (request()->has('preview')) {

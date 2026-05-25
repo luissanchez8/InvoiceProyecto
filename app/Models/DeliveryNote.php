@@ -142,6 +142,11 @@ class DeliveryNote extends Model implements HasMedia
 
     public function getFormattedDeliveryDateAttribute()
     {
+        // v.1.9.3 — Si la fecha es null, no devolver "hoy" (bug: Carbon::parse(null) = NOW)
+        if (empty($this->delivery_date)) {
+            return null;
+        }
+
         $dateFormat = CompanySetting::getSetting('carbon_date_format', $this->company_id);
         return Carbon::parse($this->delivery_date)->translatedFormat($dateFormat);
     }
@@ -499,6 +504,8 @@ class DeliveryNote extends Model implements HasMedia
             'taxes' => $taxes,
             'is_delivery_note' => true,           // Flag para título "ALBARÁN"
             'show_prices' => $this->show_prices,  // Controla visibilidad de precios en PDF
+            'pdf_footer_text' => \App\Models\CompanySetting::getSetting('deliverynote_pdf_footer_text', $this->company_id),
+            'pdf_legal_notice_text' => \App\Models\CompanySetting::getSetting('deliverynote_pdf_legal_notice_text', $this->company_id),
         ]);
 
         // Buscar plantilla en delivery-note/; si no existe, usar invoice/

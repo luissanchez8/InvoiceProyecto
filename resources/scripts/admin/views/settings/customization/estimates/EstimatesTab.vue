@@ -26,6 +26,11 @@
       />
     </ul>
   </template>
+
+  <BaseDivider class="my-8" />
+
+  <EstimatesTabFooter />
+
 </template>
 
 <script setup>
@@ -37,6 +42,7 @@ import EstimatesTabEstimateNumber from './EstimatesTabEstimateNumber.vue'
 import EstimatesTabExpiryDate from './EstimatesTabExpiryDate.vue'
 import EstimatesTabDefaultFormats from './EstimatesTabDefaultFormats.vue'
 import EstimatesTabConvertEstimate from './EstimatesTabConvertEstimate.vue'
+import EstimatesTabFooter from './EstimatesTabFooter.vue'
 
 const companyStore = useCompanyStore()
 const userStore = useUserStore()

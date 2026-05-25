@@ -4,8 +4,14 @@
 -->
 <template>
   <DeliveryNotesTabNumber />
+
+  <BaseDivider class="my-8" />
+
+  <DeliveryNotesTabFooter />
+
 </template>
 
 <script setup>
 import DeliveryNotesTabNumber from './DeliveryNotesTabNumber.vue'
+import DeliveryNotesTabFooter from './DeliveryNotesTabFooter.vue'
 </script>

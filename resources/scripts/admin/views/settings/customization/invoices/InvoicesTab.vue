@@ -65,6 +65,11 @@
       />
     </ul>
   </template>
+
+  <BaseDivider class="my-8" />
+
+  <InvoicesTabFooter />
+
 </template>
 
 <script setup>
@@ -80,6 +85,7 @@ import InvoicesTabInvoiceNumber from './InvoicesTabInvoiceNumber.vue'
 import InvoicesTabRetrospective from './InvoicesTabRetrospective.vue'
 import InvoicesTabDueDate from './InvoicesTabDueDate.vue'
 import InvoicesTabDefaultFormats from './InvoicesTabDefaultFormats.vue'
+import InvoicesTabFooter from './InvoicesTabFooter.vue'
 
 const companyStore = useCompanyStore()
 const userStore = useUserStore()

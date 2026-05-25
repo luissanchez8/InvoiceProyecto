@@ -6,8 +6,14 @@
 <template>
   <!-- Configurador de formato de número (PRF-000001, etc.) -->
   <ProformaInvoicesTabNumber />
+
+  <BaseDivider class="my-8" />
+
+  <ProformaInvoicesTabFooter />
+
 </template>
 
 <script setup>
 import ProformaInvoicesTabNumber from './ProformaInvoicesTabNumber.vue'
+import ProformaInvoicesTabFooter from './ProformaInvoicesTabFooter.vue'
 </script>

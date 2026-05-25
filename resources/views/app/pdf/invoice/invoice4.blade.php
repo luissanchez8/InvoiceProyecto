@@ -126,7 +126,7 @@
         .header-logo-cell img { max-height: 60px; max-width: 200px; }
         .header-company-name { font-size: 24px; font-weight: bold; color: #333333; }
         .header-invoice-cell { vertical-align: top; text-align: right; width: 50%; }
-        .header-invoice-title { font-size: 32px; font-weight: bold; color: #333333; margin: 0; padding: 0; line-height: 1.1; }
+        .header-invoice-title { font-size: 32px; font-weight: bold; color: #333333; margin: 0; padding: 0; line-height: 1.1; text-transform: uppercase; }
         .header-invoice-meta { font-size: 11px; color: #555555; line-height: 1.6; margin-top: 5px; }
 
         /* ============================================================
@@ -141,7 +141,7 @@
         .addresses-table { width: 100%; padding: 20px 40px 10px 40px; }
         .address-billing-cell { vertical-align: top; width: 50%; padding-right: 20px; }
         .address-shipping-cell { vertical-align: top; width: 50%; text-align: right; padding-left: 20px; }
-        .address-label { font-size: 10px; font-style: italic; color: #888888; margin-bottom: 4px; }
+        .address-label { font-size: 10px; font-weight: bold; color: #888888; margin-bottom: 4px; text-transform: uppercase; }
         .address-detail { font-size: 11px; color: #555555; line-height: 1.5; }
 
         /* ============================================================
@@ -149,7 +149,7 @@
            ============================================================ */
         .items-section { padding: 15px 40px 0 40px; }
         .items-table { width: 100%; border-collapse: collapse; page-break-inside: auto; }
-        .items-table thead th { background-color: #f5f5f5; font-size: 11px; font-weight: bold; color: #333333; padding: 8px 10px; border-top: 1px solid #dddddd; border-bottom: 1px solid #dddddd; }
+        .items-table thead th { background-color: #f5f5f5; font-size: 11px; font-weight: bold; color: #333333; padding: 8px 10px; border-top: 1px solid #dddddd; border-bottom: 1px solid #dddddd; text-transform: uppercase; }
         .items-table thead th.col-concept { text-align: left; width: 50%; }
         .items-table thead th.col-numeric { text-align: right; }
         .items-table tbody td { font-size: 11px; color: #333333; padding: 10px; border-bottom: 1px solid #eeeeee; vertical-align: top; }
@@ -178,7 +178,26 @@
         .footer-section-text { font-size: 10px; color: #555555; line-height: 1.5; }
         .signature-section { padding: 20px 40px 10px 40px; page-break-inside: avoid; }
         .signature-label { font-size: 12px; font-weight: bold; color: #333333; margin-bottom: 40px; }
-        .page-footer { padding: 10px 40px; text-align: right; font-size: 9px; color: #999999; }
+        /* Footer fijo abajo: número de página, pie, aviso legal */
+        .pdf-footer-fixed {
+            position: fixed;
+            bottom: 25px;
+            left: 40px;
+            right: 40px;
+            text-align: center;
+            font-size: 8px;
+            color: #888888;
+            line-height: 1.4;
+        }
+        .pdf-footer-pie { margin-bottom: 3px; }
+        .pdf-footer-legal { font-size: 7px; color: #999999; }
+        .pdf-page-number {
+            position: fixed;
+            bottom: 10px;
+            right: 40px;
+            font-size: 8px;
+            color: #999999;
+        }
         .clearfix { clear: both; }
     </style>
 
@@ -214,10 +233,10 @@
             <td class="header-invoice-cell">
                 <div class="header-invoice-title">{{ $docTitle }}</div>
                 <div class="header-invoice-meta">
-                    @lang('pdf_invoice_number_short'): {{ $docNumber }}<br>
-                    @lang('pdf_invoice_date_short'): {{ $docDate }}<br>
+                    @lang('pdf_invoice_number_short'): <strong>{{ $docNumber }}</strong><br>
+                    @lang('pdf_invoice_date_short'): <strong>{{ $docDate }}</strong><br>
                     @if($docSecondaryDate)
-                        {{ $secondaryDateLabel }}: {{ $docSecondaryDate }}
+                        {{ $secondaryDateLabel }}: <strong>{{ $docSecondaryDate }}</strong>
                     @endif
                 </div>
             </td>
@@ -389,7 +408,6 @@
             <table class="footer-table">
                 <tr>
                     <td class="footer-notes-cell">
-                        <div class="footer-section-title">@lang('pdf_notes')</div>
                         <div class="footer-section-text">{!! $notes !!}</div>
                     </td>
                     <td class="footer-terms-cell"></td>
@@ -398,13 +416,27 @@
         </div>
     @endif
 
-    {{-- FIRMA --}}
-    <div class="signature-section">
-        <div class="signature-label">@lang('pdf_invoice_signature')</div>
-    </div>
+    {{-- ================================================================
+         FOOTER FIJO ABAJO
+         Orden de arriba a abajo:
+           1. Pie de página (centrado)
+           2. Aviso legal (centrado, más pequeño)
+           3. Nº de página (a la derecha, abajo del todo)
+         Si pdf_footer_text o pdf_legal_notice_text están vacíos, no se muestran.
+         El nº de página SIEMPRE se muestra.
+         ================================================================ --}}
+    @if(!empty($pdf_footer_text) || !empty($pdf_legal_notice_text))
+        <div class="pdf-footer-fixed">
+            @if(!empty($pdf_footer_text))
+                <div class="pdf-footer-pie">{!! nl2br(e($pdf_footer_text)) !!}</div>
+            @endif
+            @if(!empty($pdf_legal_notice_text))
+                <div class="pdf-footer-legal">{!! nl2br(e($pdf_legal_notice_text)) !!}</div>
+            @endif
+        </div>
+    @endif
 
-    {{-- PAGINACIÓN --}}
-    <div class="page-footer">
+    <div class="pdf-page-number">
         @lang('pdf_invoice_page') 1 @lang('pdf_invoice_of') 1
     </div>
 

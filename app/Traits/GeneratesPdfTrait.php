@@ -147,7 +147,9 @@ trait GeneratesPdfTrait
             '{CONTACT_EMAIL}' => $customer->email,
             '{CONTACT_PHONE}' => $customer->phone,
             '{CONTACT_WEBSITE}' => $customer->website,
-            '{CONTACT_TAX_ID}' => __('pdf_tax_id').': '.$customer->tax_id,
+            '{CONTACT_TAX_ID}' => $customer->tax_id ? __('pdf_tax_id').': '.$customer->tax_id : '',
+            '{COMPANY_VAT_LABEL}' => ($this->company->vat_id ?: $this->company->tax_id) ? __('pdf_tax_id').': '.($this->company->vat_id ?: $this->company->tax_id) : '',
+            '{COMPANY_TAX_LABEL}' => $this->company->tax_id ? __('pdf_tax_id').': '.$this->company->tax_id : '',
         ];
 
         $customFields = $this->fields;
@@ -176,6 +178,20 @@ trait GeneratesPdfTrait
 
         $str = preg_replace('/{(.*?)}/', '', $str);
 
+        $str = preg_replace("/<[^\/>]*>([\s]?)*<\/[^>]*>/", '', $str);
+
+        // v.1.9.3 — Limpieza dentro de cada <p>...</p> para evitar separadores
+        // huérfanos cuando algún placeholder está vacío (ej: "Sevilla, " si falta país).
+        $str = preg_replace_callback('/<p>(.*?)<\/p>/s', function ($m) {
+            $inner = $m[1];
+            $inner = preg_replace('/^[\s,]+/', '', $inner);
+            $inner = preg_replace('/[\s,]+$/', '', $inner);
+            $inner = preg_replace('/\s*,\s*,\s*/', ', ', $inner);
+            $inner = preg_replace('/[ \t]{2,}/', ' ', $inner);
+            return '<p>' . $inner . '</p>';
+        }, $str);
+
+        // Quitar <p></p> que hayan quedado vacíos tras la limpieza
         $str = preg_replace("/<[^\/>]*>([\s]?)*<\/[^>]*>/", '', $str);
 
         $str = str_replace('<p>', '', $str);
