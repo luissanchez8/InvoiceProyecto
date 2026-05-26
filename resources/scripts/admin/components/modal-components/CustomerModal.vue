@@ -35,6 +35,21 @@
                 />
               </BaseInputGroup>
 
+              <BaseInputGroup
+                :label="$t('customers.tax_id')"
+                required
+                :error="v$.tax_id.$error && v$.tax_id.$errors[0].$message"
+              >
+                <BaseInput
+                  v-model.trim="customerStore.currentCustomer.tax_id"
+                  type="text"
+                  name="tax_id"
+                  class="mt-1 md:mt-0"
+                  :invalid="v$.tax_id.$error"
+                  @input="v$.tax_id.$touch()"
+                />
+              </BaseInputGroup>
+
               <!--
                 Onfactu: selector de moneda oculto. Moneda fija al € de la
                 empresa (currency_id asignado automáticamente desde el store).
@@ -62,14 +77,7 @@
                 />
               </BaseInputGroup>
 
-              <BaseInputGroup :label="$t('customers.primary_contact_name')">
-                <BaseInput
-                  v-model="customerStore.currentCustomer.contact_name"
-                  type="text"
-                  class="mt-1 md:mt-0"
-                />
-              </BaseInputGroup>
-              <BaseInputGroup
+<BaseInputGroup
                 :label="$t('login.email')"
                 :error="v$.email.$error && v$.email.$errors[0].$message"
               >
@@ -80,22 +88,6 @@
                   class="mt-1 md:mt-0"
                   :invalid="v$.email.$error"
                   @input="v$.email.$touch()"
-                />
-              </BaseInputGroup>
-
-              <BaseInputGroup
-                :label="$t('customers.prefix')"
-                :error="v$.prefix.$error && v$.prefix.$errors[0].$message"
-                :content-loading="isFetchingInitialData"
-              >
-                <BaseInput
-                  v-model="customerStore.currentCustomer.prefix"
-                  :content-loading="isFetchingInitialData"
-                  type="text"
-                  name="name"
-                  class=""
-                  :invalid="v$.prefix.$error"
-                  @input="v$.prefix.$touch()"
                 />
               </BaseInputGroup>
 
@@ -123,9 +115,9 @@
                 </BaseInputGroup>
               </BaseInputGrid>
 
-              <BaseInputGroup :label="$t('customers.tax_id')">
+                            <BaseInputGroup :label="$t('customers.primary_contact_name')">
                 <BaseInput
-                  v-model="customerStore.currentCustomer.tax_id"
+                  v-model="customerStore.currentCustomer.contact_name"
                   type="text"
                   class="mt-1 md:mt-0"
                 />
@@ -532,6 +524,10 @@ const rules = computed(() => {
         minLength(3)
       ),
     },
+    // v.1.9.4 — Onfactu: NIF/CIF obligatorio
+    tax_id: {
+      required: helpers.withMessage(t('validation.required'), required),
+    },
     currency_id: {
       required: helpers.withMessage(t('validation.required'), required),
     },
@@ -560,12 +556,6 @@ const rules = computed(() => {
         requiredIf(customerStore.currentCustomer.enable_portal == true)
       ),
       email: helpers.withMessage(t('validation.email_incorrect'), email),
-    },
-    prefix: {
-      minLength: helpers.withMessage(
-        t('validation.name_min_length', { count: 3 }),
-        minLength(3)
-      ),
     },
     website: {
       url: helpers.withMessage(t('validation.invalid_url'), url),
