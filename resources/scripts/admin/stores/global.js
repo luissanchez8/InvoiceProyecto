@@ -214,7 +214,19 @@ export const useGlobalStore = (useWindow = false) => {
             axios
               .get('/api/v1/countries')
               .then((response) => {
-                this.countries = response.data.data
+                // v.1.9.4 — Onfactu: España primero en el listado de países.
+                // Busca España (por code 'ES' o nombre exacto 'España') y la
+                // coloca al inicio. El resto del array queda igual.
+                const all = response.data.data || []
+                const idx = all.findIndex(c =>
+                  (c.code && c.code.toUpperCase() === 'ES') ||
+                  c.name === 'España' || c.name === 'Spain'
+                )
+                if (idx > 0) {
+                  const [spain] = all.splice(idx, 1)
+                  all.unshift(spain)
+                }
+                this.countries = all
                 resolve(response)
               })
               .catch((err) => {

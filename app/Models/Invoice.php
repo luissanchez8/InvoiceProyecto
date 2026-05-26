@@ -504,9 +504,14 @@ class Invoice extends Model implements HasMedia
             $this->save();
         }
 
-        $statusData = $this->getInvoiceStatusByAmount($data['due_amount']);
-        if (! empty($statusData)) {
-            $this->update($statusData);
+        // v.1.9.4 — Fix: si es borrador, no marcar automáticamente como COMPLETED
+        // por importe=0. Antes: borrador con 0€ → COMPLETED, lo que confundía
+        // al editar un borrador recién creado sin líneas.
+        if ($this->status !== Invoice::STATUS_DRAFT) {
+            $statusData = $this->getInvoiceStatusByAmount($data['due_amount']);
+            if (! empty($statusData)) {
+                $this->update($statusData);
+            }
         }
 
         $company_currency = CompanySetting::getSetting('currency', $request->header('company'));

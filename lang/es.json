@@ -202,7 +202,7 @@
         "name": "Nombre",
         "mail": "Correo | Correos",
         "statement": "Declaración",
-        "display_name": "Nombre para mostrar",
+        "display_name": "Nombre",
         "primary_contact_name": "Nombre de contacto primario",
         "contact_name": "Nombre de contacto",
         "amount_due": "Importe pendiente",

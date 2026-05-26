@@ -362,6 +362,32 @@ export const useRecurringInvoiceStore = (useWindow = false) => {
           this.newRecurringInvoice.next_invoice_date = moment()
             .add(7, 'days')
             .format('YYYY-MM-DD')
+
+          // v.1.9.4 — Onfactu: IVA 21% por defecto al crear factura recurrente.
+          // Si la empresa tiene un tax_type con percent=21 y nombre que
+          // contiene "IVA 21", lo añadimos automáticamente. El usuario
+          // puede borrarlo si no le aplica.
+          try {
+            await taxTypeStore.fetchTaxTypes({ limit: 'all' })
+            const ivaDefault = (taxTypeStore.taxTypes || []).find(t =>
+              Number(t.percent) === 21 && /IVA\s*21/i.test(t.name || '')
+            )
+            if (ivaDefault && this.newRecurringInvoice.taxes.length === 0) {
+              this.newRecurringInvoice.taxes.push({
+                id: ivaDefault.id,
+                tax_type_id: ivaDefault.id,
+                name: ivaDefault.name,
+                percent: parseFloat(ivaDefault.percent),
+                amount: 0,
+                compound_tax: !!ivaDefault.compound_tax,
+                collective_tax: 0,
+                calculation_type: ivaDefault.calculation_type || 'percentage',
+                fixed_amount: ivaDefault.fixed_amount || 0,
+              })
+            }
+          } catch (e) {
+            console.error('Error cargando IVA 21% por defecto:', e)
+          }
         } else {
           editActions = [this.fetchRecurringInvoice(route.params.id)]
         }
