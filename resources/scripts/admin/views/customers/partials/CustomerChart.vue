@@ -1,8 +1,9 @@
 <template>
   <BaseCard class="flex flex-col mt-6">
-    <ChartPlaceholder v-if="customerStore.isFetchingViewData" />
-
-    <div v-else class="grid grid-cols-12">
+    <!-- v.1.9.5 — Onfactu: Info básica arriba, gráfica de gastos debajo -->
+    <CustomerInfo />
+    <ChartPlaceholder v-if="customerStore.isFetchingViewData" class="pt-6 mt-5 border-t border-solid lg:pt-8 md:pt-4 border-gray-200" />
+    <div v-else class="grid grid-cols-12 pt-6 mt-5 border-t border-solid lg:pt-8 md:pt-4 border-gray-200">
       <div class="col-span-12 xl:col-span-9 xxl:col-span-10">
         <div class="flex justify-between mt-1 mb-6">
           <h6 class="flex items-center">
@@ -80,7 +81,7 @@
           </span>
         </div>
 
-        <div class="px-6 py-2">
+        <div v-if="!isExpensesDisabled" class="px-6 py-2">
           <span class="text-xs leading-5 lg:text-sm">
             {{ $t('dashboard.chart_info.total_expense') }}
           </span>
@@ -116,7 +117,6 @@
       </div>
     </div>
 
-    <CustomerInfo />
   </BaseCard>
 </template>
 
@@ -127,11 +127,18 @@ import { ref, computed, watch, reactive, inject } from 'vue'
 import { useCustomerStore } from '@/scripts/admin/stores/customer'
 import { useRoute } from 'vue-router'
 import { useCompanyStore } from '@/scripts/admin/stores/company'
+import { useGlobalStore } from '@/scripts/admin/stores/global'
 import ChartPlaceholder from './CustomerChartPlaceholder.vue'
 import { useI18n } from 'vue-i18n'
 
 const companyStore = useCompanyStore()
 const customerStore = useCustomerStore()
+const globalStore = useGlobalStore()
+
+// v.1.9.5 — Onfactu: ocultar bloque Gastos del cliente si el plan no incluye Gastos
+const isExpensesDisabled = computed(() =>
+  (globalStore.disabledMenuOptions || []).includes('expenses')
+)
 const utils = inject('utils')
 const { t } = useI18n()
 

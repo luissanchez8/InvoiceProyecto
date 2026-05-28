@@ -23,10 +23,11 @@ class AppConfigController extends Controller
         if ($user->role !== 'asistencia') {
             return response()->json(['error' => 'No autorizado'], 403);
         }
+        // v.1.9.5 — Onfactu: permitir valor vacío (configs sin valor inicial)
         $validated = $request->validate([
             'configs' => 'required|array',
             'configs.*.key' => 'required|string',
-            'configs.*.value' => 'required|string',
+            'configs.*.value' => 'present|nullable|string',
         ]);
         foreach ($validated['configs'] as $config) {
             AppConfig::updateOrCreate(['key' => $config['key']], ['value' => $config['value']]);

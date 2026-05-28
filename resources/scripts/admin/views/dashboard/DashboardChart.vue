@@ -89,7 +89,7 @@
             />
           </span>
         </div>
-        <div class="p-6">
+        <div v-if="!isExpensesDisabled" class="p-6">
           <span class="text-xs leading-5 lg:text-sm">
             {{ $t('dashboard.chart_info.total_expense') }}
           </span>
@@ -148,9 +148,10 @@
 </template>
 
 <script setup>
-import { ref, watch, inject } from 'vue'
+import { ref, watch, inject, computed } from 'vue'
 import { useDashboardStore } from '@/scripts/admin/stores/dashboard'
 import { useCompanyStore } from '@/scripts/admin/stores/company'
+import { useGlobalStore } from '@/scripts/admin/stores/global'
 import LineChart from '@/scripts/admin/components/charts/LineChart.vue'
 import ChartPlaceholder from './DashboardChartPlaceholder.vue'
 import abilities from '@/scripts/admin/stub/abilities'
@@ -159,6 +160,12 @@ import { useI18n } from 'vue-i18n'
 
 const dashboardStore = useDashboardStore()
 const companyStore = useCompanyStore()
+const globalStore = useGlobalStore()
+
+// v.1.9.5 — Onfactu: ocultar bloque Gastos si el plan no tiene módulo Gastos
+const isExpensesDisabled = computed(() =>
+  (globalStore.disabledMenuOptions || []).includes('expenses')
+)
 
 const { t } = useI18n()
 const utils = inject('utils')
