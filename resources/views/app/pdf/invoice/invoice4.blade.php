@@ -175,7 +175,7 @@
         .footer-notes-cell { vertical-align: top; width: 50%; padding-right: 15px; }
         .footer-terms-cell { vertical-align: top; width: 50%; padding-left: 15px; border-left: 1px solid #eeeeee; }
         .footer-section-title { font-size: 12px; font-weight: bold; color: #333333; margin-bottom: 5px; }
-        .footer-section-text { font-size: 10px; color: #555555; line-height: 1.5; }
+        .footer-section-text { font-size: 9px; color: #555555; line-height: 1.4; }
         .signature-section { padding: 20px 40px 10px 40px; page-break-inside: avoid; }
         .signature-label { font-size: 12px; font-weight: bold; color: #333333; margin-bottom: 40px; }
         /* Footer fijo abajo: número de página, pie, aviso legal */
@@ -402,13 +402,18 @@
         <div class="clearfix"></div>
     @endif
 
-    {{-- NOTAS --}}
-    @if ($notes)
+    {{-- FORMA DE PAGO + NOTAS (Onfactu v.1.9.5) - unidos en un solo bloque --}}
+    @if (!empty($payment_method_text) || $notes)
         <div class="footer-content">
             <table class="footer-table">
                 <tr>
                     <td class="footer-notes-cell">
-                        <div class="footer-section-text">{!! $notes !!}</div>
+                        @if (!empty($payment_method_text))
+                            <div class="footer-section-text" style="margin-bottom: 6px;">{!! nl2br(e($payment_method_text)) !!}</div>
+                        @endif
+                        @if ($notes)
+                            <div class="footer-section-text">{!! $notes !!}</div>
+                        @endif
                     </td>
                     <td class="footer-terms-cell"></td>
                 </tr>

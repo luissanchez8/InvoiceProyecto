@@ -24,7 +24,7 @@
       :columns="paymentColumns"
       class="mt-16"
     >
-      <template v-if="isAsistencia" #cell-actions="{ row }">
+      <template #cell-actions="{ row }">
         <PaymentModeDropdown
           :row="row.data"
           :table="table"

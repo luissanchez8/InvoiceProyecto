@@ -24,7 +24,20 @@
           <BaseInput
             v-model="paymentStore.currentPaymentMode.name"
             :invalid="v$.currentPaymentMode.name.$error"
+            :disabled="!isAsistencia"
             @input="v$.currentPaymentMode.name.$touch()"
+          />
+        </BaseInputGroup>
+
+        <!-- v.1.9.5 — Onfactu: texto que aparecerá en el documento -->
+        <BaseInputGroup
+          :label="$t('settings.payment_modes.document_text_label')"
+          :help-text="$t('settings.payment_modes.document_text_help')"
+          class="mt-4"
+        >
+          <BaseTextarea
+            v-model="paymentStore.currentPaymentMode.document_text"
+            rows="3"
           />
         </BaseInputGroup>
       </div>
@@ -68,8 +81,15 @@ import { useI18n } from 'vue-i18n'
 import { required, minLength, helpers } from '@vuelidate/validators'
 import { useVuelidate } from '@vuelidate/core'
 import { useModalStore } from '@/scripts/stores/modal'
+import { useUserStore } from '@/scripts/admin/stores/user'
 
 const modalStore = useModalStore()
+const userStore = useUserStore()
+
+// v.1.9.5 — Onfactu: solo asistencia edita el nombre
+const isAsistencia = computed(() =>
+  ((userStore.currentUser?.role || '') + '').trim().toLowerCase() === 'asistencia'
+)
 const paymentStore = usePaymentStore()
 
 const { t } = useI18n()
@@ -127,6 +147,7 @@ function closePaymentModeModal() {
     paymentStore.currentPaymentMode = {
       id: '',
       name: null,
+      document_text: null,
     }
   })
 }
