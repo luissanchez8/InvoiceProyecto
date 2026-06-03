@@ -84,6 +84,20 @@
             {{ $t('invoices.payment_method_doc_text_link') }}
           </router-link>
         </div>
+        <!-- v.1.9.5 — Onfactu: aviso cuando la forma de pago seleccionada NO tiene texto -->
+        <div
+          v-else-if="hasPaymentMethodSelectedWithoutText"
+          class="mt-1 text-gray-400"
+          style="font-size: 11px; line-height: 1.5;"
+        >
+          <p>{{ $t('invoices.payment_method_no_text_hint') }}</p>
+          <router-link
+            to="/admin/settings/payment-mode"
+            class="text-primary-500 hover:text-primary-700 hover:underline"
+          >
+            {{ $t('invoices.payment_method_no_text_link') }}
+          </router-link>
+        </div>
       </BaseInputGroup>
 
       <!-- <BaseInputGroup
@@ -152,6 +166,13 @@ const selectedPaymentMethodText = computed(() => {
   if (!id) return ''
   const pm = (paymentStore.paymentModes || []).find(p => p.id === id)
   return pm && pm.document_text ? pm.document_text : ''
+})
+// v.1.9.5 — Onfactu: hay forma de pago elegida pero SIN texto configurado
+const hasPaymentMethodSelectedWithoutText = computed(() => {
+  const id = estimateStore.newEstimate.payment_method_id
+  if (!id) return false
+  const pm = (paymentStore.paymentModes || []).find(p => p.id === id)
+  return pm && (!pm.document_text || pm.document_text.trim() === '')
 })
 
 // v.1.9.5 — Onfactu: opciones con "Sin forma de pago" al principio

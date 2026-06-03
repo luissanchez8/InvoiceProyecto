@@ -416,6 +416,8 @@
         "payment_method_doc_text_title": "Este texto aparecerá en el documento:",
         "payment_method_doc_text_hint": "Cámbialo en Configuración > Formas de pago.",
         "payment_method_doc_text_link": "Editar forma de pago",
+        "payment_method_no_text_hint": "Esta forma de pago no tiene texto configurado.",
+        "payment_method_no_text_link": "Añadir texto en Configuración > Formas de pago",
         "ref_number": "Número de referencia",
         "contact": "Contacto",
         "add_item": "Agregar un artículo",

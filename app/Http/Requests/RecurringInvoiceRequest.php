@@ -119,4 +119,38 @@ class RecurringInvoiceRequest extends FormRequest
             ])
             ->toArray();
     }
+    /**
+     * Onfactu v.1.9.5: Nombres amigables para los campos en los mensajes de error.
+     */
+    public function attributes(): array
+    {
+        return [
+            'customer_id' => 'cliente',
+            'frequency' => 'frecuencia',
+            'starts_at' => 'fecha de inicio',
+            'items' => 'artículos',
+            'items.*.name' => 'nombre del artículo',
+            'items.*.description' => 'descripción del artículo',
+            'items.*.quantity' => 'cantidad',
+            'items.*.price' => 'precio',
+        ];
+    }
+
+    /**
+     * Onfactu v.1.9.5: Mensajes específicos en español.
+     */
+    public function messages(): array
+    {
+        return [
+            'items.required' => 'Debes añadir al menos un artículo.',
+            'items.*.name.required' => 'El nombre del artículo es obligatorio.',
+            'items.*.name.max' => 'El nombre del artículo no puede tener más de :max caracteres.',
+            'items.*.name.string' => 'El nombre del artículo debe ser texto.',
+            'items.*.quantity.required' => 'La cantidad es obligatoria.',
+            'items.*.quantity.numeric' => 'La cantidad debe ser numérica.',
+            'items.*.price.required' => 'El precio es obligatorio.',
+            'items.*.price.numeric' => 'El precio debe ser numérico.',
+        ];
+    }
+
 }

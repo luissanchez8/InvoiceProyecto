@@ -79,6 +79,8 @@ class InvoicesRequest extends FormRequest
             ],
             'items.*.name' => [
                 'required',
+                'string',
+                'max:255',
             ],
             'items.*.quantity' => [
                 'numeric',
@@ -114,6 +116,49 @@ class InvoicesRequest extends FormRequest
         }
 
         return $rules;
+    }
+
+    /**
+     * Onfactu v.1.9.5: Mensajes de error en español para que el usuario los entienda.
+     */
+    public function messages(): array
+    {
+        return [
+            'required' => 'Este campo es obligatorio.',
+            'string' => 'Este campo debe ser texto.',
+            'max' => 'Este campo no puede tener más de :max caracteres.',
+            'numeric' => 'Este campo debe ser numérico.',
+            'array' => 'Formato inválido.',
+            'items.required' => 'Debes añadir al menos un artículo.',
+            'items.*.name.required' => 'El nombre del artículo es obligatorio.',
+            'items.*.name.max' => 'El nombre del artículo no puede tener más de :max caracteres.',
+            'items.*.name.string' => 'El nombre del artículo debe ser texto.',
+            'items.*.quantity.required' => 'La cantidad es obligatoria.',
+            'items.*.quantity.numeric' => 'La cantidad debe ser numérica.',
+            'items.*.price.required' => 'El precio es obligatorio.',
+            'items.*.price.numeric' => 'El precio debe ser numérico.',
+            'invoice_number.required' => 'El número de factura es obligatorio.',
+            'invoice_date.required' => 'La fecha es obligatoria.',
+            'customer_id.required' => 'Debes seleccionar un cliente.',
+        ];
+    }
+
+    /**
+     * Onfactu v.1.9.5: Nombres amigables para los campos en los mensajes de error.
+     */
+    public function attributes(): array
+    {
+        return [
+            'invoice_number' => 'número de factura',
+            'invoice_date' => 'fecha',
+            'due_date' => 'fecha de vencimiento',
+            'customer_id' => 'cliente',
+            'items' => 'artículos',
+            'items.*.name' => 'nombre del artículo',
+            'items.*.description' => 'descripción del artículo',
+            'items.*.quantity' => 'cantidad',
+            'items.*.price' => 'precio',
+        ];
     }
 
     public function getInvoicePayload(): array
