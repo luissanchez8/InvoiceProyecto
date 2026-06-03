@@ -62,13 +62,11 @@ function removeRecurringInvoice(id) {
     .then((res) => {
       if (res) {
         let data = { ids: [id] }
-        let response = recurringInvoiceStore
+        // v.1.9.5 — Onfactu: redirigir al index tras borrar (fix bug del then anterior)
+        recurringInvoiceStore
           .deleteRecurringInvoice(data)
-          .then((res) => {
-            if (response) {
-              router.push('/admin/recurring-invoices')
-              return true
-            }
+          .then(() => {
+            router.push('/admin/recurring-invoices')
           })
       }
     })

@@ -30,6 +30,7 @@ export default function () {
     limit_date: null,
     exchange_rate: null,
     tax_per_item: null,
+    payment_method_id: null,
     discount_per_item: null,
     template_name: null,
     items: [

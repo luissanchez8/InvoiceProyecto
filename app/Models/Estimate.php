@@ -82,6 +82,11 @@ class Estimate extends Model implements HasMedia
         return $this->hasMany(\App\Models\EstimateItem::class);
     }
 
+    public function paymentMethod(): BelongsTo
+    {
+        return $this->belongsTo(PaymentMethod::class);
+    }
+
     public function customer(): BelongsTo
     {
         return $this->belongsTo(Customer::class, 'customer_id');
@@ -520,6 +525,7 @@ class Estimate extends Model implements HasMedia
             'shipping_address' => $this->getCustomerShippingAddress(),
             'billing_address' => $this->getCustomerBillingAddress(),
             'notes' => $this->getNotes(),
+            'payment_method_text' => $this->paymentMethod ? $this->paymentMethod->document_text : null,
             'taxes' => $taxes,
             'pdf_footer_text' => \App\Models\CompanySetting::getSetting('estimate_pdf_footer_text', $this->company_id),
             'pdf_legal_notice_text' => \App\Models\CompanySetting::getSetting('estimate_pdf_legal_notice_text', $this->company_id),

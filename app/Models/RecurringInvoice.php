@@ -96,6 +96,11 @@ class RecurringInvoice extends Model
         return $this->hasMany(InvoiceItem::class);
     }
 
+    public function paymentMethod(): BelongsTo
+    {
+        return $this->belongsTo(PaymentMethod::class);
+    }
+
     public function customer(): BelongsTo
     {
         return $this->belongsTo(Customer::class);
@@ -340,6 +345,7 @@ class RecurringInvoice extends Model
         $newInvoice['discount'] = $this->discount;
         $newInvoice['discount_type'] = $this->discount_type;
         $newInvoice['notes'] = $this->notes;
+        $newInvoice['payment_method_id'] = $this->payment_method_id;
         $newInvoice['exchange_rate'] = $this->exchange_rate;
         $newInvoice['sales_tax_type'] = $this->sales_tax_type;
         $newInvoice['sales_tax_address_type'] = $this->sales_tax_address_type;

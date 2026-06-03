@@ -118,6 +118,11 @@ class ProformaInvoice extends Model implements HasMedia
     }
 
     /** Cliente destinatario */
+    public function paymentMethod(): BelongsTo
+    {
+        return $this->belongsTo(PaymentMethod::class);
+    }
+
     public function customer(): BelongsTo
     {
         return $this->belongsTo(Customer::class);
@@ -644,6 +649,7 @@ class ProformaInvoice extends Model implements HasMedia
             'shipping_address' => $this->getCustomerShippingAddress(),
             'billing_address' => $this->getCustomerBillingAddress(),
             'notes' => $this->getNotes(),
+            'payment_method_text' => $this->paymentMethod ? $this->paymentMethod->document_text : null,
             'logo' => $logo ?? null,
             'taxes' => $taxes,
             'is_proforma' => true, // Flag para que la plantilla muestre "FACTURA PROFORMA"

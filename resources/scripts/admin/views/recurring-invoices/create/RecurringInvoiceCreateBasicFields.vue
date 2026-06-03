@@ -169,6 +169,39 @@
       />
     </BaseInputGroup>
 
+    <!-- v.1.9.5 — Onfactu: selector de forma de pago -->
+    <BaseInputGroup
+      :label="$t('invoices.payment_method')"
+      :content-loading="isLoading"
+    >
+      <BaseMultiselect
+        v-model="recurringInvoiceStore.newRecurringInvoice.payment_method_id"
+        :content-loading="isLoading"
+        :options="paymentMethodOptions"
+        value-prop="id"
+        label="name"
+        track-by="name"
+        searchable
+        :can-clear="true"
+        :placeholder="$t('payments.select_payment_mode')"
+      />
+      <div
+        v-if="selectedPaymentMethodText"
+        class="mt-1 text-gray-500"
+        style="font-size: 11px; line-height: 1.5;"
+      >
+        <p class="text-gray-600 mb-0.5">
+          {{ $t('invoices.payment_method_doc_text_title') }}
+        </p>
+        <p class="whitespace-pre-line text-gray-500">{{ selectedPaymentMethodText }}</p>
+        <router-link
+          to="/admin/settings/payment-mode"
+          class="text-primary-500 hover:text-primary-700 hover:underline"
+        >
+          {{ $t('invoices.payment_method_doc_text_link') }}
+        </router-link>
+      </div>
+    </BaseInputGroup>
     <ExchangeRateConverter
       :store="recurringInvoiceStore"
       store-prop="newRecurringInvoice"
@@ -184,6 +217,7 @@
 import { useGlobalStore } from '@/scripts/admin/stores/global'
 import { useDebounceFn } from '@vueuse/core'
 import { useRecurringInvoiceStore } from '@/scripts/admin/stores/recurring-invoice'
+import { usePaymentStore } from '@/scripts/admin/stores/payment'
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
@@ -207,6 +241,7 @@ const props = defineProps({
 
 const route = useRoute()
 const recurringInvoiceStore = useRecurringInvoiceStore()
+const paymentStore = usePaymentStore()
 const globalStore = useGlobalStore()
 const { t } = useI18n()
 
@@ -259,6 +294,24 @@ onMounted(() => {
   if (!route.params.id) {
     getNextInvoiceDate()
   }
+  // v.1.9.5 — Onfactu: cargar formas de pago
+  paymentStore.fetchPaymentModes({ limit: 'all' })
+})
+
+// v.1.9.5 — Onfactu: opciones con "Sin forma de pago"
+const paymentMethodOptions = computed(() => {
+  return [
+    { id: null, name: t('invoices.payment_method_none') },
+    ...(paymentStore.paymentModes || []),
+  ]
+})
+
+// v.1.9.5 — Onfactu: texto de la forma de pago seleccionada
+const selectedPaymentMethodText = computed(() => {
+  const id = recurringInvoiceStore.newRecurringInvoice.payment_method_id
+  if (!id) return ''
+  const pm = (paymentStore.paymentModes || []).find(p => p.id === id)
+  return pm && pm.document_text ? pm.document_text : ''
 })
 
 function hasLimitBy(LimitBy) {
