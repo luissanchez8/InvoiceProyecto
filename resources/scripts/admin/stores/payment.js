@@ -45,6 +45,7 @@ export const usePaymentStore = (useWindow = false) => {
       currentPaymentMode: {
         id: '',
         name: null,
+        document_text: null,
       },
 
       isFetchingInitialData: false,

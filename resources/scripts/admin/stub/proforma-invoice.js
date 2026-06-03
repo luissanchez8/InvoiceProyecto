@@ -26,6 +26,7 @@ export default function () {
     sub_total: 0,
     total: 0,
     tax_per_item: null,
+    payment_method_id: null,
     discount_per_item: null,
     taxes: [],
     items: [{ ...proformaInvoiceItemStub, id: Guid.raw(), taxes: [] }],

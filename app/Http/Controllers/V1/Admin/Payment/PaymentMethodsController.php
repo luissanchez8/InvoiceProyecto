@@ -81,10 +81,20 @@ class PaymentMethodsController extends Controller
      */
     public function update(PaymentMethodRequest $request, PaymentMethod $paymentMethod)
     {
-        $this->ensureAsistencia($request);
         $this->authorize('update', $paymentMethod);
 
-        $paymentMethod->update($request->getPaymentMethodPayload());
+        // Onfactu v.1.9.5: Asistencia edita todo (nombre + texto). Usuario
+        // normal SOLO puede editar el texto que aparece en el documento.
+        $user = $request->user();
+        $role = $user ? strtolower(trim((string) $user->role)) : '';
+
+        if ($role === 'asistencia') {
+            $paymentMethod->update($request->getPaymentMethodPayload());
+        } else {
+            $paymentMethod->update([
+                'document_text' => $request->input('document_text'),
+            ]);
+        }
 
         return new PaymentMethodResource($paymentMethod);
     }

@@ -111,6 +111,54 @@
             />
           </BaseInputGroup>
 
+          <!-- v.1.9.5 — Onfactu: selector de forma de pago -->
+          <BaseInputGroup
+            :label="$t('invoices.payment_method')"
+            :content-loading="isLoadingContent"
+          >
+            <BaseMultiselect
+              v-model="deliveryNoteStore.newDeliveryNote.payment_method_id"
+              :content-loading="isLoadingContent"
+              :options="paymentMethodOptions"
+              value-prop="id"
+              label="name"
+              track-by="name"
+              searchable
+              :can-clear="true"
+              :placeholder="$t('payments.select_payment_mode')"
+            />
+            <div
+              v-if="selectedPaymentMethodText"
+              class="mt-1 text-gray-500"
+              style="font-size: 11px; line-height: 1.5;"
+            >
+              <p class="text-gray-600 mb-0.5">
+                {{ $t('invoices.payment_method_doc_text_title') }}
+              </p>
+              <p class="whitespace-pre-line text-gray-500">{{ selectedPaymentMethodText }}</p>
+              <router-link
+                to="/admin/settings/payment-mode"
+                class="text-primary-500 hover:text-primary-700 hover:underline"
+              >
+                {{ $t('invoices.payment_method_doc_text_link') }}
+              </router-link>
+            </div>
+            <!-- v.1.9.5 — Onfactu: aviso cuando la forma de pago seleccionada NO tiene texto -->
+            <div
+              v-else-if="hasPaymentMethodSelectedWithoutText"
+              class="mt-1 text-gray-400"
+              style="font-size: 11px; line-height: 1.5;"
+            >
+              <p>{{ $t('invoices.payment_method_no_text_hint') }}</p>
+              <router-link
+                to="/admin/settings/payment-mode"
+                class="text-primary-500 hover:text-primary-700 hover:underline"
+              >
+                {{ $t('invoices.payment_method_no_text_link') }}
+              </router-link>
+            </div>
+          </BaseInputGroup>
+
           <!-- Toggle: Mostrar precios en el PDF -->
           <BaseInputGroup :label="$t('show_prices')" :content-loading="isLoadingContent">
             <BaseSwitch
@@ -172,7 +220,7 @@
 </template>
 
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed, ref, watch, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { required, helpers } from '@vuelidate/validators'
@@ -180,6 +228,7 @@ import useVuelidate from '@vuelidate/core'
 import { cloneDeep } from 'lodash'
 
 import { useDeliveryNoteStore } from '@/scripts/admin/stores/delivery-note'
+import { usePaymentStore } from '@/scripts/admin/stores/payment'
 import { useCompanyStore } from '@/scripts/admin/stores/company'
 import { useCustomFieldStore } from '@/scripts/admin/stores/custom-field'
 
@@ -195,6 +244,34 @@ import NumberWarningDialog from '@/scripts/admin/components/dialogs/NumberWarnin
 import axios from 'axios'
 
 const deliveryNoteStore = useDeliveryNoteStore()
+const paymentStore = usePaymentStore()
+const { t: $tPay } = useI18n()
+
+// v.1.9.5 — Onfactu: cargar formas de pago
+onMounted(() => {
+  paymentStore.fetchPaymentModes({ limit: 'all' })
+})
+
+const selectedPaymentMethodText = computed(() => {
+  const id = deliveryNoteStore.newDeliveryNote.payment_method_id
+  if (!id) return ''
+  const pm = (paymentStore.paymentModes || []).find(p => p.id === id)
+  return pm && pm.document_text ? pm.document_text : ''
+})
+// v.1.9.5 — Onfactu: hay forma de pago elegida pero SIN texto configurado
+const hasPaymentMethodSelectedWithoutText = computed(() => {
+  const id = deliveryNoteStore.newDeliveryNote.payment_method_id
+  if (!id) return false
+  const pm = (paymentStore.paymentModes || []).find(p => p.id === id)
+  return pm && (!pm.document_text || pm.document_text.trim() === '')
+})
+
+const paymentMethodOptions = computed(() => {
+  return [
+    { id: null, name: $tPay('invoices.payment_method_none') },
+    ...(paymentStore.paymentModes || []),
+  ]
+})
 const companyStore = useCompanyStore()
 const customFieldStore = useCustomFieldStore()
 

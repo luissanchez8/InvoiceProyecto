@@ -27,6 +27,7 @@ export default function () {
     sub_total: 0,
     total: 0,
     tax_per_item: null,
+    payment_method_id: null,
     discount_per_item: null,
     show_prices: true, // Controla si los precios aparecen en el PDF
     taxes: [],

@@ -23,6 +23,7 @@ class EstimateResource extends JsonResource
             'tax_per_item' => $this->tax_per_item,
             'discount_per_item' => $this->discount_per_item,
             'notes' => $this->getNotes(),
+            'payment_method_id' => $this->payment_method_id,
             'discount' => $this->discount,
             'discount_type' => $this->discount_type,
             'discount_val' => $this->discount_val,

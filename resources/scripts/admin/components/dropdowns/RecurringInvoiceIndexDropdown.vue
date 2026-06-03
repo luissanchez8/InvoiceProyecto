@@ -118,6 +118,10 @@ async function removeMultipleRecurringInvoices(id = null) {
                 type: 'success',
                 message: t('recurring_invoices.deleted_message', 2),
               })
+              // v.1.9.5 — Onfactu: si se borra desde la vista de detalle, redirigir al listado
+              if (route.name === 'recurring-invoices.view') {
+                router.push('/admin/recurring-invoices')
+              }
             } else if (res.data.error) {
               notificationStore.showNotification({
                 type: 'error',

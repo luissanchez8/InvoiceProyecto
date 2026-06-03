@@ -100,6 +100,11 @@ class Invoice extends Model implements HasMedia
         return $this->hasMany(Tax::class);
     }
 
+    public function paymentMethod(): BelongsTo
+    {
+        return $this->belongsTo(PaymentMethod::class);
+    }
+
     public function payments(): HasMany
     {
         return $this->hasMany(Payment::class);
@@ -692,6 +697,7 @@ class Invoice extends Model implements HasMedia
             'shipping_address' => $this->getCustomerShippingAddress(),
             'billing_address' => $this->getCustomerBillingAddress(),
             'notes' => $this->getNotes(),
+            'payment_method_text' => $this->paymentMethod ? $this->paymentMethod->document_text : null,
             'logo' => $logo ?? null,
             'taxes' => $taxes,
             'verifactu_qr' => $this->verifactu_qr ?? null,
