@@ -116,7 +116,7 @@ trait GeneratesPdfTrait
         $companyAddress = $this->company->address ?? new Address;
 
         $fields = [
-            '{SHIPPING_ADDRESS_NAME}' => $shippingAddress->name,
+            '{SHIPPING_ADDRESS_NAME}' => $shippingAddress->name ?: $customer->name,
             '{SHIPPING_COUNTRY}' => $shippingAddress->country_name,
             '{SHIPPING_STATE}' => $shippingAddress->state,
             '{SHIPPING_CITY}' => $shippingAddress->city,
@@ -124,7 +124,7 @@ trait GeneratesPdfTrait
             '{SHIPPING_ADDRESS_STREET_2}' => $shippingAddress->address_street_2,
             '{SHIPPING_PHONE}' => $shippingAddress->phone,
             '{SHIPPING_ZIP_CODE}' => $shippingAddress->zip,
-            '{BILLING_ADDRESS_NAME}' => $billingAddress->name,
+            '{BILLING_ADDRESS_NAME}' => $billingAddress->name ?: $customer->name,
             '{BILLING_COUNTRY}' => $billingAddress->country_name,
             '{BILLING_STATE}' => $billingAddress->state,
             '{BILLING_CITY}' => $billingAddress->city,

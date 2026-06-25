@@ -702,9 +702,6 @@ class ProformaInvoice extends Model implements HasMedia
 
     public function getCustomerBillingAddress()
     {
-        if ($this->customer && ! $this->customer->billingAddress()->exists()) {
-            return false;
-        }
         $format = CompanySetting::getSetting('invoice_billing_address_format', $this->company_id);
         return $this->getFormattedString($format);
     }
