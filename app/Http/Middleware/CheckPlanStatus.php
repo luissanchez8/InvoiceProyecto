@@ -7,131 +7,78 @@ use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
-/**
- * Onfactu: middleware que bloquea/limita el acceso según el estado de la
- * suscripción de la instancia Pro. Los datos de estado vienen de app_config.
- *
- * Reglas:
- *   - active / trialing:      acceso completo.
- *   - paused / past_due:
- *       · Durante los primeros 7 días tras fin de trial: acceso de lectura
- *         (GET), escrituras bloqueadas con HTTP 402.
- *       · Tras 7 días de gracia: acceso totalmente bloqueado (HTTP 402).
- *   - canceled:               acceso totalmente bloqueado (HTTP 402).
- *
- * El frontend, al recibir 402, redirige al usuario a la pantalla de bloqueo
- * con botón para añadir tarjeta en Stripe Portal.
- */
 class CheckPlanStatus
 {
-    /** Días de gracia tras fin de trial antes de bloquear del todo. */
     const GRACE_PERIOD_DAYS = 7;
 
     public function handle(Request $request, Closure $next): Response
     {
         $status = (string) app_cfg('STRIPE_PLAN_STATUS', 'active');
+        $trialEndsAtRaw = (string) app_cfg('STRIPE_TRIAL_ENDS_AT', '');
+        $trialEndsAt = $trialEndsAtRaw ? Carbon::parse($trialEndsAtRaw) : null;
 
-        // Estados que permiten todo sin mas.
-        if (in_array($status, ['active', 'trialing'], true)) {
+        // Cliente pagando: acceso completo.
+        if ($status === 'active') {
             return $next($request);
         }
 
-        // Excepción crítica: el endpoint que recibe notificaciones de Stripe
-        // debe funcionar SIEMPRE (para poder desbloquear cuando el cliente paga).
+        // Trial: acceso completo SOLO si sigue vigente por fecha. Blindaje contra
+        // el webhook que no propaga el fin de trial (estado congelado en trialing).
+        if ($status === 'trialing') {
+            if (!$trialEndsAt || now()->lt($trialEndsAt)) {
+                return $next($request);
+            }
+            $status = 'past_due'; // trial vencido y congelado -> degradar
+        }
+
+        // El endpoint de Stripe debe funcionar SIEMPRE (para desbloquear al pagar).
         if ($this->isExemptRoute($request)) {
             return $next($request);
         }
 
-        $trialEndsAtRaw = (string) app_cfg('STRIPE_TRIAL_ENDS_AT', '');
-        $trialEndsAt = $trialEndsAtRaw ? Carbon::parse($trialEndsAtRaw) : null;
-
         if (in_array($status, ['paused', 'past_due'], true)) {
-            // ¿Todavía dentro del período de gracia?
-            $graceEndsAt = $trialEndsAt
-                ? $trialEndsAt->copy()->addDays(self::GRACE_PERIOD_DAYS)
-                : null;
+            $graceEndsAt = $trialEndsAt ? $trialEndsAt->copy()->addDays(self::GRACE_PERIOD_DAYS) : null;
 
             if ($graceEndsAt && now()->lt($graceEndsAt)) {
-                // Gracia activa: permitir lecturas, bloquear escrituras.
                 $method = strtoupper($request->method());
                 if (in_array($method, ['GET', 'HEAD', 'OPTIONS'], true)) {
                     return $next($request);
                 }
-
-                return $this->blockedResponse(
-                    'trial_grace_write_blocked',
+                return $this->blockedResponse('trial_grace_write_blocked',
                     'Tu período de prueba ha terminado. Añade un método de pago para poder seguir creando documentos.',
-                    $trialEndsAt->toIso8601String(),
-                    $graceEndsAt->toIso8601String()
-                );
+                    $trialEndsAt->toIso8601String(), $graceEndsAt->toIso8601String());
             }
 
-            // Gracia expirada: bloqueo total.
-            return $this->blockedResponse(
-                'trial_grace_expired',
+            return $this->blockedResponse('trial_grace_expired',
                 'Tu período de prueba y el de gracia han terminado. Añade un método de pago para reactivar tu cuenta.',
                 $trialEndsAt ? $trialEndsAt->toIso8601String() : null,
-                $graceEndsAt ? $graceEndsAt->toIso8601String() : null
-            );
+                $graceEndsAt ? $graceEndsAt->toIso8601String() : null);
         }
 
         if ($status === 'canceled') {
-            return $this->blockedResponse(
-                'subscription_canceled',
-                'Tu suscripción ha sido cancelada. Contacta con soporte para recuperar el acceso.',
-                null,
-                null
-            );
+            return $this->blockedResponse('subscription_canceled',
+                'Tu suscripción ha sido cancelada. Contacta con soporte para recuperar el acceso.', null, null);
         }
 
-        // Cualquier otro estado raro (incomplete, etc.) → bloquear por seguridad.
-        return $this->blockedResponse(
-            'subscription_inactive',
-            'Tu suscripción no está activa. Contacta con soporte.',
-            null,
-            null
-        );
+        return $this->blockedResponse('subscription_inactive',
+            'Tu suscripción no está activa. Contacta con soporte.', null, null);
     }
 
-    /**
-     * Rutas que no deben ser bloqueadas por el middleware porque son necesarias
-     * para que el usuario pueda volver a activar su cuenta.
-     */
     private function isExemptRoute(Request $request): bool
     {
         $path = trim($request->path(), '/');
-
-        // Rutas esenciales para que la SPA arranque y el usuario pueda llegar
-        // a la pantalla de bloqueo (donde añade la tarjeta). Si estas rutas
-        // se bloqueasen, el frontend ni siquiera podría renderizar la
-        // BlockedScreen y quedaría colgado en el loader.
-        $exemptPrefixes = [
-            'api/v1/stripe/',      // Para desbloquear (update-plan-status, plan-status)
-            'api/v1/bootstrap',    // Carga inicial de la SPA (usuario, abilities)
-            'api/v1/auth/',        // Login/logout
-            'logo-url',            // Logo del layout
-            'favicons/',           // Favicons
-        ];
-
+        $exemptPrefixes = ['api/v1/stripe/', 'api/v1/bootstrap', 'api/v1/auth/', 'logo-url', 'favicons/'];
         foreach ($exemptPrefixes as $prefix) {
             if (str_starts_with($path, $prefix)) return true;
         }
         return false;
     }
 
-    /**
-     * Respuesta JSON estándar cuando se bloquea por suscripción.
-     * Usa HTTP 402 Payment Required que el frontend reconoce para mostrar
-     * la pantalla de bloqueo con botón a Stripe Portal.
-     */
     private function blockedResponse(string $reason, string $message, ?string $trialEndsAt, ?string $graceEndsAt): Response
     {
         return response()->json([
-            'ok'             => false,
-            'error'          => $reason,
-            'message'        => $message,
-            'trial_ends_at'  => $trialEndsAt,
-            'grace_ends_at'  => $graceEndsAt,
+            'ok' => false, 'error' => $reason, 'message' => $message,
+            'trial_ends_at' => $trialEndsAt, 'grace_ends_at' => $graceEndsAt,
         ], 402);
     }
 }
