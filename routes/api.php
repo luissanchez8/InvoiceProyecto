@@ -196,7 +196,7 @@ Route::prefix('/v1')->group(function () {
         Route::post('/finish', FinishController::class);
     });
 
-    Route::middleware(['auth:sanctum', 'company', 'check-plan-status'])->group(function () {
+    Route::middleware(['auth:sanctum', 'company', 'check-plan-status', 'check-month-closed'])->group(function () {
         
         Route::post('verifactu/invoices/{invoice}', [VerifactuController::class, 'send']);
 
