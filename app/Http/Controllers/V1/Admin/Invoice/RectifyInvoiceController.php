@@ -53,6 +53,13 @@ class RectifyInvoiceController extends Controller
             );
         }
 
+        if (empty(trim((string) $invoice->invoice_number))) {
+            return $this->error(
+                'Esta factura no tiene numero asignado y no puede rectificarse. '
+                .'La rectificativa debe identificar la factura original por numero y fecha.'
+            );
+        }
+
         if ($invoice->payments()->exists()) {
             return $this->error(
                 'Esta factura tiene cobros registrados y no puede rectificarse. '
@@ -190,10 +197,14 @@ class RectifyInvoiceController extends Controller
      */
     private function notaRectificativa(Invoice $original): string
     {
-        $aviso = "Esta factura rectifica a la factura {$original->invoice_number}"
-               .' de fecha '.Carbon::parse($original->invoice_date)->format('d/m/Y').'.';
+        // Se escribe en HTML porque el campo notes usa editor rich text: si va
+        // en texto plano queda pegado al parrafo siguiente en el PDF.
+        $aviso = '<p><strong>Esta factura rectifica a la factura '
+               .e($original->invoice_number)
+               .' de fecha '.Carbon::parse($original->invoice_date)->format('d/m/Y')
+               .'.</strong></p>';
 
-        return trim($aviso."\n\n".(string) $original->notes);
+        return trim($aviso.(string) $original->notes);
     }
 
     /**
@@ -201,8 +212,9 @@ class RectifyInvoiceController extends Controller
      */
     private function notaOriginal(Invoice $original, string $numeroRect): string
     {
-        $aviso = "Esta factura ha sido rectificada por la factura rectificativa {$numeroRect}"
-               .' de fecha '.Carbon::now()->format('d/m/Y').'.';
+        $aviso = '<p><strong>Esta factura ha sido rectificada por la factura rectificativa '
+               .e($numeroRect)
+               .' de fecha '.Carbon::now()->format('d/m/Y').'.</strong></p>';
 
         $notas = (string) $original->notes;
 
@@ -211,7 +223,7 @@ class RectifyInvoiceController extends Controller
             return $notas;
         }
 
-        return trim($aviso."\n\n".$notas);
+        return trim($aviso.$notas);
     }
 
     private function error(string $mensaje)

@@ -76,6 +76,7 @@
     // Etiqueta de la fecha secundaria
     $secondaryDateLabels = [
         'invoice'       => __('pdf_invoice_due_date_short'),
+        'rectificative' => __('pdf_invoice_due_date_short'),
         'estimate'      => __('pdf_estimate_expire_date'),
         'proforma'      => __('pdf_proforma_invoice_expiry_date'),
         'delivery_note' => __('pdf_delivery_date'),
@@ -354,7 +355,7 @@
                         <td class="total-label">
                             @lang('pdf_discount_label')@if($invoice->discount_type === 'percentage') ({{ $invoice->discount }}%)@endif:
                         </td>
-                        <td class="total-value">-{!! format_money_pdf($invoice->discount_val, $invoice->customer->currency) !!}</td>
+                        <td class="total-value">-{!! format_money_pdf(abs($invoice->discount_val), $invoice->customer->currency) !!}</td>
                     </tr>
                     <tr>
                         <td class="total-label">@lang('pdf_invoice_base_amount'):</td>
