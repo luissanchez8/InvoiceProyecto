@@ -115,9 +115,6 @@ class Invoice extends Model implements HasMedia
         if ($this->status !== self::STATUS_COMPLETED) {
             return 'Solo se pueden rectificar facturas en estado Completado.';
         }
-        if ($this->payments()->exists()) {
-            return 'Esta factura tiene cobros registrados y no puede rectificarse.';
-        }
         if (self::where('rectifies_invoice_id', $this->id)->exists()) {
             return 'Esta factura ya ha sido rectificada.';
         }

@@ -53,20 +53,6 @@ class RectifyInvoiceController extends Controller
             );
         }
 
-        if (empty(trim((string) $invoice->invoice_number))) {
-            return $this->error(
-                'Esta factura no tiene numero asignado y no puede rectificarse. '
-                .'La rectificativa debe identificar la factura original por numero y fecha.'
-            );
-        }
-
-        if ($invoice->payments()->exists()) {
-            return $this->error(
-                'Esta factura tiene cobros registrados y no puede rectificarse. '
-                .'Elimina primero los cobros asociados.'
-            );
-        }
-
         // ─── Creacion ───────────────────────────────────────────────────
         $rectificativa = DB::transaction(function () use ($request, $invoice) {
 
