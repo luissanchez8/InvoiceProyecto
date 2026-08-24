@@ -1606,6 +1606,7 @@
     "pdf_estimate_date": "Estimate Date",
     "pdf_estimate_expire_date": "Expiry Date",
     "pdf_invoice_label": "Invoice",
+    "pdf_rectificative_label": "Corrective Invoice",
     "pdf_invoice_number": "Invoice Number",
     "pdf_invoice_date": "Invoice Date",
     "pdf_invoice_due_date": "Due Date",

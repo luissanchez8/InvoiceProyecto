@@ -38,6 +38,10 @@
     if (!empty($is_estimate)) $docType = 'estimate';
     if (!empty($is_proforma)) $docType = 'proforma';
     if (!empty($is_delivery_note)) $docType = 'delivery_note';
+    // Onfactu: las rectificativas son facturas con rectifies_invoice_id relleno.
+    // Legalmente el documento DEBE indicar de forma visible que es rectificativo
+    // (RD 1619/2012 art. 15).
+    if ($docType === 'invoice' && !empty($invoice->rectifies_invoice_id)) $docType = 'rectificative';
 
     // Título grande del documento
     $docTitles = [
@@ -45,6 +49,7 @@
         'estimate'      => __('pdf_estimate_label'),
         'proforma'      => __('pdf_proforma_invoice_label'),
         'delivery_note' => __('pdf_delivery_note_label'),
+        'rectificative' => __('pdf_rectificative_label'),
     ];
     $docTitle = $docTitles[$docType] ?? __('pdf_invoice_label');
 

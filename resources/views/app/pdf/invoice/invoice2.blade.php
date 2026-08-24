@@ -411,7 +411,7 @@
                 </td>
 
                 <td width="40%" class="header-section-right invoice-details-container">
-                    <h1>@lang('pdf_invoice_label')</h1>
+                    <h1>{{ !empty($invoice->rectifies_invoice_id) ? __('pdf_rectificative_label') : __('pdf_invoice_label') }}</h1>
                     <h4>{{ $invoice->invoice_number }}</h4>
                     <h4>{{ $invoice->formattedInvoiceDate }}</h4>
                 </td>

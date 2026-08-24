@@ -172,12 +172,10 @@ class RectifyInvoiceController extends Controller
             }
 
             // ─── Actualizar la factura original ───
-            // Queda saldada: la rectificativa la anula, asi que no debe seguir
-            // contando como pendiente de cobro.
-            $invoice->paid_status      = Invoice::STATUS_PAID;
-            $invoice->due_amount       = 0;
-            $invoice->base_due_amount  = 0;
-            $invoice->notes            = $this->notaOriginal($invoice, $numero);
+            // Solo la nota cruzada: al estar COMPLETED ya viene con
+            // paid_status = PAID y due_amount = 0 (lo hace
+            // ChangeInvoiceStatusController al completarla).
+            $invoice->notes = $this->notaOriginal($invoice, $numero);
             $invoice->save();
 
             return $rect;

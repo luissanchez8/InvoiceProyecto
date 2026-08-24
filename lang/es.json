@@ -1614,6 +1614,7 @@
     "pdf_estimate_date": "Fecha presupuesto",
     "pdf_estimate_expire_date": "Fecha de caducidad",
     "pdf_invoice_label": "Factura",
+    "pdf_rectificative_label": "Factura rectificativa",
     "pdf_invoice_number": "Numero de factura",
     "pdf_invoice_date": "Fecha de la factura",
     "pdf_invoice_due_date": "Fecha de vencimiento",
