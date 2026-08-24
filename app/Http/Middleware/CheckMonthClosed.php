@@ -164,7 +164,7 @@ class CheckMonthClosed
         $mes = ClosedMonth::label($date);
 
         $msg = $motivo === 'destino'
-            ? "No puedes usar una fecha de {$mes}: ese mes ya esta cerrado y no admite nuevos documentos."
+            ? "No puedes usar una fecha de {$mes}: ese mes ya está cerrado y no admite nuevos documentos."
             : "No puedes modificar {$label} porque pertenece a {$mes}, un mes ya cerrado.";
 
         return response()->json([

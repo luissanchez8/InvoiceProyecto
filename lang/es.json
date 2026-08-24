@@ -7,7 +7,7 @@
         "recurring-invoices": "Facturas recurrentes",
         "expenses": "Gastos",
         "estimates": "Presupuestos",
-        "payments": "Pagos",
+        "payments": "Cobros recibidos",
         "reports": "Informes",
         "settings": "Ajustes",
         "support": "Soporte",
@@ -130,7 +130,7 @@
             "customers": "Clientes",
             "invoices": "Facturas",
             "estimates": "Presupuestos",
-            "payments": "Pagos"
+            "payments": "Cobros recibidos"
         },
         "chart_info": {
             "total_sales": "Ventas",
@@ -611,7 +611,7 @@
         }
     },
     "payments": {
-        "title": "Pagos",
+        "title": "Cobros recibidos",
         "payments_list": "Lista de pagos",
         "record_payment": "Registro de pago",
         "customer": "Cliente",
@@ -631,7 +631,7 @@
         "send_payment": "Enviar pago",
         "save_payment": "Guardar pago",
         "update_payment": "Actualizar pago",
-        "payment": "Pago | Pagos",
+        "payment": "Cobro recibido | Cobros recibidos",
         "no_payments": "¡Aún no hay pagos!",
         "not_selected": "No seleccionado",
         "no_invoice": "Sin facturas",
@@ -640,12 +640,12 @@
         "select_payment_mode": "Seleccionar modo de pago",
         "confirm_mark_as_sent": "Este presupuesto se marcará como enviado",
         "confirm_send_payment": "Este pago se enviará por correo electrónico al cliente",
-        "send_payment_successfully": "Pago enviado correctamente",
+        "send_payment_successfully": "Cobro enviado correctamente",
         "something_went_wrong": "Algo fue mal",
         "confirm_delete": "No podrá recuperar este pago | No podrá recuperar estos pagos",
-        "created_message": "Pago creado con éxito",
-        "updated_message": "Pago actualizado con éxito",
-        "deleted_message": "Pago eliminado con éxito | Pagos eliminados exitosamente",
+        "created_message": "Cobro creado con éxito",
+        "updated_message": "Cobro actualizado con éxito",
+        "deleted_message": "Cobro eliminado con éxito | Cobros eliminados correctamente",
         "invalid_amount_message": "El importe del pago no es válido.",
         "amount_due": "Cantidad Debida"
     },
@@ -994,7 +994,7 @@
                 "invoice": "Factura",
                 "estimate": "Presupuesto",
                 "expense": "Gasto",
-                "payment": "Pago"
+                "payment": "Cobro"
             }
         },
         "customization": {
@@ -1079,7 +1079,7 @@
                 "mark_estimate_as_accepted": "Marcar presupuesto como aceptado"
             },
             "payments": {
-                "title": "Pagos",
+                "title": "Cobros recibidos",
                 "payment_number_format": "Formato del número de pago",
                 "payment_number_format_description": "Personalice cómo se genera automáticamente su número de pago cuando crea un nuevo pago.",
                 "preview_payment_number": "Previsualizar número de pago",
@@ -1123,7 +1123,7 @@
                 "types": {
                     "estimate": "Presupuesto",
                     "invoice": "Factura",
-                    "payment": "Pago"
+                    "payment": "Cobro"
                 }
             }
         },
@@ -1234,8 +1234,8 @@
             "add_payment_mode": "Agregar modo de pago",
             "edit_payment_mode": "Editar modo de pago",
             "mode_name": "Nombre del modo",
-                "document_text_label": "Texto que aparecerá en el documento",
-                "document_text_help": "Este texto aparecerá en el documento por encima de las observaciones. Por ejemplo: el número de cuenta para transferencias.",
+            "document_text_label": "Texto que aparecerá en el documento",
+            "document_text_help": "Este texto aparecerá en el documento por encima de las observaciones. Por ejemplo: el número de cuenta para transferencias.",
             "payment_mode_added": "Forma de pago añadida",
             "payment_mode_updated": "Forma de pago actualizada",
             "payment_mode_confirm_delete": "No podrás recuperar este Modo de Pago",
