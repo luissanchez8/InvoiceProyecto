@@ -473,7 +473,13 @@
         "marked_as_sent_message": "Invoice marked as sent successfully",
         "something_went_wrong": "something went wrong",
         "invalid_due_amount_message": "Total Invoice amount cannot be less than total paid amount for this Invoice. Please update the invoice or delete the associated payments to continue.",
-        "mark_as_default_invoice_template_description": "If enabled, the selected template will be automatically selected for new invoices."
+        "mark_as_default_invoice_template_description": "If enabled, the selected template will be automatically selected for new invoices.",
+        "create_rectificative": "Create corrective invoice",
+        "rectified_successfully": "Corrective invoice created successfully",
+        "confirm_rectify_title": "Create corrective invoice",
+        "confirm_rectify": "A corrective invoice will be created cancelling invoice {number} completely, with the same items in negative. This action cannot be undone and the corrective invoice will not be editable.",
+        "already_rectified_by": "Corrected by {number}",
+        "rectifies_invoice": "Corrects invoice {number}"
     },
     "recurring_invoices": {
         "title": "Recurring Invoices",

@@ -99,6 +99,34 @@
       {{ $t('invoices.clone_invoice') }}
     </BaseDropdownItem>
 
+    <!-- Onfactu: crear factura rectificativa -->
+    <BaseDropdownItem
+      v-if="row.can_be_rectified && userStore.hasAbilities(abilities.CREATE_INVOICE)"
+      @click="rectifyInvoiceData(row)"
+    >
+      <BaseIcon
+        name="ReceiptRefundIcon"
+        class="w-5 h-5 mr-3 text-gray-400 group-hover:text-gray-500"
+      />
+      {{ $t('invoices.create_rectificative') }}
+    </BaseDropdownItem>
+
+    <!-- Onfactu: aviso de que ya esta rectificada -->
+    <div
+      v-if="row.rectification_number"
+      class="px-4 py-2 text-xs text-gray-500 border-t border-gray-100"
+    >
+      {{ $t('invoices.already_rectified_by', { number: row.rectification_number }) }}
+    </div>
+
+    <!-- Onfactu: aviso de a que factura rectifica -->
+    <div
+      v-if="row.rectified_invoice_number"
+      class="px-4 py-2 text-xs text-gray-500 border-t border-gray-100"
+    >
+      {{ $t('invoices.rectifies_invoice', { number: row.rectified_invoice_number }) }}
+    </div>
+
     <!--  Delete Invoice  -->
     <BaseDropdownItem
       v-if="userStore.hasAbilities(abilities.DELETE_INVOICE) && row.status !== 'APPROVED'"
@@ -189,6 +217,28 @@ async function removeInvoice(id) {
               state.selectAllField = false
             })
           }
+        })
+      }
+    })
+}
+
+// Onfactu: crea la rectificativa tras confirmar. Es IRREVERSIBLE.
+async function rectifyInvoiceData(row) {
+  dialogStore
+    .openDialog({
+      title: t('invoices.confirm_rectify_title'),
+      message: t('invoices.confirm_rectify', { number: row.invoice_number }),
+      yesLabel: t('invoices.create_rectificative'),
+      noLabel: t('general.cancel'),
+      variant: 'danger',
+      hideNoButton: false,
+      size: 'lg',
+    })
+    .then((res) => {
+      if (res) {
+        invoiceStore.rectifyInvoice(row.id).then((response) => {
+          props.table && props.table.refresh()
+          router.push(`/admin/invoices/${response.data.data.id}/view`)
         })
       }
     })

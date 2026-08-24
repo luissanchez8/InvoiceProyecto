@@ -482,7 +482,13 @@
         "marked_as_sent_message": "Factura marcada como enviada con éxito",
         "something_went_wrong": "Algo fue mal",
         "invalid_due_amount_message": "El pago introducido es mayor que el importe total pendiente de esta factura. Por favor, verificalo y vuelve a intentarlo.",
-        "mark_as_default_invoice_template_description": "Si se activa, esta plantilla se seleccionará automáticamente para nuevas facturas. "
+        "mark_as_default_invoice_template_description": "Si se activa, esta plantilla se seleccionará automáticamente para nuevas facturas. ",
+        "create_rectificative": "Crear factura rectificativa",
+        "rectified_successfully": "Factura rectificativa creada correctamente",
+        "confirm_rectify_title": "Crear factura rectificativa",
+        "confirm_rectify": "Se creará una factura rectificativa que anula por completo la factura {number}, con los mismos conceptos en negativo. Esta acción no se puede deshacer y la rectificativa no será editable.",
+        "already_rectified_by": "Rectificada por {number}",
+        "rectifies_invoice": "Rectifica a la factura {number}"
     },
     "recurring_invoices": {
         "title": "Facturas recurrentes",

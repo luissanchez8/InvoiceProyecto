@@ -323,6 +323,24 @@ export const useInvoiceStore = (useWindow = false) => {
         })
       },
 
+      // Onfactu: crear factura rectificativa a partir de una factura.
+      rectifyInvoice(id) {
+        return new Promise((resolve, reject) => {
+          axios
+            .post(`/api/v1/invoices/${id}/rectify`)
+            .then((response) => {
+              notificationStore.showNotification({
+                type: 'success',
+                message: global.t('invoices.rectified_successfully'),
+              })
+              resolve(response)
+            })
+            .catch((err) => {
+              handleError(err)
+              reject(err)
+            })
+        })
+      },
       cloneInvoice(data) {
         return new Promise((resolve, reject) => {
           axios
