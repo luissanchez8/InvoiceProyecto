@@ -80,6 +80,56 @@ class Invoice extends Model implements HasMedia
         ];
     }
 
+    /**
+     * Onfactu — factura que ESTE documento rectifica (solo en rectificativas).
+     */
+    public function rectifiedInvoice(): BelongsTo
+    {
+        return $this->belongsTo(Invoice::class, 'rectifies_invoice_id');
+    }
+
+    /**
+     * Onfactu — rectificativa que anula ESTA factura (solo en facturas normales).
+     */
+    public function rectification()
+    {
+        return $this->hasOne(Invoice::class, 'rectifies_invoice_id');
+    }
+
+    /**
+     * Onfactu — true si este documento es una rectificativa.
+     */
+    public function getIsRectificativeAttribute(): bool
+    {
+        return $this->rectifies_invoice_id !== null;
+    }
+
+    /**
+     * Onfactu — motivo por el que NO se puede rectificar, o null si si se puede.
+     */
+    public function getCannotRectifyReasonAttribute(): ?string
+    {
+        if ($this->rectifies_invoice_id !== null) {
+            return 'Este documento ya es una factura rectificativa.';
+        }
+        if ($this->status !== self::STATUS_COMPLETED) {
+            return 'Solo se pueden rectificar facturas en estado Completado.';
+        }
+        if ($this->payments()->exists()) {
+            return 'Esta factura tiene cobros registrados y no puede rectificarse.';
+        }
+        if (self::where('rectifies_invoice_id', $this->id)->exists()) {
+            return 'Esta factura ya ha sido rectificada.';
+        }
+
+        return null;
+    }
+
+    public function getCanBeRectifiedAttribute(): bool
+    {
+        return $this->cannot_rectify_reason === null;
+    }
+
     public function transactions(): HasMany
     {
         return $this->hasMany(Transaction::class);

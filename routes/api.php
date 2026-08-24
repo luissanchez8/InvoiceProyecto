@@ -287,6 +287,8 @@ Route::prefix('/v1')->group(function () {
             Route::post('/invoices/{invoice}/send', SendInvoiceController::class);
 
             Route::post('/invoices/{invoice}/clone', CloneInvoiceController::class);
+            // Onfactu: crear factura rectificativa
+            Route::post('/invoices/{invoice}/rectify', \App\Http\Controllers\V1\Admin\Invoice\RectifyInvoiceController::class);
 
             Route::post('/invoices/{invoice}/status', ChangeInvoiceStatusController::class);
 

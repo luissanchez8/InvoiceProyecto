@@ -38,6 +38,17 @@ class InvoiceResource extends JsonResource
             'template_name' => $this->template_name,
             'customer_id' => $this->customer_id,
             'recurring_invoice_id' => $this->recurring_invoice_id,
+            // Onfactu — rectificativas
+            'rectifies_invoice_id' => $this->rectifies_invoice_id,
+            'is_rectificative' => $this->is_rectificative,
+            'can_be_rectified' => $this->can_be_rectified,
+            'cannot_rectify_reason' => $this->cannot_rectify_reason,
+            'rectified_invoice_number' => $this->when($this->rectifies_invoice_id !== null, function () {
+                return optional($this->rectifiedInvoice)->invoice_number;
+            }),
+            'rectification_number' => $this->when($this->rectifies_invoice_id === null, function () {
+                return optional($this->rectification)->invoice_number;
+            }),
             'sequence_number' => $this->sequence_number,
             'exchange_rate' => $this->exchange_rate,
             'base_discount_val' => $this->base_discount_val,
