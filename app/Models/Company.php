@@ -262,7 +262,9 @@ class Company extends Model implements HasMedia
             'payment_auto_generate' => 'YES',
             'payment_email_attachment' => 'YES',
             'save_pdf_to_disk' => 'NO',
-            'retrospective_edits' => 'allow',
+            // Onfactu: las facturas completadas no se pueden editar (inalterabilidad).
+            // Para corregir una factura completada hay que emitir una rectificativa.
+            'retrospective_edits' => 'disable_on_invoice_paid',
             'invoice_number_format' => '{{SERIES:FAC}}{{DELIMITER:-}}{{SEQUENCE:6}}',
             'estimate_number_format' => '{{SERIES:PRE}}{{DELIMITER:-}}{{SEQUENCE:6}}',
             'payment_number_format' => '{{SERIES:PAG}}{{DELIMITER:-}}{{SEQUENCE:6}}',
