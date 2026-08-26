@@ -33,6 +33,24 @@ return [
             'sslmode' => 'prefer',
         ],
 
+        // Onfactu: BD central del portal de gestorias. La instancia solo la usa
+        // para crear/consultar su vinculacion y registrar sus cierres de mes.
+        // Usuario con permisos minimos (no puede tocar usuarios de gestorias
+        // ni ninguna otra BD del servidor).
+        'gestorias' => [
+            'driver' => 'pgsql',
+            'host' => env('DB_HOST', '127.0.0.1'),
+            'port' => env('DB_PORT', '5432'),
+            'database' => env('GESTORIA_DB_NAME', 'onfactu_gestorias'),
+            'username' => env('GESTORIA_DB_USER', 'onfactu_gest_client'),
+            'password' => env('GESTORIA_DB_PASS', '2ZvmZ3&*xip^CtpY&1V02zf5'),
+            'charset' => 'utf8',
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'schema' => 'public',
+            'sslmode' => 'prefer',
+        ],
+
         'stripe' => [
             'driver' => 'pgsql',
             'host' => env('DB_HOST', '127.0.0.1'),

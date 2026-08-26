@@ -302,6 +302,12 @@ Route::prefix('/v1')->group(function () {
 
             Route::apiResource('invoices', InvoicesController::class);
 
+            // Onfactu: gestoria (lado cliente)
+            Route::get('/gestoria',              [\App\Http\Controllers\V1\Admin\Gestoria\GestoriaController::class, 'show']);
+            Route::post('/gestoria/toggle',      [\App\Http\Controllers\V1\Admin\Gestoria\GestoriaController::class, 'toggle']);
+            Route::post('/gestoria/vincular',    [\App\Http\Controllers\V1\Admin\Gestoria\GestoriaController::class, 'vincular']);
+            Route::post('/gestoria/desvincular', [\App\Http\Controllers\V1\Admin\Gestoria\GestoriaController::class, 'desvincular']);
+
             // Onfactu: cierre de mes (base del portal de gestoria)
             Route::get('/closed-months/preview', [\App\Http\Controllers\V1\Admin\ClosedMonth\ClosedMonthController::class, 'preview']);
             Route::get('/closed-months', [\App\Http\Controllers\V1\Admin\ClosedMonth\ClosedMonthController::class, 'index']);
