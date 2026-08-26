@@ -8,6 +8,7 @@ use App\Models\DeliveryNote;
 use App\Models\Estimate;
 use App\Models\Expense;
 use App\Models\Invoice;
+use App\Services\GestoriaService;
 use App\Models\ProformaInvoice;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -104,6 +105,21 @@ class ClosedMonthController extends Controller
         $year  = (int) $v['year'];
         $month = (int) $v['month'];
 
+        // Hace falta una gestoria vinculada: el cierre existe para entregarle
+        // el periodo. Sin gestoria no hay a quien enviarlo.
+        if (! GestoriaService::activa()) {
+            return $this->error('Tienes que activar la gestoría en los ajustes para poder cerrar meses.');
+        }
+
+        $vinc = GestoriaService::vinculacion();
+        if (! $vinc || $vinc->estado !== 'aceptada') {
+            return $this->error(
+                $vinc && $vinc->estado === 'pendiente'
+                    ? 'Tu solicitud de vinculación todavía está pendiente de aprobación.'
+                    : 'Tienes que vincular una gestoría antes de poder cerrar meses.'
+            );
+        }
+
         // Ya cerrado
         if (ClosedMonth::where('company_id', $companyId)->where('year', $year)->where('month', $month)->exists()) {
             return $this->error('Ese mes ya está cerrado.');
@@ -142,6 +158,20 @@ class ClosedMonthController extends Controller
         ]);
 
         ClosedMonth::forgetCache($companyId);
+
+        // Registrar el periodo en la BD central para que la gestoria lo vea.
+        // Si falla, el mes queda cerrado igualmente (el bloqueo ya es efectivo)
+        // pero marcado como pendiente de envio, para poder reintentarlo.
+        $enviado = GestoriaService::registrarCierre(
+            $year, $month, $resumen['totales'], $cierre->closed_at
+        );
+
+        $cierre->update([
+            'sent_status' => $enviado ? 'sent' : 'failed',
+            'sent_at'     => $enviado ? now() : null,
+            'sent_error'  => $enviado ? null : 'No se pudo registrar en la BD central',
+            'sent_attempts' => 1,
+        ]);
 
         return response()->json([
             'ok'      => true,
