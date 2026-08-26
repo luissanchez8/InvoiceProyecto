@@ -151,6 +151,16 @@ return [
             'model' => '',
         ],
         [
+            'title' => 'settings.menu_title.gestoria',
+            'group' => '',
+            'name' => 'Gestoria',
+            'link' => '/admin/settings/gestoria',
+            'icon' => 'BriefcaseIcon',
+            'owner_only' => false,
+            'ability' => '',
+            'model' => '',
+        ],
+        [
             'title' => 'settings.menu_title.preferences',
             'group' => '',
             'name' => 'Preferences',

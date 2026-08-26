@@ -52,6 +52,8 @@ const MailConfig = () =>
 const FileDisk = () =>
   import('@/scripts/admin/views/settings/FileDiskSetting.vue')
 const Backup = () => import('@/scripts/admin/views/settings/BackupSetting.vue')
+const GestoriaSetting = () =>
+  import('@/scripts/admin/views/settings/GestoriaSetting.vue')
 const UpdateApp = () =>
   import('@/scripts/admin/views/settings/UpdateAppSetting.vue')
 const RolesSettings = () =>
@@ -304,6 +306,11 @@ export default [
             name: 'tax.types',
             meta: { ability: abilities.VIEW_TAX_TYPE },
             component: TaxTypes,
+          },
+          {
+            path: 'gestoria',
+            name: 'gestoria.settings',
+            component: GestoriaSetting,
           },
           {
             path: 'notes',

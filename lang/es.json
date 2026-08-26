@@ -871,7 +871,8 @@
             "notes": "Observaciones",
             "exchange_rate": "Tasa de cambio",
             "address_information": "Información de dirección",
-            "pdf_generation": "PDF Generation"
+            "pdf_generation": "PDF Generation",
+            "gestoria": "Gestoría"
         },
         "address_information": {
             "section_description": "Puede actualizar la información de su dirección utilizando el siguiente formulario."
@@ -1431,6 +1432,25 @@
             "state_placeholder": "Ejemplo: CA",
             "zip_placeholder": "Ejemplo: 90024",
             "invalid_address": "Proporciona una dirección válida."
+        },
+        "gestoria": {
+            "description": "Comparte tus facturas y gastos con tu gestoría cerrando cada mes.",
+            "enable_title": "Activar gestoría",
+            "enable_help": "Actívalo si quieres que tu gestoría acceda a tus documentos. Podrás desactivarlo cuando quieras.",
+            "ask_code": "Introduce el código que te haya facilitado tu gestoría. Recibirán una solicitud y, en cuanto la acepten, quedaréis vinculados.",
+            "code_label": "Código de la gestoría",
+            "send_request": "Enviar solicitud",
+            "pending_title": "Solicitud enviada a {gestoria}",
+            "pending_help": "Está pendiente de que la acepten. En cuanto lo hagan podrás empezar a cerrar meses.",
+            "linked_help": "Tu gestoría podrá ver los meses que cierres. Los documentos en borrador nunca se envían.",
+            "name": "Gestoría",
+            "nif": "NIF/CIF",
+            "email": "Email de contacto",
+            "phone": "Teléfono",
+            "unlink": "Desvincular gestoría",
+            "unlink_help": "Si desvinculas, tu gestoría dejará de tener acceso a tus documentos.",
+            "unlink_confirm_title": "Desvincular gestoría",
+            "unlink_confirm": "{gestoria} dejará de tener acceso a tus documentos. Los meses que ya hayas cerrado seguirán cerrados. ¿Quieres continuar?"
         }
     },
     "wizard": {

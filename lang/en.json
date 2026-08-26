@@ -862,7 +862,8 @@
             "notes": "Notes",
             "exchange_rate": "Exchange Rate",
             "address_information": "Address Information",
-            "pdf_generation": "PDF Generation"
+            "pdf_generation": "PDF Generation",
+            "gestoria": "Accountant"
         },
         "address_information": {
             "section_description": "  You can update Your Address information using form below."
@@ -1423,6 +1424,25 @@
             "state_placeholder": "Example: CA",
             "zip_placeholder": "Example: 90024",
             "invalid_address": "Please provide valid address details."
+        },
+        "gestoria": {
+            "description": "Share your invoices and expenses with your accountant by closing each month.",
+            "enable_title": "Enable accountant",
+            "enable_help": "Turn this on to let your accountant access your documents. You can turn it off at any time.",
+            "ask_code": "Enter the code your accountant gave you. They will receive a request and once accepted you will be linked.",
+            "code_label": "Accountant code",
+            "send_request": "Send request",
+            "pending_title": "Request sent to {gestoria}",
+            "pending_help": "Waiting for them to accept it. Once they do, you can start closing months.",
+            "linked_help": "Your accountant will see the months you close. Draft documents are never sent.",
+            "name": "Accountant",
+            "nif": "Tax ID",
+            "email": "Contact email",
+            "phone": "Phone",
+            "unlink": "Unlink accountant",
+            "unlink_help": "If you unlink, your accountant will lose access to your documents.",
+            "unlink_confirm_title": "Unlink accountant",
+            "unlink_confirm": "{gestoria} will lose access to your documents. Months already closed will stay closed. Continue?"
         }
     },
     "wizard": {
