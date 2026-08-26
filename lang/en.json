@@ -12,7 +12,8 @@
         "settings": "Settings",
         "logout": "Logout",
         "users": "Users",
-        "modules": "Modules"
+        "modules": "Modules",
+        "gestoria": "Accountant"
     },
     "general": {
         "add_company": "Add Company",
@@ -1855,5 +1856,40 @@
     "settings.customization.pdf_footer.footer_text_label": "Footer text",
     "settings.customization.pdf_footer.footer_text_help": "Centered text that will appear at the bottom of the PDF. For example: \"Thank you for your trust.\"",
     "settings.customization.pdf_footer.legal_notice_label": "Legal notice",
-    "settings.customization.pdf_footer.legal_notice_help": "Legal notice or GDPR clause that will appear below the footer text."
+    "settings.customization.pdf_footer.legal_notice_help": "Legal notice or GDPR clause that will appear below the footer text.",
+    "gestoria": {
+        "title": "Accountant",
+        "off_title": "The accountant section is disabled",
+        "off_help": "Enable it in settings to close your months and share your invoices and expenses.",
+        "go_settings": "Go to settings",
+        "nolink_title": "No accountant linked yet",
+        "nolink_help": "Enter the code your accountant gave you in settings.",
+        "enter_code": "Enter the code",
+        "pending_title": "Request pending approval",
+        "pending_help": "Your accountant has not accepted the request yet.",
+        "linked_help": "When you close a month, {gestoria} receives your invoices and expenses for that period.",
+        "month": "Month",
+        "status": "Status",
+        "invoices": "Invoices",
+        "net": "Net",
+        "vat": "VAT",
+        "neto": "Net",
+        "iva": "VAT",
+        "bruto": "Gross",
+        "facturas": "Invoices",
+        "quarter": "Q{n}",
+        "close_month": "Close month",
+        "state_cerrado": "Closed",
+        "state_abierto": "Open",
+        "state_en_curso": "In progress",
+        "state_futuro": "—",
+        "confirm_title": "You are about to close {mes}",
+        "confirm_close": "Yes, close the month",
+        "drafts_title": "These documents will NOT be sent",
+        "drafts_help": "They are drafts. Mark them as completed first if you want them included.",
+        "irreversible_title": "This action cannot be undone",
+        "irreversible_1": "The month will be permanently closed and cannot be reopened.",
+        "irreversible_2": "You will not be able to create, edit or delete any document dated in that month.",
+        "irreversible_3": "If you find an error later, you will need a corrective invoice."
+    }
 }

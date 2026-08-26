@@ -13,7 +13,8 @@
         "support": "Soporte",
         "logout": "Cerrar sesión",
         "users": "Usuarios",
-        "modules": "Módulos"
+        "modules": "Módulos",
+        "gestoria": "Gestoría"
     },
     "general": {
         "add_company": "Añadir empresa",
@@ -1869,5 +1870,40 @@
     "settings.customization.pdf_footer.footer_text_label": "Pie de página",
     "settings.customization.pdf_footer.footer_text_help": "Texto centrado que aparecerá en el pie del PDF. Por ejemplo: \"Gracias por su confianza.\"",
     "settings.customization.pdf_footer.legal_notice_label": "Aviso legal",
-    "settings.customization.pdf_footer.legal_notice_help": "Aviso legal o cláusula RGPD que aparecerá debajo del pie de página."
+    "settings.customization.pdf_footer.legal_notice_help": "Aviso legal o cláusula RGPD que aparecerá debajo del pie de página.",
+    "gestoria": {
+        "title": "Gestoría",
+        "off_title": "La gestoría está desactivada",
+        "off_help": "Activa la gestoría en los ajustes para poder cerrar tus meses y compartir tus facturas y gastos con ella.",
+        "go_settings": "Ir a los ajustes",
+        "nolink_title": "Todavía no tienes gestoría vinculada",
+        "nolink_help": "Introduce el código que te haya dado tu gestoría en los ajustes. En cuanto acepten la solicitud podrás cerrar tus meses.",
+        "enter_code": "Introducir el código",
+        "pending_title": "Solicitud pendiente de aprobación",
+        "pending_help": "Tu gestoría todavía no ha aceptado la solicitud. En cuanto lo haga podrás cerrar tus meses.",
+        "linked_help": "Al cerrar un mes, {gestoria} recibe tus facturas y gastos de ese periodo. Una vez cerrado no podrás modificar nada de ese mes.",
+        "month": "Mes",
+        "status": "Estado",
+        "invoices": "Facturas",
+        "net": "Neto",
+        "vat": "IVA",
+        "neto": "Neto",
+        "iva": "IVA",
+        "bruto": "Bruto",
+        "facturas": "Facturas",
+        "quarter": "{n}º Trimestre",
+        "close_month": "Cerrar mes",
+        "state_cerrado": "Cerrado",
+        "state_abierto": "Sin cerrar",
+        "state_en_curso": "En curso",
+        "state_futuro": "—",
+        "confirm_title": "Vas a cerrar {mes}",
+        "confirm_close": "Sí, cerrar el mes",
+        "drafts_title": "Estos documentos NO se enviarán",
+        "drafts_help": "Están en borrador. Si quieres incluirlos, cancela y márcalos como completados antes de cerrar.",
+        "irreversible_title": "Esta acción no se puede deshacer",
+        "irreversible_1": "El mes quedará cerrado de forma definitiva y no se podrá reabrir.",
+        "irreversible_2": "No podrás crear, editar ni borrar facturas, gastos ni ningún otro documento con fecha de ese mes.",
+        "irreversible_3": "Si después detectas un error, tendrás que corregirlo con una factura rectificativa."
+    }
 }

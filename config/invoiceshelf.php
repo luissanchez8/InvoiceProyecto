@@ -156,6 +156,7 @@ return [
             'name' => 'Gestoria',
             'link' => '/admin/settings/gestoria',
             'icon' => 'BriefcaseIcon',
+            'custom_icon' => '/images/icons/gestoria.svg',
             'owner_only' => false,
             'ability' => '',
             'model' => '',
@@ -451,6 +452,19 @@ return [
             'ability' => 'view-payment',
             'model' => Payment::class,
             'option_key' => 'OPCION_MENU_PAGOS',
+        ],
+        // Onfactu: apartado de Gestoria (cierre de mes y vinculacion)
+        [
+            'title' => 'navigation.gestoria',
+            'group' => 2,
+            'link' => '/admin/gestoria',
+            'icon' => 'BriefcaseIcon',
+            'custom_icon' => '/images/icons/gestoria.svg',
+            'custom_icon_active' => '/images/icons/gestoria.svg',
+            'name' => 'Gestoria',
+            'owner_only' => false,
+            'ability' => '',
+            'model' => '',
         ],
         [
             'title' => 'navigation.modules',

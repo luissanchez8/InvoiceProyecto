@@ -52,6 +52,8 @@ const MailConfig = () =>
 const FileDisk = () =>
   import('@/scripts/admin/views/settings/FileDiskSetting.vue')
 const Backup = () => import('@/scripts/admin/views/settings/BackupSetting.vue')
+const GestoriaIndex = () =>
+  import('@/scripts/admin/views/gestoria/Index.vue')
 const GestoriaSetting = () =>
   import('@/scripts/admin/views/settings/GestoriaSetting.vue')
 const UpdateApp = () =>
@@ -403,6 +405,12 @@ export default [
         component: ItemCreate,
       },
 
+      // Onfactu: Gestoria (cierre de mes)
+      {
+        path: 'gestoria',
+        name: 'gestoria.index',
+        component: GestoriaIndex,
+      },
       // Expenses
       {
         path: 'expenses',
