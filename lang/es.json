@@ -1904,6 +1904,23 @@
         "irreversible_title": "Esta acción no se puede deshacer",
         "irreversible_1": "El mes quedará cerrado de forma definitiva y no se podrá reabrir.",
         "irreversible_2": "No podrás crear, editar ni borrar facturas, gastos ni ningún otro documento con fecha de ese mes.",
-        "irreversible_3": "Si después detectas un error, tendrás que corregirlo con una factura rectificativa."
+        "irreversible_3": "Si después detectas un error, tendrás que corregirlo con una factura rectificativa.",
+        "year": "Año",
+        "n_invoices": "Nº fact.",
+        "gastos": "Gastos",
+        "rectif": "Rectif.",
+        "records": "{n} registros",
+        "quarter_1": "1er Trimestre",
+        "quarter_2": "2º Trimestre",
+        "quarter_3": "3er Trimestre",
+        "quarter_4": "4º Trimestre",
+        "state_completo": "Completo",
+        "state_incompleto": "Incompleto",
+        "pending_short": "pendiente",
+        "total_year": "Total {y}",
+        "total_year_help": "Suma de los meses que has cerrado",
+        "year_complete": "Año completo",
+        "year_ongoing": "En curso",
+        "expenses_vat_note": "<strong>Los gastos no llevan desglose de IVA en Onfactu.</strong> Solo se guarda el importe total y la categoría, por eso la columna de gastos no separa neto e IVA."
     }
 }

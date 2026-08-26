@@ -1890,6 +1890,23 @@
         "irreversible_title": "This action cannot be undone",
         "irreversible_1": "The month will be permanently closed and cannot be reopened.",
         "irreversible_2": "You will not be able to create, edit or delete any document dated in that month.",
-        "irreversible_3": "If you find an error later, you will need a corrective invoice."
+        "irreversible_3": "If you find an error later, you will need a corrective invoice.",
+        "year": "Year",
+        "n_invoices": "Invoices",
+        "gastos": "Expenses",
+        "rectif": "Corrective",
+        "records": "{n} records",
+        "quarter_1": "Q1",
+        "quarter_2": "Q2",
+        "quarter_3": "Q3",
+        "quarter_4": "Q4",
+        "state_completo": "Complete",
+        "state_incompleto": "Incomplete",
+        "pending_short": "pending",
+        "total_year": "Total {y}",
+        "total_year_help": "Sum of the months you have closed",
+        "year_complete": "Full year",
+        "year_ongoing": "In progress",
+        "expenses_vat_note": "<strong>Expenses have no VAT breakdown in Onfactu.</strong> Only the total amount and category are stored."
     }
 }
