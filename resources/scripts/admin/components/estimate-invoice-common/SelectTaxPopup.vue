@@ -62,7 +62,7 @@
                     flex flex-col
                     overflow-auto
                     list
-                    max-h-none sm:max-h-36
+                    max-h-none
                     border-t border-gray-200
                   "
                 >
@@ -245,48 +245,36 @@ function openTaxTypeModal() {
 /*
   Onfactu — posicionamiento del selector de impuestos.
 
-  En movil el panel se ancla debajo del boton y ocupa el ancho disponible.
-  A partir de sm (640px) se recupera el comportamiento original de escritorio,
-  que ya funcionaba bien.
-*/
-/*
-  Movil: el panel va FIJO respecto a la pantalla, no a la pagina.
+  Se posiciona FIJO respecto a la pantalla, no a la pagina.
 
-  Con position:absolute el panel se corta cuando el boton esta cerca del final
-  del formulario: un elemento absolute no aumenta la altura de la pagina, asi
-  que el contenido que queda por debajo del area visible es inalcanzable
-  (no hay scroll que llegue hasta el).
+  Con position:absolute el panel se cortaba: al estar el bloque de totales al
+  final del formulario, la parte que sobresale queda por debajo del area
+  visible y no se puede alcanzar, porque un elemento absolute no aumenta el
+  scrollHeight de su contenedor. Pasaba en movil siempre y en escritorio en
+  cuanto la ventana era algo baja.
 
-  Con position:fixed el panel siempre queda dentro de la pantalla. Se ancla
-  arriba para dejar sitio al teclado, que se abre al tocar el buscador.
+  Como panel flotante centrado el problema desaparece en cualquier tamano, y
+  encaja con el modal de "Agregar nuevo impuesto" que ya usa la app.
 */
 .tax-popup-panel {
   position: fixed;
   left: 1rem;
   right: 1rem;
   top: 4rem;
-  margin: 0;
+  margin: 0 auto;
   min-width: 0;
-  max-width: none;
-  max-height: 70vh;
+  max-width: 420px;
+  max-height: calc(100vh - 8rem);
   overflow-y: auto;
-  transform: none;
+  border-radius: 0.375rem;
 }
 
-/* Escritorio y tablet: como estaba antes, que ya funcionaba. */
+/* A partir de sm hay sitio de sobra: se centra tambien en vertical. */
 @media (min-width: 640px) {
   .tax-popup-panel {
-    position: absolute;
-    left: auto;
-    right: auto;
-    top: -28px;
-    margin-top: 0;
-    margin-left: 62px;
-    min-width: 350px;
-    max-width: none;
-    max-height: none;
-    overflow-y: visible;
-    transform: translateX(-100%);
+    top: 50%;
+    max-height: 70vh;
+    margin-top: -17.5vh;
   }
 }
 </style>
