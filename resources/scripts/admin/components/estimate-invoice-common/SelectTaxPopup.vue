@@ -62,7 +62,7 @@
                     flex flex-col
                     overflow-auto
                     list
-                    max-h-52 sm:max-h-36
+                    max-h-none sm:max-h-36
                     border-t border-gray-200
                   "
                 >
@@ -249,17 +249,34 @@ function openTaxTypeModal() {
   A partir de sm (640px) se recupera el comportamiento original de escritorio,
   que ya funcionaba bien.
 */
+/*
+  Movil: el panel va FIJO respecto a la pantalla, no a la pagina.
+
+  Con position:absolute el panel se corta cuando el boton esta cerca del final
+  del formulario: un elemento absolute no aumenta la altura de la pagina, asi
+  que el contenido que queda por debajo del area visible es inalcanzable
+  (no hay scroll que llegue hasta el).
+
+  Con position:fixed el panel siempre queda dentro de la pantalla. Se ancla
+  arriba para dejar sitio al teclado, que se abre al tocar el buscador.
+*/
 .tax-popup-panel {
-  left: 0;
-  right: 0;
-  top: 100%;
-  margin-top: 0.25rem;
+  position: fixed;
+  left: 1rem;
+  right: 1rem;
+  top: 4rem;
+  margin: 0;
   min-width: 0;
-  max-width: calc(100vw - 2rem);
+  max-width: none;
+  max-height: 70vh;
+  overflow-y: auto;
+  transform: none;
 }
 
+/* Escritorio y tablet: como estaba antes, que ya funcionaba. */
 @media (min-width: 640px) {
   .tax-popup-panel {
+    position: absolute;
     left: auto;
     right: auto;
     top: -28px;
@@ -267,6 +284,8 @@ function openTaxTypeModal() {
     margin-left: 62px;
     min-width: 350px;
     max-width: none;
+    max-height: none;
+    overflow-y: visible;
     transform: translateX(-100%);
   }
 }
