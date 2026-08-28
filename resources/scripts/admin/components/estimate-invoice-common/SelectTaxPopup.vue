@@ -20,7 +20,7 @@
       </PopoverButton>
 
       <!-- Tax Select Popup -->
-      <div class="relative w-full max-w-md px-4">
+      <div class="relative w-full sm:max-w-md sm:px-4">
         <transition
           enter-active-class="transition duration-200 ease-out"
           enter-from-class="translate-y-1 opacity-0"
@@ -31,8 +31,7 @@
         >
           <PopoverPanel
             v-slot="{ close }"
-            style="min-width: 350px; margin-left: 62px; top: -28px"
-            class="absolute z-10 px-4 py-2 -translate-x-full sm:px-0"
+            class="tax-popup-panel absolute z-20 py-2"
           >
             <div
               class="
@@ -63,7 +62,7 @@
                     flex flex-col
                     overflow-auto
                     list
-                    max-h-36
+                    max-h-52 sm:max-h-36
                     border-t border-gray-200
                   "
                 >
@@ -241,3 +240,34 @@ function openTaxTypeModal() {
   })
 }
 </script>
+
+<style scoped>
+/*
+  Onfactu — posicionamiento del selector de impuestos.
+
+  En movil el panel se ancla debajo del boton y ocupa el ancho disponible.
+  A partir de sm (640px) se recupera el comportamiento original de escritorio,
+  que ya funcionaba bien.
+*/
+.tax-popup-panel {
+  left: 0;
+  right: 0;
+  top: 100%;
+  margin-top: 0.25rem;
+  min-width: 0;
+  max-width: calc(100vw - 2rem);
+}
+
+@media (min-width: 640px) {
+  .tax-popup-panel {
+    left: auto;
+    right: auto;
+    top: -28px;
+    margin-top: 0;
+    margin-left: 62px;
+    min-width: 350px;
+    max-width: none;
+    transform: translateX(-100%);
+  }
+}
+</style>
