@@ -75,7 +75,11 @@
               <tr
                 v-for="(row, index) in sortedRows"
                 :key="index"
-                :class="index % 2 === 0 ? 'bg-white' : 'bg-gray-50'"
+                :class="[
+                  index % 2 === 0 ? 'bg-white' : 'bg-gray-50',
+                  rowClick ? 'cursor-pointer hover:bg-gray-100' : '',
+                ]"
+                @click="onRowClick($event, row)"
               >
                 <td
                   v-for="column in columns"
@@ -151,6 +155,15 @@ import BaseTablePagination from './BaseTablePagination.vue'
 import SpinnerIcon from '@/scripts/components/icons/SpinnerIcon.vue'
 
 const props = defineProps({
+  // Onfactu: si se pasa, al pulsar una fila se llama con la fila pulsada.
+  // Los clics sobre elementos interactivos (checkbox, enlaces, botones,
+  // desplegables) se ignoran, para no abrir el documento al marcar un
+  // checkbox o al usar el menu de acciones.
+  rowClick: {
+    type: Function,
+    default: null,
+  },
+
   columns: {
     type: Array,
     required: true,
@@ -232,6 +245,21 @@ const sortedRows = computed(() => {
 
 function getColumn(columnName) {
   return tableColumns.find((column) => column.key === columnName)
+}
+
+function onRowClick(event, row) {
+  if (!props.rowClick) return
+
+  // Ignorar clics sobre cualquier cosa con la que se pueda interactuar.
+  if (event.target.closest('input, button, a, select, textarea, label, [role="button"]')) {
+    return
+  }
+
+  // Ignorar si el usuario estaba seleccionando texto.
+  const sel = window.getSelection()
+  if (sel && sel.toString().length > 0) return
+
+  props.rowClick(row)
 }
 
 function getThClass(column) {

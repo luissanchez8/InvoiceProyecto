@@ -137,6 +137,7 @@
         ref="table"
         :data="fetchData"
         :columns="proformaColumns"
+        :row-click="abrirFila"
         :placeholder-count="5"
         :key="tableKey"
         class="mt-10"
@@ -195,12 +196,15 @@
  * - Columnas con row.data accessor
  */
 import { computed, reactive, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useProformaInvoiceStore } from '@/scripts/admin/stores/proforma-invoice'
 import { debouncedWatch } from '@vueuse/core'
 import ProformaInvoiceDropdown from '@/scripts/admin/components/dropdowns/ProformaInvoiceIndexDropdown.vue'
 import ObservatoryIcon from '@/scripts/components/icons/empty/ObservatoryIcon.vue'
 import SendInvoiceModal from '@/scripts/admin/components/modal-components/SendInvoiceModal.vue'
+
+const router = useRouter()
 
 const proformaInvoiceStore = useProformaInvoiceStore()
 const { t } = useI18n()
@@ -359,5 +363,14 @@ function clearFilter() {
   filters.to_date = ''
   filters.proforma_invoice_number = ''
   activeTab.value = t('general.all')
+}
+
+// Onfactu: al pulsar una fila se abre el documento, igual que la opcion "Ver"
+// del menu de acciones. Los clics sobre checkbox, enlaces o el desplegable se
+// ignoran (lo gestiona BaseTable).
+function abrirFila(row) {
+  if (row?.data?.id) {
+    router.push(`/admin/proforma-invoices/${row.data.id}/view`)
+  }
 }
 </script>

@@ -178,6 +178,7 @@
         ref="table"
         :data="fetchData"
         :columns="invoiceColumns"
+        :row-click="abrirFila"
         :placeholder-count="invoiceStore.invoiceTotalCount >= 20 ? 10 : 5"
         :key="tableKey"
         class="mt-10"
@@ -660,5 +661,14 @@ function onApproveSaveDraftFromIndex() {
 function onApproveCancelFromIndex() {
   showApproveDialog.value = false
   approvingInvoice.value = null
+}
+
+// Onfactu: al pulsar una fila se abre el documento, igual que la opcion "Ver"
+// del menu de acciones. Los clics sobre checkbox, enlaces o el desplegable se
+// ignoran (lo gestiona BaseTable).
+function abrirFila(row) {
+  if (row?.data?.id) {
+    router.push(`/admin/invoices/${row.data.id}/view`)
+  }
 }
 </script>

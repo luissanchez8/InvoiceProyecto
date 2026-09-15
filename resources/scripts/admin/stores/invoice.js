@@ -676,6 +676,15 @@ export const useInvoiceStore = (useWindow = false) => {
                 this.suggestedInvoiceNumber = res4.data.nextNumber
                 this.suggestedInvoiceNumberIsSkipped = !!res4.data.isSkipped
                 this.naturalNextInvoiceNumber = res4.data.naturalNext || res4.data.nextNumber
+
+                // Onfactu — borrador sin numero: prerellenar con la sugerencia.
+                // Pasa con las facturas que vienen de convertir un presupuesto:
+                // nacen sin numero (numeracion diferida) y el campo aparecia
+                // vacio, cuando al crear una factura normal sale prerelleno.
+                // Solo se rellena si esta vacio: nunca pisa un numero existente.
+                if (!this.newInvoice.invoice_number) {
+                  this.newInvoice.invoice_number = res4.data.nextNumber
+                }
               }
               this.addSalesTaxUs()
             }

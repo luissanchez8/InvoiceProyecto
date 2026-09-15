@@ -173,6 +173,7 @@
         ref="tableComponent"
         :data="fetchData"
         :columns="estimateColumns"
+        :row-click="abrirFila"
         :placeholder-count="estimateStore.totalEstimateCount >= 20 ? 10 : 5"
         :key="tableKey"
         class="mt-10"
@@ -487,6 +488,15 @@ function setActiveTab(val) {
     default:
       activeTab.value = t('general.all')
       break
+  }
+}
+
+// Onfactu: al pulsar una fila se abre el documento, igual que la opcion "Ver"
+// del menu de acciones. Los clics sobre checkbox, enlaces o el desplegable se
+// ignoran (lo gestiona BaseTable).
+function abrirFila(row) {
+  if (row?.data?.id) {
+    router.push(`/admin/estimates/${row.data.id}/view`)
   }
 }
 </script>

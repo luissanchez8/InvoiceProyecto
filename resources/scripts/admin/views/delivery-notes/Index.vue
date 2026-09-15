@@ -136,6 +136,7 @@
         ref="table"
         :data="fetchData"
         :columns="deliveryNoteColumns"
+        :row-click="abrirFila"
         :placeholder-count="5"
         :key="tableKey"
         class="mt-10"
@@ -193,12 +194,15 @@
  * Mismo patrón que invoices/Index.vue con fetchData async y filtros avanzados.
  */
 import { computed, reactive, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useDeliveryNoteStore } from '@/scripts/admin/stores/delivery-note'
 import { debouncedWatch } from '@vueuse/core'
 import DeliveryNoteDropdown from '@/scripts/admin/components/dropdowns/DeliveryNoteIndexDropdown.vue'
 import ObservatoryIcon from '@/scripts/components/icons/empty/ObservatoryIcon.vue'
 import SendInvoiceModal from '@/scripts/admin/components/modal-components/SendInvoiceModal.vue'
+
+const router = useRouter()
 
 const deliveryNoteStore = useDeliveryNoteStore()
 const { t } = useI18n()
@@ -344,5 +348,14 @@ function clearFilter() {
   filters.to_date = ''
   filters.delivery_note_number = ''
   activeTab.value = t('general.all')
+}
+
+// Onfactu: al pulsar una fila se abre el documento, igual que la opcion "Ver"
+// del menu de acciones. Los clics sobre checkbox, enlaces o el desplegable se
+// ignoran (lo gestiona BaseTable).
+function abrirFila(row) {
+  if (row?.data?.id) {
+    router.push(`/admin/delivery-notes/${row.data.id}/view`)
+  }
 }
 </script>
