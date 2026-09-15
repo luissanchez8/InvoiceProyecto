@@ -440,13 +440,20 @@
          Si pdf_footer_text o pdf_legal_notice_text están vacíos, no se muestran.
          El nº de página SIEMPRE se muestra.
          ================================================================ --}}
+@php
+        // Onfactu — ETIQUETAS_PIE: etiquetas de formato permitidas en el pie
+        // y en el aviso legal. Solo formato: nada de enlaces, imagenes ni
+        // scripts. Asi el cliente puede poner negrita sin que nadie pueda
+        // colar HTML arbitrario en el documento.
+        $etiquetasPie = '<b><strong><i><em><u><br>';
+    @endphp
     @if(!empty($pdf_footer_text) || !empty($pdf_legal_notice_text))
         <div class="pdf-footer-fixed">
             @if(!empty($pdf_footer_text))
-                <div class="pdf-footer-pie">{!! nl2br(e($pdf_footer_text)) !!}</div>
+                <div class="pdf-footer-pie">{!! nl2br(strip_tags($pdf_footer_text, $etiquetasPie)) !!}</div>
             @endif
             @if(!empty($pdf_legal_notice_text))
-                <div class="pdf-footer-legal">{!! nl2br(e($pdf_legal_notice_text)) !!}</div>
+                <div class="pdf-footer-legal">{!! nl2br(strip_tags($pdf_legal_notice_text, $etiquetasPie)) !!}</div>
             @endif
         </div>
     @endif
