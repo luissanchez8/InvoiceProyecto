@@ -198,6 +198,13 @@ class Invoice extends Model implements HasMedia
 
     public function getAllowEditAttribute()
     {
+        // Onfactu: Solo los borradores son editables.
+        // Una factura emitida no debe modificarse (inalterabilidad); para
+        // corregirla se emite una factura rectificativa.
+        if ($this->status !== self::STATUS_DRAFT) {
+            return false;
+        }
+
         $retrospective_edit = CompanySetting::getSetting('retrospective_edits', $this->company_id);
 
         $allowed = true;

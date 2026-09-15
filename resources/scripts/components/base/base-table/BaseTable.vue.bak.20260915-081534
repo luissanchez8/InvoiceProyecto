@@ -56,7 +56,6 @@
                 <td
                   v-for="column in columns"
                   :key="column.key"
-                  :data-col="column.key"
                   class=""
                   :class="getTdClass(column)"
                 >
@@ -255,11 +254,6 @@ function onRowClick(event, row) {
   if (event.target.closest('input, button, a, select, textarea, label, [role="button"]')) {
     return
   }
-
-  // Ignorar la columna de acciones: ahi esta el menu de los tres puntos y
-  // al pulsarlo se abria el documento ademas de desplegar el menu.
-  const celda = event.target.closest('td')
-  if (celda && celda.dataset.col === 'actions') return
 
   // Ignorar si el usuario estaba seleccionando texto.
   const sel = window.getSelection()

@@ -100,14 +100,16 @@ class InvoicesController extends Controller
         $this->authorize('delete multiple invoices');
 
         // No permitir eliminar facturas aprobadas por VeriFactu
-        $approvedCount = Invoice::whereIn('id', $request->ids)
-            ->where('status', 'APPROVED')
+        $noBorradores = Invoice::whereIn('id', $request->ids)
+            ->where('status', '!=', Invoice::STATUS_DRAFT)
             ->count();
 
-        if ($approvedCount > 0) {
+        if ($noBorradores > 0) {
             return response()->json([
                 'success' => false,
-                'error' => 'No se pueden eliminar facturas aprobadas por VeriFactu',
+                'error' => $noBorradores === 1
+                    ? 'Esa factura ya no es un borrador y no se puede eliminar. Si necesitas anularla, emite una factura rectificativa.'
+                    : 'Has seleccionado '.$noBorradores.' facturas que ya no son borradores y no se pueden eliminar. Si necesitas anularlas, emite facturas rectificativas.',
             ], 422);
         }
 
