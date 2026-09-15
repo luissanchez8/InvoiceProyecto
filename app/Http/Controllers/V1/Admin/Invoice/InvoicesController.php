@@ -99,7 +99,8 @@ class InvoicesController extends Controller
     {
         $this->authorize('delete multiple invoices');
 
-        // No permitir eliminar facturas aprobadas por VeriFactu
+        // Onfactu: solo se pueden eliminar borradores. Una factura emitida no debe
+        // desaparecer: rompe la correlacion de numeros y no deja rastro.
         $noBorradores = Invoice::whereIn('id', $request->ids)
             ->where('status', '!=', Invoice::STATUS_DRAFT)
             ->count();
