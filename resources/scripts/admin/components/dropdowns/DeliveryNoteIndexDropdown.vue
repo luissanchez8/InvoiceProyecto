@@ -13,7 +13,7 @@
       :to="`/admin/delivery-notes/${row.id}/edit`"
     >
       <!-- Onfactu: abrir el PDF -->
-      <BaseDropdownItem v-if="row.unique_hash" @click="abrirPdf(row)">
+      <BaseDropdownItem v-if="esDetalle && row.unique_hash" @click.prevent="abrirPdf(row)">
         <BaseIcon
           name="DocumentTextIcon"
           class="w-5 h-5 mr-3 text-gray-400 group-hover:text-gray-500"
@@ -21,9 +21,9 @@
         {{ $t('general.view_pdf') }}
       </BaseDropdownItem>
       <CompartirPdf
-        v-if="row.unique_hash"
+        v-if="esDetalle && row.unique_hash"
         :url="`/delivery-notes/pdf/${row.unique_hash}`"
-        :nombre="row.delivery_note_number || 'documento'"
+        :nombre="row.delivery_note_number || (row.id ? `#${row.id}` : 'documento')"
       />
 
       <BaseDropdownItem v-show="row.allow_edit">
@@ -101,11 +101,18 @@ import { useModalStore } from '@/scripts/stores/modal'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/scripts/admin/stores/user'
-import { inject } from 'vue'
+import { inject, computed} from 'vue'
 import abilities from '@/scripts/admin/stub/abilities'
 import CompartirPdf from '@/scripts/admin/components/CompartirPdf.vue'
 
 const props = defineProps({
+  // Onfactu: "Ver PDF" y "Compartir" solo se muestran en la vista de detalle
+  // del documento, no en el listado. La vista de detalle pasa es-detalle.
+  esDetalle: {
+    type: Boolean,
+    default: false,
+  },
+
   row: {
     type: Object,
     default: null,
@@ -242,4 +249,6 @@ function abrirPdf(row) {
     window.open(`/delivery-notes/pdf/${row.unique_hash}`, '_blank')
   }
 }
+
+const esDetalle = computed(() => props.esDetalle)
 </script>

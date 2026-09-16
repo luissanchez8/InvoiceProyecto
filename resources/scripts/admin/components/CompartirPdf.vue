@@ -1,5 +1,5 @@
 <template>
-  <BaseDropdownItem @click="compartir">
+  <BaseDropdownItem @click.prevent="compartir">
     <BaseIcon
       :name="ocupado ? 'ArrowPathIcon' : 'ShareIcon'"
       class="w-5 h-5 mr-3 text-gray-400 group-hover:text-gray-500"
@@ -11,11 +11,11 @@
 
 <script setup>
 /*
-  Onfactu — Compartir el PDF de un documento, como opción del menú de acciones.
+  Onfactu — Compartir el PDF de un documento, desde el menú de acciones.
 
-  Hasta ahora no había forma de compartir una factura: el único acceso al PDF
-  era abrirlo en una pestaña, y en móvil el navegador ni siquiera muestra su
-  barra de descarga, así que el usuario se quedaba sin salida.
+  Antes no había forma de compartir una factura: el único acceso al PDF era
+  abrirlo en una pestaña, y en móvil el navegador ni siquiera muestra su barra
+  de descarga, así que el usuario se quedaba sin salida.
 
   Cadena de intentos, de mejor a peor:
 
@@ -27,8 +27,12 @@
 
     3. Copiar el enlace al portapapeles, para escritorio sin Web Share API.
 
-  Se prefiere mandar el fichero antes que el enlace porque la URL del PDF es
-  pública (lleva el unique_hash) y no caduca: mejor no ir repartiéndola.
+  Se prefiere el fichero antes que el enlace porque la URL del PDF es pública
+  (lleva el unique_hash) y no caduca: mejor no ir repartiéndola.
+
+  El @click.prevent es necesario: BaseDropdownItem envuelve el contenido en un
+  <a href="#">, así que sin él el navegador seguiría el enlace y saldría de la
+  pantalla al pulsar.
 */
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -43,7 +47,7 @@ const props = defineProps({
   // Nombre del fichero al compartirlo, sin extensión. Ej: "FAC-000123"
   nombre: {
     type: String,
-    default: 'documento',
+    default: '',
   },
 })
 
@@ -59,6 +63,11 @@ function urlAbsoluta() {
   }
 }
 
+function nombreFichero() {
+  const n = (props.nombre || '').trim()
+  return `${n || 'documento'}.pdf`
+}
+
 function aviso(tipo, mensaje) {
   notificationStore.showNotification({ type: tipo, message: mensaje })
 }
@@ -67,7 +76,7 @@ async function compartir() {
   if (ocupado.value) return
 
   const url = urlAbsoluta()
-  const nombreFichero = `${props.nombre || 'documento'}.pdf`
+  const fichero = nombreFichero()
 
   ocupado.value = true
 
@@ -78,24 +87,24 @@ async function compartir() {
         const respuesta = await fetch(url, { credentials: 'include' })
         if (respuesta.ok) {
           const blob = await respuesta.blob()
-          const fichero = new File([blob], nombreFichero, { type: 'application/pdf' })
+          const f = new File([blob], fichero, { type: 'application/pdf' })
 
-          if (navigator.canShare({ files: [fichero] })) {
-            await navigator.share({ files: [fichero], title: nombreFichero })
+          if (navigator.canShare({ files: [f] })) {
+            await navigator.share({ files: [f], title: fichero })
             return
           }
         }
       } catch (e) {
         // Si el usuario cancela el diálogo no es un error: no seguimos.
         if (e && e.name === 'AbortError') return
-        // Cualquier otro fallo (CORS, memoria, PDF pesado) cae al enlace.
+        // Otros fallos (CORS, memoria, PDF pesado) caen al enlace.
       }
     }
 
     // ── 2. Compartir el enlace ──
     if (navigator.share) {
       try {
-        await navigator.share({ title: nombreFichero, url })
+        await navigator.share({ title: fichero, url })
         return
       } catch (e) {
         if (e && e.name === 'AbortError') return

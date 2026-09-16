@@ -231,6 +231,7 @@ onSearched = debounce(onSearched, 500)
 
 
         <ProformaInvoiceDropdown
+          es-detalle
           class="ml-3"
           :row="proformaInvoiceData"
           :load-data="loadSidebarList"

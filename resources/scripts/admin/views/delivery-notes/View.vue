@@ -216,6 +216,7 @@ onSearched = debounce(onSearched, 500)
 
 
         <DeliveryNoteDropdown
+          es-detalle
           class="ml-3"
           :row="deliveryNoteData"
           :load-data="loadSidebarList"

@@ -415,6 +415,7 @@ onSearched = debounce(onSearched, 500)
         <!-- Invoice Dropdown  -->
 
         <InvoiceDropdown
+          es-detalle
           class="ml-3"
           :row="invoiceData"
           :load-data="loadInvoices"

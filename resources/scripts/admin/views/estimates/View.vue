@@ -30,7 +30,8 @@
         >
           {{ $t('estimates.send_estimate') }}
         </BaseButton>
-        <EstimateDropDown class="ml-3" :row="estimateData" />
+        <EstimateDropDown
+          es-detalle class="ml-3" :row="estimateData" />
       </template>
     </BasePageHeader>
 
