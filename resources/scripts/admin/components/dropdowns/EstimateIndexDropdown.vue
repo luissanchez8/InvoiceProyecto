@@ -8,6 +8,15 @@
     </template>
 
     <!-- Copy PDF url  -->
+    <!-- Onfactu: abrir el PDF -->
+    <BaseDropdownItem v-if="row.unique_hash" @click="abrirPdf(row)">
+      <BaseIcon
+        name="DocumentTextIcon"
+        class="w-5 h-5 mr-3 text-gray-400 group-hover:text-gray-500"
+      />
+      {{ $t('general.view_pdf') }}
+    </BaseDropdownItem>
+
     <BaseDropdownItem
       v-if="route.name === 'estimates.view'"
       @click="copyPdfUrl"
@@ -433,5 +442,12 @@ async function cloneEstimateData(data) {
         })
       }
     })
+}
+
+// Onfactu: abre el PDF en una pestana nueva.
+function abrirPdf(row) {
+  if (row?.unique_hash) {
+    window.open(`/estimates/pdf/${row.unique_hash}`, '_blank')
+  }
 }
 </script>

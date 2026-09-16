@@ -15,6 +15,7 @@ import { useNotificationStore } from '@/scripts/stores/notification'
 import SendInvoiceModal from '@/scripts/admin/components/modal-components/SendInvoiceModal.vue'
 import ApproveInvoiceDialog from '@/scripts/admin/components/modal-components/ApproveInvoiceDialog.vue'
 import InvoiceDropdown from '@/scripts/admin/components/dropdowns/InvoiceIndexDropdown.vue'
+import CompartirPdf from '@/scripts/admin/components/CompartirPdf.vue'
 import LoadingIcon from '@/scripts/components/icons/LoadingIcon.vue'
 
 import abilities from '@/scripts/admin/stub/abilities'
@@ -413,6 +414,14 @@ onSearched = debounce(onSearched, 500)
         </router-link>
 
         <!-- Invoice Dropdown  -->
+        <!-- Onfactu: compartir el PDF (fichero en movil, enlace en escritorio) -->
+        <CompartirPdf
+          v-if="invoiceData"
+          class="ml-3"
+          :url="shareableLink"
+          :nombre="invoiceData.invoice_number || 'documento'"
+        />
+
         <InvoiceDropdown
           class="ml-3"
           :row="invoiceData"

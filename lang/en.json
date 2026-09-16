@@ -120,7 +120,10 @@
             "the_list_is_empty": "The list is empty",
             "no_results_found": "No results found"
         },
-        "copy_to_clipboard": "Copy to Clipboard"
+        "copy_to_clipboard": "Copy to Clipboard",
+        "share": "Share",
+        "link_copied": "Link copied to clipboard",
+        "share_failed": "Could not share. Copy the link manually from the address bar."
     },
     "dashboard": {
         "select_year": "Select year",

@@ -12,6 +12,15 @@
       v-if="userStore.hasAbilities(abilities.EDIT_INVOICE)"
       :to="`/admin/invoices/${row.id}/edit`"
     >
+      <!-- Onfactu: abrir el PDF -->
+      <BaseDropdownItem v-if="row.unique_hash" @click="abrirPdf(row)">
+        <BaseIcon
+          name="DocumentTextIcon"
+          class="w-5 h-5 mr-3 text-gray-400 group-hover:text-gray-500"
+        />
+        {{ $t('general.view_pdf') }}
+      </BaseDropdownItem>
+
       <BaseDropdownItem v-show="row.allow_edit">
         <BaseIcon
           name="PencilIcon"
@@ -308,5 +317,12 @@ function copyPdfUrl() {
     type: 'success',
     message: t('general.copied_pdf_url_clipboard'),
   })
+}
+
+// Onfactu: abre el PDF en una pestana nueva.
+function abrirPdf(row) {
+  if (row?.unique_hash) {
+    window.open(`/invoices/pdf/${row.unique_hash}`, '_blank')
+  }
 }
 </script>

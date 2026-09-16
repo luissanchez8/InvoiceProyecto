@@ -122,7 +122,10 @@
             "the_list_is_empty": "La lista está vacía",
             "no_results_found": "No se encontraron resultados"
         },
-        "copy_to_clipboard": "Copiar al portapapeles"
+        "copy_to_clipboard": "Copiar al portapapeles",
+        "share": "Compartir",
+        "link_copied": "Enlace copiado al portapapeles",
+        "share_failed": "No se ha podido compartir. Copia el enlace a mano desde la barra del navegador."
     },
     "dashboard": {
         "select_year": "Seleccionar año",
