@@ -20,6 +20,11 @@
         />
         {{ $t('general.view_pdf') }}
       </BaseDropdownItem>
+      <CompartirPdf
+        v-if="row.unique_hash"
+        :url="`/delivery-notes/pdf/${row.unique_hash}`"
+        :nombre="row.delivery_note_number || 'documento'"
+      />
 
       <BaseDropdownItem v-show="row.allow_edit">
         <BaseIcon name="PencilIcon" class="w-5 h-5 mr-3 text-gray-400 group-hover:text-gray-500" />
@@ -98,6 +103,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/scripts/admin/stores/user'
 import { inject } from 'vue'
 import abilities from '@/scripts/admin/stub/abilities'
+import CompartirPdf from '@/scripts/admin/components/CompartirPdf.vue'
 
 const props = defineProps({
   row: {

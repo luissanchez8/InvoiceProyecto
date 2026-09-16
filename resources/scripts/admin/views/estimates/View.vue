@@ -30,14 +30,6 @@
         >
           {{ $t('estimates.send_estimate') }}
         </BaseButton>
-
-        <!-- Onfactu: compartir el PDF (fichero en movil, enlace en escritorio) -->
-        <CompartirPdf
-          v-if="estimateData"
-          class="ml-3"
-          :url="shareableLink"
-          :nombre="estimateData.estimate_number || 'documento'"
-        />
         <EstimateDropDown class="ml-3" :row="estimateData" />
       </template>
     </BasePageHeader>
@@ -294,7 +286,6 @@ import { useDialogStore } from '@/scripts/stores/dialog'
 import { useUserStore } from '@/scripts/admin/stores/user'
 
 import EstimateDropDown from '@/scripts/admin/components/dropdowns/EstimateIndexDropdown.vue'
-import CompartirPdf from '@/scripts/admin/components/CompartirPdf.vue'
 import SendEstimateModal from '@/scripts/admin/components/modal-components/SendEstimateModal.vue'
 import LoadingIcon from '@/scripts/components/icons/LoadingIcon.vue'
 

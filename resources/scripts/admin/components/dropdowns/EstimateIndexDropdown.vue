@@ -16,6 +16,11 @@
       />
       {{ $t('general.view_pdf') }}
     </BaseDropdownItem>
+    <CompartirPdf
+      v-if="row.unique_hash"
+      :url="`/estimates/pdf/${row.unique_hash}`"
+      :nombre="row.estimate_number || 'documento'"
+    />
 
     <BaseDropdownItem
       v-if="route.name === 'estimates.view'"
@@ -202,6 +207,7 @@ import { useDialogStore } from '@/scripts/stores/dialog'
 import { inject } from 'vue'
 import { useUserStore } from '@/scripts/admin/stores/user'
 import abilities from '@/scripts/admin/stub/abilities'
+import CompartirPdf from '@/scripts/admin/components/CompartirPdf.vue'
 
 const props = defineProps({
   row: {

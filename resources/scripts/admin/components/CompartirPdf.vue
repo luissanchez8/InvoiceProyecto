@@ -1,21 +1,17 @@
 <template>
-  <BaseButton
-    :loading="ocupado"
-    :disabled="ocupado"
-    variant="primary-outline"
-    type="button"
-    @click="compartir"
-  >
-    <template #left="slotProps">
-      <BaseIcon name="ShareIcon" :class="slotProps.class" />
-    </template>
+  <BaseDropdownItem @click="compartir">
+    <BaseIcon
+      :name="ocupado ? 'ArrowPathIcon' : 'ShareIcon'"
+      class="w-5 h-5 mr-3 text-gray-400 group-hover:text-gray-500"
+      :class="ocupado ? 'animate-spin' : ''"
+    />
     {{ $t('general.share') }}
-  </BaseButton>
+  </BaseDropdownItem>
 </template>
 
 <script setup>
 /*
-  Onfactu — Compartir el PDF de un documento.
+  Onfactu — Compartir el PDF de un documento, como opción del menú de acciones.
 
   Hasta ahora no había forma de compartir una factura: el único acceso al PDF
   era abrirlo en una pestaña, y en móvil el navegador ni siquiera muestra su
@@ -24,15 +20,15 @@
   Cadena de intentos, de mejor a peor:
 
     1. Compartir el FICHERO (navigator.share con files). Es lo que abre el menú
-       del sistema en móvil: WhatsApp, correo, Drive... Es lo que el usuario
-       quiere de verdad, porque manda la factura a su cliente como adjunto.
+       del sistema en móvil: WhatsApp, correo, Drive... Es lo que hace falta de
+       verdad, porque manda la factura al destinatario como adjunto.
 
     2. Compartir el ENLACE, si el navegador soporta share pero no ficheros.
 
     3. Copiar el enlace al portapapeles, para escritorio sin Web Share API.
 
-  El enlace del PDF es público (lleva el unique_hash), así que se prefiere
-  mandar el fichero antes que multiplicar URLs abiertas.
+  Se prefiere mandar el fichero antes que el enlace porque la URL del PDF es
+  pública (lleva el unique_hash) y no caduca: mejor no ir repartiéndola.
 */
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -68,6 +64,8 @@ function aviso(tipo, mensaje) {
 }
 
 async function compartir() {
+  if (ocupado.value) return
+
   const url = urlAbsoluta()
   const nombreFichero = `${props.nombre || 'documento'}.pdf`
 

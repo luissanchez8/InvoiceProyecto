@@ -16,7 +16,6 @@ import { useModalStore } from '@/scripts/stores/modal'
 import { useUserStore } from '@/scripts/admin/stores/user'
 import SendInvoiceModal from '@/scripts/admin/components/modal-components/SendInvoiceModal.vue'
 import DeliveryNoteDropdown from '@/scripts/admin/components/dropdowns/DeliveryNoteIndexDropdown.vue'
-import CompartirPdf from '@/scripts/admin/components/CompartirPdf.vue'
 import LoadingIcon from '@/scripts/components/icons/LoadingIcon.vue'
 import abilities from '@/scripts/admin/stub/abilities'
 
@@ -214,20 +213,6 @@ onSearched = debounce(onSearched, 500)
         >
           {{ $t('mark_as_delivered') }}
         </BaseButton>
-
-        <!-- Onfactu: compartir el PDF (fichero en movil, enlace en escritorio) -->
-
-        <CompartirPdf
-
-          v-if="deliveryNoteData"
-
-          class="ml-3"
-
-          :url="shareableLink"
-
-          :nombre="deliveryNoteData.delivery_note_number || 'documento'"
-
-        />
 
 
         <DeliveryNoteDropdown

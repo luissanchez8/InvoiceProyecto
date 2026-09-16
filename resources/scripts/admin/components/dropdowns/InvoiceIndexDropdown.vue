@@ -20,6 +20,11 @@
         />
         {{ $t('general.view_pdf') }}
       </BaseDropdownItem>
+      <CompartirPdf
+        v-if="row.unique_hash"
+        :url="`/invoices/pdf/${row.unique_hash}`"
+        :nombre="row.invoice_number || 'documento'"
+      />
 
       <BaseDropdownItem v-show="row.allow_edit">
         <BaseIcon
@@ -160,6 +165,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/scripts/admin/stores/user'
 import { inject } from 'vue'
 import abilities from '@/scripts/admin/stub/abilities'
+import CompartirPdf from '@/scripts/admin/components/CompartirPdf.vue'
 
 const props = defineProps({
   row: {
