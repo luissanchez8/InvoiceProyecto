@@ -1446,7 +1446,7 @@
             "unlink": "Unlink accountant",
             "unlink_help": "If you unlink, your accountant will lose access to your documents.",
             "unlink_confirm_title": "Unlink accountant",
-            "unlink_confirm": "{gestoria} will lose access to your documents. Months already closed will stay closed. Continue?"
+            "unlink_confirm": "{gestoria} will stop receiving your data. They keep read-only access for 7 days to close any pending work, and after that it is fully withdrawn. Months you already closed stay closed. Do you want to continue?"
         }
     },
     "wizard": {

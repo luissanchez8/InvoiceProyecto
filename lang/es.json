@@ -1454,7 +1454,7 @@
             "unlink": "Desvincular gestoría",
             "unlink_help": "Si desvinculas, tu gestoría dejará de tener acceso a tus documentos.",
             "unlink_confirm_title": "Desvincular gestoría",
-            "unlink_confirm": "{gestoria} dejará de tener acceso a tus documentos. Los meses que ya hayas cerrado seguirán cerrados. ¿Quieres continuar?"
+            "unlink_confirm": "{gestoria} dejará de recibir tus datos. Conservará acceso de solo lectura durante 7 días para cerrar lo que tenga pendiente, y después se le retirará por completo. Los meses que ya hayas cerrado seguirán cerrados. ¿Quieres continuar?"
         }
     },
     "wizard": {
