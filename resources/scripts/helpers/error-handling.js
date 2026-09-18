@@ -49,7 +49,7 @@ export const handleError = (err) => {
       notificationStore.showNotification({
         type: 'error',
         message:
-          'Please check your internet connection or wait until servers are back online.',
+          'No se ha podido conectar. Revisa tu conexión a internet e inténtalo de nuevo.',
       })
     } else {
       // Error inesperado de JavaScript (TypeError, etc.). No es de red.
@@ -67,7 +67,7 @@ export const handleError = (err) => {
     // Unauthorized and log out
     const msg = err.response.data.message
       ? err.response.data.message
-      : 'Unauthorized'
+      : 'Tu sesión ha caducado. Vuelve a iniciar sesión.'
 
     showToaster(msg)
 
