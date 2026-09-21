@@ -9,94 +9,77 @@ use Symfony\Component\HttpFoundation\IpUtils;
 /**
  * Onfactu — IP real del visitante detrás de Cloudflare.
  *
- * Todas las instancias van detrás de Cloudflare, que pone SU propia IP en
- * X-Forwarded-For y deja la del visitante en la cabecera CF-Connecting-IP.
- * Laravel no conoce esa cabecera, así que $request->ip() devolvía la de
- * Cloudflare (104.x, 162.158.x, 172.67.x...) aunque TrustProxies esté en '*'.
+ * Todas las instancias van detrás de Cloudflare, que pone la IP del visitante
+ * en la cabecera CF-Connecting-IP. Sin este middleware, $request->ip()
+ * devolvía la de Cloudflare, y así se guardaba en el consentimiento RGPD.
  *
- * Eso importaba especialmente en el consentimiento RGPD de la vinculación con
- * la gestoría: quedaba registrada la IP del proxy en vez de la de quien
- * autorizó el acceso a sus datos fiscales, lo que invalida el registro si
- * alguna vez hay una reclamación.
+ * ─────────────────────────────────────────────────────────────────────────
+ * IMPORTANTE: debe ejecutarse ANTES de TrustProxies, y NO debe tocar
+ * REMOTE_ADDR.
  *
- * Solo se confía en CF-Connecting-IP si la petición viene de un rango de
- * Cloudflare. Sin esa comprobación, cualquiera podría mandar la cabecera a
- * mano y falsear su IP justo en el dato que queremos que sea fiable.
+ * La primera versión reescribía REMOTE_ADDR y se ejecutaba después de
+ * TrustProxies. Eso rompía el login en producción: TrustProxies con '*'
+ * confía en el REMOTE_ADDR que tiene la petición en ese momento (el de
+ * Caddy). Al cambiarlo después, la petición dejaba de "venir de un proxy de
+ * confianza", Laravel ignoraba X-Forwarded-Proto, creía que la conexión era
+ * http, y tras el login redirigía a http://.../dashboard. El navegador lo
+ * bloqueaba por contenido mixto y el usuario tenía que recargar.
  *
- * Los rangos son los publicados por Cloudflare en
- * https://www.cloudflare.com/ips/ y cambian muy de tarde en tarde; si algún
- * día dejan de cuadrar, la IP simplemente vuelve a ser la del proxy (que es
- * el comportamiento anterior), nunca se rompe la petición.
+ * La forma correcta es dejar REMOTE_ADDR intacto y poner la IP real en
+ * X-Forwarded-For. TrustProxies, confiando en Caddy, resuelve entonces la IP
+ * del cliente a partir de esa cabecera por su cuenta, y sigue respetando
+ * X-Forwarded-Proto porque la petición sigue viniendo de un proxy de confianza.
+ * ─────────────────────────────────────────────────────────────────────────
+ *
+ * Solo se hace caso a CF-Connecting-IP si la petición llega a través de
+ * Cloudflare o de la red interna de Docker. Sin esa comprobación, cualquiera
+ * podría mandar la cabecera a mano y falsear su IP justo en el dato que debe
+ * ser fiable.
  */
 class RealIpBehindCloudflare
 {
-    /**
-     * Rangos IPv4 de Cloudflare.
-     */
     private const CF_IPV4 = [
-        '173.245.48.0/20',
-        '103.21.244.0/22',
-        '103.22.200.0/22',
-        '103.31.4.0/22',
-        '141.101.64.0/18',
-        '108.162.192.0/18',
-        '190.93.240.0/20',
-        '188.114.96.0/20',
-        '197.234.240.0/22',
-        '198.41.128.0/17',
-        '162.158.0.0/15',
-        '104.16.0.0/13',
-        '104.24.0.0/14',
-        '172.64.0.0/13',
-        '131.0.72.0/22',
+        '173.245.48.0/20', '103.21.244.0/22', '103.22.200.0/22', '103.31.4.0/22',
+        '141.101.64.0/18', '108.162.192.0/18', '190.93.240.0/20', '188.114.96.0/20',
+        '197.234.240.0/22', '198.41.128.0/17', '162.158.0.0/15', '104.16.0.0/13',
+        '104.24.0.0/14', '172.64.0.0/13', '131.0.72.0/22',
     ];
 
-    /**
-     * Rangos IPv6 de Cloudflare.
-     */
     private const CF_IPV6 = [
-        '2400:cb00::/32',
-        '2606:4700::/32',
-        '2803:f800::/32',
-        '2405:b500::/32',
-        '2405:8100::/32',
-        '2a06:98c0::/29',
-        '2c0f:f248::/32',
+        '2400:cb00::/32', '2606:4700::/32', '2803:f800::/32', '2405:b500::/32',
+        '2405:8100::/32', '2a06:98c0::/29', '2c0f:f248::/32',
     ];
 
     /**
-     * Redes internas de Docker, que son las que ve la aplicación cuando la
-     * petición llega a través de Caddy.
+     * Redes internas de Docker: la conexión directa la hace el contenedor de
+     * Caddy desde una de estas.
      */
     private const INTERNAS = [
-        '10.0.0.0/8',
-        '172.16.0.0/12',
-        '192.168.0.0/16',
-        '127.0.0.0/8',
+        '10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16', '127.0.0.0/8',
     ];
 
     public function handle(Request $request, Closure $next)
     {
         $real = $request->headers->get('CF-Connecting-IP');
 
-        if ($real && filter_var($real, FILTER_VALIDATE_IP) && $this->vieneDeCloudflare($request)) {
-            // Se reescribe REMOTE_ADDR: así $request->ip() devuelve la buena
-            // en toda la aplicación, sin tener que tocar cada sitio que la use.
-            $request->server->set('REMOTE_ADDR', $real);
+        if ($real && filter_var($real, FILTER_VALIDATE_IP) && $this->vieneDeProxyPropio($request)) {
+            // Solo la cabecera. REMOTE_ADDR se queda como está: es la
+            // referencia que TrustProxies usa para decidir en quién confía.
             $request->headers->set('X-Forwarded-For', $real);
+            $request->server->set('HTTP_X_FORWARDED_FOR', $real);
         }
 
         return $next($request);
     }
 
     /**
-     * ¿La petición viene realmente de Cloudflare?
+     * ¿La petición llega a través de nuestra cadena de proxies?
      *
-     * Se comprueba tanto la IP directa como la cadena de X-Forwarded-For,
-     * porque entre Cloudflare y la aplicación está Caddy: la conexión directa
-     * la hace el contenedor de Caddy desde una red interna de Docker.
+     * Se mira la conexión directa (REMOTE_ADDR, que es Caddy desde la red de
+     * Docker) y la cadena de X-Forwarded-For original, donde aparece
+     * Cloudflare.
      */
-    private function vieneDeCloudflare(Request $request): bool
+    private function vieneDeProxyPropio(Request $request): bool
     {
         $candidatas = [$request->server->get('REMOTE_ADDR')];
 

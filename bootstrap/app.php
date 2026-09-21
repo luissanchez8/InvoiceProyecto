@@ -27,8 +27,8 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->append([
             \Illuminate\Foundation\Http\Middleware\CheckForMaintenanceMode::class,
             \App\Http\Middleware\TrimStrings::class,
-            \App\Http\Middleware\TrustProxies::class,
             \App\Http\Middleware\RealIpBehindCloudflare::class,
+            \App\Http\Middleware\TrustProxies::class,
             \App\Http\Middleware\ConfigMiddleware::class,
         ]);
 
