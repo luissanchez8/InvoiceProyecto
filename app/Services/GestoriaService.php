@@ -143,16 +143,13 @@ class GestoriaService
         self::log('solicitud_vinculacion', ['gestoria' => $gestoria->nombre, 'codigo' => $codigo], $ip);
 
         // Aviso a la gestoría de que tiene una solicitud esperando.
-        self::avisarGestoria(
-            $gestoria->email ?? null,
-            'Nueva solicitud de vinculación',
-            'Tienes una solicitud nueva',
-            '<p><strong>' . e(self::nombreEmpresa()) . '</strong> quiere vincular su cuenta de Onfactu con vuestra gestoría.</p>'
-            . '<p>Entra en el portal para aceptarla o denegarla:</p>'
-            . '<p><a href="https://gestoria.onfactu.com/?view=solicitudes" '
-            . 'style="display:inline-block;padding:10px 20px;background:#070322;color:#fff;'
-            . 'text-decoration:none;border-radius:6px">Ver solicitudes</a></p>'
-        );
+        self::avisarGestoria($gestoria->email ?? null, 'Nueva solicitud de vinculación', [
+            'titulo'      => 'Tienes una solicitud nueva',
+            'cuerpo'      => CorreoOnfactu::p('<strong>' . e(self::nombreEmpresa()) . '</strong> quiere vincular su cuenta de Onfactu con vuestra gestoría.')
+                           . CorreoOnfactu::p('Entra en el portal para aceptarla o denegarla.'),
+            'boton_texto' => 'Ver solicitudes',
+            'boton_url'   => 'https://gestoria.onfactu.com/?view=solicitudes',
+        ]);
 
         return [
             'ok' => true,
@@ -213,16 +210,13 @@ class GestoriaService
                       'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
             $periodo = ($meses[$month] ?? $month) . ' de ' . $year;
 
-            self::avisarGestoria(
-                $v->gestoria_email ?? null,
-                'Mes recibido: ' . self::nombreEmpresa() . ' · ' . $periodo,
-                'Has recibido ' . $periodo,
-                '<p><strong>' . e(self::nombreEmpresa()) . '</strong> ha cerrado <strong>' . e($periodo) . '</strong>.</p>'
-                . '<p>Ya tienes disponibles sus facturas y gastos de ese periodo en el portal.</p>'
-                . '<p><a href="https://gestoria.onfactu.com/" '
-                . 'style="display:inline-block;padding:10px 20px;background:#070322;color:#fff;'
-                . 'text-decoration:none;border-radius:6px">Abrir el portal</a></p>'
-            );
+            self::avisarGestoria($v->gestoria_email ?? null, 'Mes recibido: ' . self::nombreEmpresa() . ' · ' . $periodo, [
+                'titulo'      => 'Has recibido ' . $periodo,
+                'cuerpo'      => CorreoOnfactu::p('<strong>' . e(self::nombreEmpresa()) . '</strong> ha cerrado <strong>' . e($periodo) . '</strong>.')
+                               . CorreoOnfactu::p('Ya tienes disponibles sus facturas y gastos de ese periodo en el portal.'),
+                'boton_texto' => 'Abrir el portal',
+                'boton_url'   => 'https://gestoria.onfactu.com/',
+            ]);
 
             return true;
         } catch (\Throwable $e) {
@@ -268,37 +262,24 @@ class GestoriaService
     }
 
     /**
-     * Envía un aviso por email al contacto de la gestoría.
+     * Envía un aviso por email al contacto de la gestoría, con la plantilla
+     * corporativa (CorreoOnfactu).
      *
      * De mejor esfuerzo: si no hay email o el envío falla, se registra y se
-     * sigue. La acción que lo provoca (vincular, cerrar un mes) no debe
-     * fallar porque el correo esté caído.
+     * sigue. La acción que lo provoca no debe fallar porque el correo esté caído.
      */
-    private static function avisarGestoria(?string $para, string $asunto, string $titulo, string $cuerpoHtml): void
+    private static function avisarGestoria(?string $para, string $asunto, array $opts): void
     {
         if (! $para || ! filter_var($para, FILTER_VALIDATE_EMAIL)) {
             \Log::info('Gestoría sin email de contacto, aviso no enviado', ['asunto' => $asunto]);
             return;
         }
 
-        $html = '<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"></head>'
-            . '<body style="margin:0;padding:0;background:#f1f5f9;font-family:Arial,Helvetica,sans-serif;color:#1e293b">'
-            . '<table width="100%" cellpadding="0" cellspacing="0" style="background:#f1f5f9;padding:32px 16px"><tr><td align="center">'
-            . '<table width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;background:#fff;border-radius:8px;overflow:hidden">'
-            . '<tr><td style="background:#070322;padding:20px 28px">'
-            . '<span style="color:#fff;font-size:20px;font-weight:bold">onfactu</span>'
-            . '<span style="color:#38d587;font-size:13px;font-weight:bold;margin-left:6px">GESTORÍA</span>'
-            . '</td></tr>'
-            . '<tr><td style="padding:28px">'
-            . '<h1 style="margin:0 0 16px;font-size:20px;color:#070322">' . e($titulo) . '</h1>'
-            . '<div style="font-size:15px;line-height:1.6;color:#334155">' . $cuerpoHtml . '</div>'
-            . '</td></tr>'
-            . '<tr><td style="padding:16px 28px;border-top:1px solid #e2e8f0;font-size:12px;color:#94a3b8">'
-            . 'Aviso automático de Onfactu. No respondas a este correo.'
-            . '</td></tr></table></td></tr></table></body></html>';
+        $opts['nota_pie'] = $opts['nota_pie']
+            ?? 'Recibes este aviso porque es el email de contacto de vuestra gestoría en Onfactu.';
 
         try {
-            Mail::html($html, function ($m) use ($para, $asunto) {
+            Mail::html(CorreoOnfactu::html($opts), function ($m) use ($para, $asunto) {
                 $m->to($para)->subject($asunto);
             });
         } catch (\Throwable $e) {

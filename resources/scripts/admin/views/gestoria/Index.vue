@@ -267,7 +267,7 @@
       </div>
 
       <template #footer>
-        <div class="flex justify-end gap-3">
+        <div class="flex flex-wrap justify-end gap-3 px-8 py-4 border-t border-gray-200">
           <BaseButton variant="white" @click="modal = false">{{ $t('general.cancel') }}</BaseButton>
           <BaseButton variant="danger" :loading="cerrando" @click="cerrarMes">
             {{ $t('gestoria.confirm_close') }}
