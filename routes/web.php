@@ -188,3 +188,7 @@ Route::get('/logo-url', function () {
         'name' => app_cfg('NOMBRE_EMPRESA', config('app.name')),
     ]);
 })->name('logo.url');
+
+// Onfactu: entrada a la demo pública (demo.onfactu.com) sin credenciales.
+// El controlador responde 404 si la instancia no está en modo demo.
+Route::get('/demo/entrar', [\App\Http\Controllers\DemoController::class, 'entrar'])->name('demo.entrar');

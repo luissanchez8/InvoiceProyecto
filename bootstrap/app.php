@@ -30,6 +30,8 @@ return Application::configure(basePath: dirname(__DIR__))
             \App\Http\Middleware\RealIpBehindCloudflare::class,
             \App\Http\Middleware\TrustProxies::class,
             \App\Http\Middleware\ConfigMiddleware::class,
+            // Capado de la demo pública: sin APP_ENV=demo no hace nada
+            \App\Http\Middleware\DemoMode::class,
         ]);
 
         $middleware->web([

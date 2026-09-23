@@ -90,8 +90,32 @@ class AppServiceProvider extends ServiceProvider
         });
     }
 
+    /**
+     * Opciones que la demo pública no enseña. Además están bloqueadas en el
+     * servidor por DemoMode: ocultarlas solo evita pantallas que fallarían.
+     */
+    private function ocultoEnDemo(string $link): bool
+    {
+        if ($link === '/admin/gestoria') {
+            return (int) app_cfg('GESTORIA_ACTIVA', 0) !== 1;
+        }
+
+        return in_array($link, [
+            '/admin/users', '/admin/modules',
+            '/admin/settings/app-config', '/admin/settings/account-settings', '/admin/settings/gestoria',
+            '/admin/settings/roles-settings', '/admin/settings/exchange-rate-provider',
+            '/admin/settings/notifications', '/admin/settings/mail-configuration',
+            '/admin/settings/file-disk', '/admin/settings/backup', '/admin/settings/update-app',
+            '/admin/settings/pdf-generation',
+        ], true);
+    }
+
     public function generateMenu($menu, $data)
     {
+        if (config('app.env') === 'demo' && $this->ocultoEnDemo((string) ($data['link'] ?? ''))) {
+            return;
+        }
+
         if (!empty($data['option_key']) && (int) app_cfg($data['option_key'], 0) !== 1) {
             return;
         }

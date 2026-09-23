@@ -93,6 +93,9 @@
         window.brand_name    = window.brand_name    || @json(app_cfg('NOMBRE_EMPRESA', config('app.name')));
         window.InvoiceShelf.start()
     </script>
+    @if(config('app.env') === 'demo')
+        @include('demo._aviso')
+    @endif
 </body>
 
 </html>

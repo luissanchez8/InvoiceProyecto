@@ -5,10 +5,13 @@ use App\Models\RecurringInvoice;
 use App\Space\InstallUtils;
 use Illuminate\Support\Facades\Schedule;
 
-// Only run in demo environment
+// Onfactu: la demo pública se reinicia con demo:reiniciar, no con reset:app
+// de InvoiceShelf, que hace migrate:fresh y la dejaría vacía y sin la
+// configuración de Onfactu que viene de plantilla.sql.
 if (config('app.env') === 'demo') {
-    Schedule::command('reset:app --force')
-        ->daily()
+    Schedule::command('demo:reiniciar')
+        ->dailyAt('00:00')
+        ->timezone('Europe/Madrid')
         ->runInBackground()
         ->withoutOverlapping();
 }
