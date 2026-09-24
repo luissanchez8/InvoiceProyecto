@@ -32,6 +32,8 @@ return Application::configure(basePath: dirname(__DIR__))
             \App\Http\Middleware\ConfigMiddleware::class,
             // Capado de la demo pública: sin APP_ENV=demo no hace nada
             \App\Http\Middleware\DemoMode::class,
+            // Borra del navegador las cookies antiguas compartidas por todas las instancias
+            \App\Http\Middleware\PurgarCookiesCompartidas::class,
         ]);
 
         $middleware->web([
