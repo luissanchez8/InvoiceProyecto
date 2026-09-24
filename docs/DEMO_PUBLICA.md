@@ -1,4 +1,4 @@
-# Demo pública de Onfactu
+# Demo pública
 
 Instancia abierta al público en **demo.onfactu.com**. Cualquiera entra con un botón, sin registrarse, y prueba Onfactu con una empresa de ejemplo. Cada noche a las 00:00 (hora de Madrid) vuelve a su estado inicial con datos nuevos.
 
@@ -7,14 +7,14 @@ Instancia abierta al público en **demo.onfactu.com**. Cualquiera entra con un b
 - Instancia normal de Onfactu llamada por dentro **demo-publica** (contenedor `onf-demo-publica-invoiceshelf_app`). El script de instancias exige 5 caracteres, y así no se confunde con **demos**, la de pruebas.
 - Su `.env` lleva `APP_ENV=demo` y el dominio `demo.onfactu.com`. Todo lo de este documento solo se activa con `APP_ENV=demo`: en el resto de instancias el código está pero no hace nada.
 - No está en la base central: no tiene Stripe, no sale en el dashboard y no recibe correos de alta.
-- Cookie de sesión propia (`onf_demo_publica_session`) y solo para `demo.onfactu.com`, como todas las instancias desde la v.1.11.2 (ver `BASE_DE_DATOS_Y_SESIONES.md`).
+- Cookie de sesión propia (`onf_demo_publica_session`) y solo para `demo.onfactu.com`, como todas las instancias (ver **Seguridad → Sesiones**).
 - Se crea con `tools/crear_demo.sh` del repositorio de infraestructura.
 
 ## Crearla desde cero
 
 `tools/crear_demo.sh` hace casi todo, pero hay dos cosas a tener en cuenta:
 
-- **El registro DNS se crea antes, a mano, con la API de Cloudflare.** `cfctl.js`, igual que `crearInstancia.sh`, rechaza subdominios de 4 letras. El token y la zona están en el `.env` general (`CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ZONE_ID`). El registro es A `demo` → 51.77.216.46, sin proxy. El script comprueba que existe y se para si no.
+- **El registro DNS se crea antes, con la API de Cloudflare**, porque `cfctl.js` rechaza subdominios de 4 letras. El comando está en **Arquitectura → DNS**. El script comprueba que existe y se para si no.
 - **Toma las variables del proceso de altas** (`worker-altas.service`), leyéndolas del proceso en marcha. Así se crea con la misma configuración que una alta real sin copiar contraseñas.
 
 Pasos del script: crear la instancia con `crearInstancia.sh` (con el nombre provisional `demo-publica.onfactu.com`), pasar el `.env` a `demo.onfactu.com` y `APP_ENV=demo`, renombrar su bloque en el `Caddyfile` y recargar Caddy, comprobar el DNS, recrear el contenedor y generar los datos.
@@ -95,13 +95,3 @@ docker exec onf-demo-publica-invoiceshelf_app php artisan demo:reiniciar
 # Ver que el reinicio nocturno está programado
 docker exec onf-demo-publica-invoiceshelf_app php artisan schedule:list
 ```
-
-## Lo que salió al montarla (23 de septiembre de 2026)
-
-- **La plantilla estaba atrasada.** A `plantilla.sql` le faltaba la forma de pago en los documentos, que se había añadido con SQL a mano y sin fichero de migración. Siete clientes creados después tenían la base incompleta, sin llegar a notarlo. Se arregló con una migración (v.1.11.1). Ver `BASE_DE_DATOS_Y_SESIONES.md`.
-- **Caddy no veía el bloque nuevo.** El script lo renombraba con `sed -i`, que crea un fichero nuevo, y el contenedor de Caddy monta el `Caddyfile` como fichero suelto: siguió viendo el antiguo hasta reiniciarlo. Mientras tanto tampoco habría visto las altas nuevas. El script ya no usa `sed -i` sobre el `Caddyfile`.
-- **La entrada fallaba con otras instancias abiertas** en el mismo navegador: todas compartían la cookie de sesión. Se arregló para todas (v.1.11.2).
-
-## Pendiente
-
-- **Demo del portal de gestorías**, sincronizada con esta: meses ya cerrados y la gestoría vinculada de fábrica. Se activará poniendo `GESTORIA_ACTIVA` a 1 en `AjustesDemo`.
