@@ -40,6 +40,12 @@ Los correos no salen nunca: en modo demo Laravel los simula (`Mail::fake()` en `
 
 El menú oculta esas mismas opciones (`ocultoEnDemo()` en `AppServiceProvider`). Gestoría se oculta mientras `GESTORIA_ACTIVA` no valga 1.
 
+**Usuarios es la excepción: se ve, pero con candado.** Es una función que vende (dar acceso al equipo con permisos por persona), y si no aparece parece que Onfactu no la tiene. Al entrar, un aviso tapa la pantalla, lo explica en una línea y ofrece crear la cuenta o volver al panel. El aviso está en `resources/views/demo/_aviso.blade.php`; para poner otra pantalla con candado basta con añadirla a su lista `BLOQUEADAS`. Por debajo, el servidor sigue bloqueando sus datos.
+
+Módulos se oculta sin candado: es la tienda de extensiones de InvoiceShelf, que Onfactu no usa.
+
+El idioma no se puede cambiar desde la interfaz de Onfactu. Su bloqueo en el servidor queda como defensa por si alguien llama a la API directamente.
+
 ## Reinicio diario
 
 Orden `php artisan demo:reiniciar`, programada a las 00:00 de Madrid en `routes/console.php`. Sustituye a `reset:app` de InvoiceShelf, que hace `migrate:fresh` y dejaría la instancia vacía y sin la configuración de Onfactu.

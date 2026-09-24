@@ -101,7 +101,8 @@ class AppServiceProvider extends ServiceProvider
         }
 
         return in_array($link, [
-            '/admin/users', '/admin/modules',
+            // Usuarios sí se ve: su pantalla queda tapada con un candado (demo/_aviso.blade.php)
+            '/admin/modules',
             '/admin/settings/app-config', '/admin/settings/account-settings', '/admin/settings/gestoria',
             '/admin/settings/roles-settings', '/admin/settings/exchange-rate-provider',
             '/admin/settings/notifications', '/admin/settings/mail-configuration',
