@@ -31,7 +31,8 @@ El bloqueo está en el servidor (`app/Http/Middleware/DemoMode.php`), no solo en
 
 | Nivel | Qué | Por qué |
 |---|---|---|
-| Todo, también la lectura | Usuarios, roles, copias, discos, configuración del correo, actualizaciones, proveedores de tipo de cambio, VeriFactu | Varias de estas pantallas devuelven credenciales al consultarlas |
+| Todo, también la lectura | Copias, discos, configuración del correo, actualizaciones, proveedores de tipo de cambio, VeriFactu | Varias de estas pantallas devuelven credenciales al consultarlas |
+| Lectura vacía, escritura bloqueada | Usuarios y roles | Su pantalla se enseña con candado: responden con una lista vacía para que no salten errores y sin exponer las cuentas internas |
 | Escritura | Perfil y ajustes del usuario, logotipo, crear o borrar empresas, ajustes globales, módulos, gestoría, Stripe, recuperar contraseña, formulario de acceso | El usuario es compartido: un cambio lo verían todos los visitantes |
 | Ajustes concretos | Idioma, moneda, zona horaria y formatos de fecha | Si alguien pone otro idioma, lo verían todos hasta medianoche |
 | Archivos | Cualquier subida | Que nadie use la demo como alojamiento |
@@ -41,6 +42,8 @@ Los correos no salen nunca: en modo demo Laravel los simula (`Mail::fake()` en `
 El menú oculta esas mismas opciones (`ocultoEnDemo()` en `AppServiceProvider`). Gestoría se oculta mientras `GESTORIA_ACTIVA` no valga 1.
 
 **Usuarios es la excepción: se ve, pero con candado.** Es una función que vende (dar acceso al equipo con permisos por persona), y si no aparece parece que Onfactu no la tiene. Al entrar, un aviso tapa la pantalla, lo explica en una línea y ofrece crear la cuenta o volver al panel. El aviso está en `resources/views/demo/_aviso.blade.php`; para poner otra pantalla con candado basta con añadirla a su lista `BLOQUEADAS`. Por debajo, el servidor sigue bloqueando sus datos.
+
+**El aviso de "Demo" y el candado se crean desde JavaScript**, no como HTML en la página: la aplicación ocupa todo el `<body>` al arrancar y borra lo que hubiera dentro. El script los inserta después y comprueba cada segundo que siguen ahí.
 
 Módulos se oculta sin candado: es la tienda de extensiones de InvoiceShelf, que Onfactu no usa.
 

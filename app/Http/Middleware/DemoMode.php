@@ -14,7 +14,8 @@ use Illuminate\Http\Request;
  *
  * Tres niveles:
  *  - Bloqueo total, también la lectura: lo que expone credenciales (correo,
- *    discos, proveedores de tipo de cambio, copias) o datos internos (usuarios).
+ *    discos, proveedores de tipo de cambio, copias). Usuarios y roles responden
+ *    con una lista vacía: su pantalla se enseña con candado.
  *  - Bloqueo de escritura: lo que cambiaría la demo para todos los visitantes,
  *    que comparten el mismo usuario, o saldría fuera (VeriFactu, gestoría).
  *  - Subida de archivos: ninguna, para que nadie use la demo como alojamiento.
@@ -24,8 +25,6 @@ class DemoMode
     private const MENSAJE = 'Esta opción no está disponible en la demo.';
 
     private const BLOQUEO_TOTAL = [
-        '#^api/v1/users(/|$)#',
-        '#^api/v1/roles(/|$)#',
         '#^api/v1/abilities#',
         '#^api/v1/(backups|download-backup)#',
         '#^api/v1/disks#',
@@ -36,6 +35,7 @@ class DemoMode
     ];
 
     private const BLOQUEO_ESCRITURA = [
+        '#^api/v1/(users|roles)(/|$)#',  // crear, editar o borrar usuarios y roles
         '#^api/v1/me$#',                 // nombre, email y contraseña del usuario compartido
         '#^api/v1/me/#',                 // sus ajustes y su avatar
         '#^api/v1/company/upload-logo#',
@@ -78,6 +78,16 @@ class DemoMode
             return response()->json(['plan_status' => 'active', 'trial_ends_at' => null, 'trial_plan' => null,
                 'trial_interval' => null, 'days_left' => null, 'grace_ends_at' => null,
                 'grace_days_left' => null, 'portal_url' => null]);
+        }
+
+        // Usuarios se enseña con candado (demo/_aviso.blade.php). Su pantalla pide
+        // datos al abrirse: lista vacía para que no salten errores, y sin exponer
+        // las cuentas internas de la instancia.
+        if ($lectura && preg_match('#^api/v1/(users|roles)(/|$)#', $ruta)) {
+            return response()->json(['data' => [], 'roles' => [], 'links' => [], 'meta' => [
+                'current_page' => 1, 'last_page' => 1, 'per_page' => 10, 'total' => 0,
+                'from' => null, 'to' => null, 'user_total_count' => 0,
+            ]]);
         }
 
         foreach (self::BLOQUEO_TOTAL as $patron) {
