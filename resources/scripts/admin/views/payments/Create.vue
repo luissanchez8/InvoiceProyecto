@@ -262,6 +262,7 @@ import {
   onBeforeUnmount,
 } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useBloqueoMesCerrado } from '@/scripts/admin/composables/useBloqueoMesCerrado'
 import { useI18n } from 'vue-i18n'
 import {
   required,
@@ -289,6 +290,8 @@ import PaymentModeModal from '@/scripts/admin/components/modal-components/Paymen
 
 const route = useRoute()
 const router = useRouter()
+// Onfactu: no dejar editar un documento de un mes cerrado
+useBloqueoMesCerrado('payments')
 
 const paymentStore = usePaymentStore()
 const notificationStore = useNotificationStore()

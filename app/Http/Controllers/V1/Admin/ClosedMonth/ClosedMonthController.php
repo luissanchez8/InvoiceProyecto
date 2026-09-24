@@ -13,6 +13,7 @@ use App\Services\CierreMes;
 use App\Services\GestoriaService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Onfactu — Cierre de mes.
@@ -20,6 +21,7 @@ use Illuminate\Http\Request;
  * GET    /api/v1/closed-months            -> estado de los meses del año
  * GET    /api/v1/closed-months/preview    -> resumen de un mes (no cierra)
  * GET    /api/v1/closed-months/export     -> CSV de un mes cerrado
+ * GET    /api/v1/closed-months/check/{tipo}/{id} -> si un documento es de un mes cerrado
  * POST   /api/v1/closed-months            -> cierra el mes (IRREVERSIBLE)
  *
  * Al cerrar, el mes queda congelado: el middleware CheckMonthClosed impide
@@ -35,6 +37,16 @@ class ClosedMonthController extends Controller
         [Estimate::class,        'estimate_date'],
         [ProformaInvoice::class, 'proforma_invoice_date'],
         [DeliveryNote::class,    'delivery_note_date'],
+    ];
+
+    /** Tipos de documento que se pueden comprobar: tabla, columna de fecha y cómo nombrarlo. */
+    private const RECURSOS = [
+        'invoices'          => ['invoices',          'invoice_date',          'esta factura'],
+        'estimates'         => ['estimates',         'estimate_date',         'este presupuesto'],
+        'expenses'          => ['expenses',          'expense_date',          'este gasto'],
+        'payments'          => ['payments',          'payment_date',          'este cobro'],
+        'proforma-invoices' => ['proforma_invoices', 'proforma_invoice_date', 'esta proforma'],
+        'delivery-notes'    => ['delivery_notes',    'delivery_note_date',    'este albarán'],
     ];
 
     public function index(Request $request)
@@ -95,6 +107,32 @@ class ClosedMonthController extends Controller
             'Content-Type'        => 'text/csv; charset=UTF-8',
             'Content-Disposition' => 'attachment; filename="'.CierreMes::nombreFichero($companyId, $year, $month).'"',
             'Cache-Control'       => 'no-store',
+        ]);
+    }
+
+    /**
+     * Si un documento es de un mes cerrado. Lo usan los formularios para no
+     * dejar abrirlo en edición (useBloqueoMesCerrado.js). El bloqueo real
+     * sigue siendo el middleware CheckMonthClosed.
+     */
+    public function check(Request $request, string $tipo, int $id)
+    {
+        $cfg = self::RECURSOS[$tipo] ?? null;
+        $companyId = (int) $request->header('company');
+        if (! $cfg) {
+            return response()->json(['cerrado' => false]);
+        }
+
+        [$tabla, $columna, $nombre] = $cfg;
+        $fecha = DB::table($tabla)->where('id', $id)->where('company_id', $companyId)->value($columna);
+
+        if (! $fecha || ! ClosedMonth::isClosed($companyId, $fecha)) {
+            return response()->json(['cerrado' => false]);
+        }
+
+        return response()->json([
+            'cerrado' => true,
+            'message' => 'No se puede modificar '.$nombre.': es de '.ClosedMonth::label($fecha).', un mes ya cerrado.',
         ]);
     }
 

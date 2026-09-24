@@ -126,24 +126,30 @@ export const useExpenseStore = (useWindow = false) => {
         formData.append('_method', 'PUT')
         formData.append('is_attachment_receipt_removed', isAttachmentReceiptRemoved)
 
-        return new Promise((resolve) => {
-          axios.post(`/api/v1/expenses/${id}`, formData).then((response) => {
-            let pos = this.expenses.findIndex(
-              (expense) => expense.id === response.data.id
-            )
+        // Onfactu: antes el catch colgaba de la promesa exterior, que nunca
+        // fallaba, y sin reject definido. Un error del servidor (por ejemplo,
+        // mes cerrado) dejaba el formulario cargando para siempre.
+        return new Promise((resolve, reject) => {
+          axios
+            .post(`/api/v1/expenses/${id}`, formData)
+            .then((response) => {
+              let pos = this.expenses.findIndex(
+                (expense) => expense.id === response.data.id
+              )
 
-            this.expenses[pos] = data.expense
+              this.expenses[pos] = data.expense
 
-            notificationStore.showNotification({
-              type: 'success',
-              message: global.t('expenses.updated_message'),
+              notificationStore.showNotification({
+                type: 'success',
+                message: global.t('expenses.updated_message'),
+              })
+
+              resolve(response)
             })
-
-            resolve(response)
-          })
-        }).catch((err) => {
-          handleError(err)
-          reject(err)
+            .catch((err) => {
+              handleError(err)
+              reject(err)
+            })
         })
       },
 

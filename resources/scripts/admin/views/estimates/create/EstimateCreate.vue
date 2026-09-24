@@ -171,6 +171,7 @@
 import { computed, ref, watch, onMounted } from 'vue'
 import { cloneDeep } from 'lodash'
 import { useRoute, useRouter } from 'vue-router'
+import { useBloqueoMesCerrado } from '@/scripts/admin/composables/useBloqueoMesCerrado'
 import { useI18n } from 'vue-i18n'
 import {
   required,
@@ -224,6 +225,8 @@ const estimateNoteFieldList = ref([
 
 let route = useRoute()
 let router = useRouter()
+// Onfactu: no dejar editar un documento de un mes cerrado
+useBloqueoMesCerrado('estimates')
 
 let isLoadingContent = computed(() => estimateStore.isFetchingInitialSettings)
 

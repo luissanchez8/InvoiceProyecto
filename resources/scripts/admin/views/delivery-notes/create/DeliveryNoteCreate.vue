@@ -222,6 +222,7 @@
 <script setup>
 import { computed, ref, watch, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useBloqueoMesCerrado } from '@/scripts/admin/composables/useBloqueoMesCerrado'
 import { useI18n } from 'vue-i18n'
 import { required, helpers } from '@vuelidate/validators'
 import useVuelidate from '@vuelidate/core'
@@ -278,6 +279,8 @@ const customFieldStore = useCustomFieldStore()
 const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
+// Onfactu: no dejar editar un documento de un mes cerrado
+useBloqueoMesCerrado('delivery-notes')
 
 const validationScope = 'newDeliveryNote'
 let isSaving = ref(false)

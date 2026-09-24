@@ -198,6 +198,7 @@
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useBloqueoMesCerrado } from '@/scripts/admin/composables/useBloqueoMesCerrado'
 import { useI18n } from 'vue-i18n'
 import {
   required,
@@ -240,6 +241,8 @@ const dialogStore = useDialogStore()
 const { t } = useI18n()
 let route = useRoute()
 let router = useRouter()
+// Onfactu: no dejar editar un documento de un mes cerrado
+useBloqueoMesCerrado('invoices')
 
 const invoiceValidationScope = 'newInvoice'
 let isSaving = ref(false)

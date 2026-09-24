@@ -311,6 +311,7 @@ Route::prefix('/v1')->group(function () {
             // Onfactu: cierre de mes (base del portal de gestoria)
             Route::get('/closed-months/preview', [\App\Http\Controllers\V1\Admin\ClosedMonth\ClosedMonthController::class, 'preview']);
             Route::get('/closed-months/export', [\App\Http\Controllers\V1\Admin\ClosedMonth\ClosedMonthController::class, 'export']);
+            Route::get('/closed-months/check/{tipo}/{id}', [\App\Http\Controllers\V1\Admin\ClosedMonth\ClosedMonthController::class, 'check'])->whereNumber('id');
             Route::get('/closed-months', [\App\Http\Controllers\V1\Admin\ClosedMonth\ClosedMonthController::class, 'index']);
             Route::post('/closed-months', [\App\Http\Controllers\V1\Admin\ClosedMonth\ClosedMonthController::class, 'store']);
 

@@ -284,6 +284,7 @@
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useBloqueoMesCerrado } from '@/scripts/admin/composables/useBloqueoMesCerrado'
 import { useI18n } from 'vue-i18n'
 import {
   required,
@@ -313,6 +314,8 @@ const customFieldStore = useCustomFieldStore()
 const modalStore = useModalStore()
 const route = useRoute()
 const router = useRouter()
+// Onfactu: no dejar editar un documento de un mes cerrado
+useBloqueoMesCerrado('expenses')
 const { t } = useI18n()
 const globalStore = useGlobalStore()
 
