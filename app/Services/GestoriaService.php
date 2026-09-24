@@ -226,6 +226,24 @@ class GestoriaService
 
     // ─────────────────────────────────────────────────────────────
 
+    /**
+     * Corrige los totales de un mes ya entregado, sin volver a avisar a la
+     * gestoría. Lo usa gestoria:recalcular-cierres.
+     */
+    public static function actualizarTotales(int $year, int $month, array $totales): bool
+    {
+        try {
+            DB::connection(self::CONN)->table('gestoria_cierres')
+                ->where('subdominio', self::subdominio())
+                ->where('year', $year)->where('month', $month)
+                ->update(['totales' => json_encode($totales)]);
+
+            return true;
+        } catch (\Throwable $e) {
+            return false;
+        }
+    }
+
     private static function nombreEmpresa(): ?string
     {
         try {

@@ -8,48 +8,45 @@ use App\Models\DeliveryNote;
 use App\Models\Estimate;
 use App\Models\Expense;
 use App\Models\Invoice;
-use App\Services\GestoriaService;
 use App\Models\ProformaInvoice;
+use App\Services\CierreMes;
+use App\Services\GestoriaService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 
 /**
  * Onfactu — Cierre de mes.
  *
- * GET    /api/v1/closed-months            -> meses cerrados + estado del ano
- * GET    /api/v1/closed-months/preview    -> resumen y borradores de un mes (no cierra)
+ * GET    /api/v1/closed-months            -> estado de los meses del año
+ * GET    /api/v1/closed-months/preview    -> resumen de un mes (no cierra)
+ * GET    /api/v1/closed-months/export     -> CSV de un mes cerrado
  * POST   /api/v1/closed-months            -> cierra el mes (IRREVERSIBLE)
  *
  * Al cerrar, el mes queda congelado: el middleware CheckMonthClosed impide
  * cualquier escritura sobre documentos con fecha en ese periodo.
  *
- * Solo los documentos en estado COMPLETED se consideran entregables a la
- * gestoria. Los borradores quedan fuera y por eso se avisa antes de cerrar.
+ * Qué se entrega a la gestoría lo decide App\Services\CierreMes.
  */
 class ClosedMonthController extends Controller
 {
-    /** Documentos que cuentan, con su columna de fecha. */
+    /** Documentos que cuentan como actividad del mes, con su columna de fecha. */
     private const DOCS = [
-        'invoices'          => [Invoice::class,          'invoice_date',           'facturas'],
-        'estimates'         => [Estimate::class,         'estimate_date',          'presupuestos'],
-        'proforma_invoices' => [ProformaInvoice::class,  'proforma_invoice_date',  'proformas'],
-        'delivery_notes'    => [DeliveryNote::class,     'delivery_note_date',     'albaranes'],
+        [Invoice::class,         'invoice_date'],
+        [Estimate::class,        'estimate_date'],
+        [ProformaInvoice::class, 'proforma_invoice_date'],
+        [DeliveryNote::class,    'delivery_note_date'],
     ];
 
-    /**
-     * Estado de todos los meses de un ano.
-     */
     public function index(Request $request)
     {
         $companyId = (int) $request->header('company');
         $year = (int) ($request->query('year') ?: now()->year);
 
-        $cerrados = ClosedMonth::where('company_id', $companyId)
-            ->where('year', $year)
-            ->get()
-            ->keyBy('month');
+        // Si algún cierre no llegó a la central, se reintenta al abrir la
+        // pantalla (además de la tarea programada de cada hora).
+        CierreMes::reenviarPendientes($companyId);
 
+        $cerrados = ClosedMonth::where('company_id', $companyId)->where('year', $year)->get()->keyBy('month');
         $hoy = now();
         $meses = [];
 
@@ -59,37 +56,46 @@ class ClosedMonthController extends Controller
             $enCurso = $year === $hoy->year && $m === $hoy->month;
 
             $meses[] = [
-                'year'      => $year,
-                'month'     => $m,
-                'estado'    => $cerrado ? 'cerrado' : ($futuro ? 'futuro' : ($enCurso ? 'en_curso' : 'abierto')),
-                'closed_at' => $cerrado?->closed_at?->toIso8601String(),
-                'totals'    => $cerrado?->totals,
+                'year'           => $year,
+                'month'          => $m,
+                'estado'         => $cerrado ? 'cerrado' : ($futuro ? 'futuro' : ($enCurso ? 'en_curso' : 'abierto')),
+                'closed_at'      => $cerrado?->closed_at?->toIso8601String(),
+                'totals'         => $cerrado?->totals,
+                'entregado'      => $cerrado ? $cerrado->sent_status === 'sent' : null,
                 'puede_cerrarse' => ! $cerrado && ! $futuro && ! $enCurso,
             ];
         }
 
         return response()->json([
-            'year'  => $year,
-            'meses' => $meses,
-            // Aviso: mes anterior sin cerrar y ya pasado el dia 15
+            'year'            => $year,
+            'meses'           => $meses,
             'aviso_pendiente' => $this->avisoPendiente($companyId),
         ]);
     }
 
-    /**
-     * Resumen de un mes SIN cerrarlo. Alimenta el modal de confirmacion.
-     */
     public function preview(Request $request)
     {
-        $companyId = (int) $request->header('company');
-        $v = $request->validate([
-            'year'  => 'required|integer|min:2000|max:2100',
-            'month' => 'required|integer|min:1|max:12',
-        ]);
+        [$companyId, $year, $month] = $this->periodoPedido($request);
 
-        return response()->json(
-            $this->resumen($companyId, (int) $v['year'], (int) $v['month'])
-        );
+        return response()->json(CierreMes::resumen($companyId, $year, $month));
+    }
+
+    /**
+     * CSV de un mes cerrado: lo mismo que ha recibido la gestoría.
+     */
+    public function export(Request $request)
+    {
+        [$companyId, $year, $month] = $this->periodoPedido($request);
+
+        if (! ClosedMonth::where('company_id', $companyId)->where('year', $year)->where('month', $month)->exists()) {
+            return $this->error('Solo se pueden descargar los meses cerrados.');
+        }
+
+        return response(CierreMes::csv($companyId, $year, $month), 200, [
+            'Content-Type'        => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="'.CierreMes::nombreFichero($companyId, $year, $month).'"',
+            'Cache-Control'       => 'no-store',
+        ]);
     }
 
     /**
@@ -97,16 +103,9 @@ class ClosedMonthController extends Controller
      */
     public function store(Request $request)
     {
-        $companyId = (int) $request->header('company');
-        $v = $request->validate([
-            'year'  => 'required|integer|min:2000|max:2100',
-            'month' => 'required|integer|min:1|max:12',
-        ]);
-        $year  = (int) $v['year'];
-        $month = (int) $v['month'];
+        [$companyId, $year, $month] = $this->periodoPedido($request);
 
-        // Hace falta una gestoria vinculada: el cierre existe para entregarle
-        // el periodo. Sin gestoria no hay a quien enviarlo.
+        // Hace falta una gestoría vinculada: el cierre existe para entregarle el periodo
         if (! GestoriaService::activa()) {
             return $this->error('Tienes que activar la gestoría en los ajustes para poder cerrar meses.');
         }
@@ -120,32 +119,23 @@ class ClosedMonthController extends Controller
             );
         }
 
-        // Ya cerrado
         if (ClosedMonth::where('company_id', $companyId)->where('year', $year)->where('month', $month)->exists()) {
             return $this->error('Ese mes ya está cerrado.');
         }
 
-        // No se puede cerrar un mes que aun no ha terminado
-        $fin = Carbon::create($year, $month, 1)->endOfMonth();
-        if ($fin->isFuture()) {
+        if (Carbon::create($year, $month, 1)->endOfMonth()->isFuture()) {
             return $this->error('No puedes cerrar un mes que todavía no ha terminado.');
         }
 
-        // No dejar huecos: exige cerrar antes los meses anteriores del ano
+        // No dejar huecos: exige cerrar antes los meses anteriores del año
         for ($m = 1; $m < $month; $m++) {
-            $existeActividad = $this->hayDocumentos($companyId, $year, $m);
-            $estaCerrado = ClosedMonth::where('company_id', $companyId)
-                ->where('year', $year)->where('month', $m)->exists();
-
-            if (! $estaCerrado && $existeActividad) {
-                return $this->error(
-                    'Antes de cerrar este mes tienes que cerrar '
-                    .$this->nombreMes($m).' de '.$year.'.'
-                );
+            $estaCerrado = ClosedMonth::where('company_id', $companyId)->where('year', $year)->where('month', $m)->exists();
+            if (! $estaCerrado && $this->hayDocumentos($companyId, $year, $m)) {
+                return $this->error('Antes de cerrar este mes tienes que cerrar '.CierreMes::nombreMes($m).' de '.$year.'.');
             }
         }
 
-        $resumen = $this->resumen($companyId, $year, $month);
+        $resumen = CierreMes::resumen($companyId, $year, $month);
 
         $cierre = ClosedMonth::create([
             'company_id'  => $companyId,
@@ -159,87 +149,46 @@ class ClosedMonthController extends Controller
 
         ClosedMonth::forgetCache($companyId);
 
-        // Registrar el periodo en la BD central para que la gestoria lo vea.
-        // Si falla, el mes queda cerrado igualmente (el bloqueo ya es efectivo)
-        // pero marcado como pendiente de envio, para poder reintentarlo.
-        $enviado = GestoriaService::registrarCierre(
-            $year, $month, $resumen['totales'], $cierre->closed_at
-        );
+        // Entrega a la central. Si falla, el mes queda cerrado igualmente (el
+        // bloqueo ya es efectivo) y se reintenta solo: al abrir la pantalla
+        // de gestoría y cada hora.
+        $enviado = GestoriaService::registrarCierre($year, $month, $resumen['totales'], $cierre->closed_at);
 
         $cierre->update([
-            'sent_status' => $enviado ? 'sent' : 'failed',
-            'sent_at'     => $enviado ? now() : null,
-            'sent_error'  => $enviado ? null : 'No se pudo registrar en la BD central',
+            'sent_status'   => $enviado ? 'sent' : 'failed',
+            'sent_at'       => $enviado ? now() : null,
+            'sent_error'    => $enviado ? null : 'No se pudo registrar en la BD central',
             'sent_attempts' => 1,
         ]);
 
+        $mes = CierreMes::nombreMes($month, true).' de '.$year;
+
         return response()->json([
-            'ok'      => true,
-            'message' => $this->nombreMes($month).' de '.$year.' cerrado correctamente.',
-            'data'    => $cierre,
+            'ok'        => true,
+            'entregado' => $enviado,
+            'message'   => $enviado
+                ? $mes.' cerrado. '.$vinc->gestoria_nombre.' ya lo tiene disponible.'
+                : $mes.' cerrado. No se ha podido entregar a tu gestoría ahora mismo: lo reintentaremos automáticamente.',
+            'data'      => $cierre,
         ], 201);
     }
 
     // ─────────────────────────────────────────────────────────────
 
-    /**
-     * Calcula el resumen de un mes: totales de lo que se entrega y
-     * borradores que quedarian fuera.
-     */
-    private function resumen(int $companyId, int $year, int $month): array
+    /** @return array{0: int, 1: int, 2: int} empresa, año y mes de la petición */
+    private function periodoPedido(Request $request): array
     {
-        $ini = Carbon::create($year, $month, 1)->startOfDay();
-        $fin = $ini->copy()->endOfMonth()->endOfDay();
+        $v = $request->validate([
+            'year'  => 'required|integer|min:2000|max:2100',
+            'month' => 'required|integer|min:1|max:12',
+        ]);
 
-        // ── Facturas COMPLETED (lo que se entrega) ──
-        $facturas = Invoice::where('company_id', $companyId)
-            ->whereBetween('invoice_date', [$ini, $fin])
-            ->where('status', Invoice::STATUS_COMPLETED)
-            ->get(['sub_total', 'tax', 'total', 'rectifies_invoice_id']);
-
-        $rectificativas = $facturas->whereNotNull('rectifies_invoice_id');
-
-        // ── Gastos (no tienen estado: entran todos) ──
-        $gastos = Expense::where('company_id', $companyId)
-            ->whereBetween('expense_date', [$ini, $fin])
-            ->get(['amount']);
-
-        // ── Borradores que NO se enviaran ──
-        $borradores = [];
-        foreach (self::DOCS as $tabla => [$modelo, $columna, $etiqueta]) {
-            $n = $modelo::where('company_id', $companyId)
-                ->whereBetween($columna, [$ini, $fin])
-                ->where('status', '!=', Invoice::STATUS_COMPLETED)
-                ->count();
-
-            if ($n > 0) {
-                $borradores[] = ['tipo' => $etiqueta, 'total' => $n];
-            }
-        }
-
-        return [
-            'year'   => $year,
-            'month'  => $month,
-            'nombre' => $this->nombreMes($month).' de '.$year,
-            'totales' => [
-                'facturas'        => $facturas->count(),
-                'neto'            => (int) $facturas->sum('sub_total'),
-                'iva'             => (int) $facturas->sum('tax'),
-                'bruto'           => (int) $facturas->sum('total'),
-                'rectificativas'  => $rectificativas->count(),
-                'importe_rectificativas' => (int) $rectificativas->sum('total'),
-                'gastos'          => $gastos->count(),
-                'importe_gastos'  => (int) $gastos->sum('amount'),
-            ],
-            'borradores' => $borradores,
-            'tiene_borradores' => count($borradores) > 0,
-        ];
+        return [(int) $request->header('company'), (int) $v['year'], (int) $v['month']];
     }
 
     private function hayDocumentos(int $companyId, int $year, int $month): bool
     {
-        $ini = Carbon::create($year, $month, 1)->startOfDay();
-        $fin = $ini->copy()->endOfMonth()->endOfDay();
+        [$ini, $fin] = CierreMes::periodo($year, $month);
 
         foreach (self::DOCS as [$modelo, $columna]) {
             if ($modelo::where('company_id', $companyId)->whereBetween($columna, [$ini, $fin])->exists()) {
@@ -247,13 +196,12 @@ class ClosedMonthController extends Controller
             }
         }
 
-        return Expense::where('company_id', $companyId)
-            ->whereBetween('expense_date', [$ini, $fin])->exists();
+        return Expense::where('company_id', $companyId)->whereBetween('expense_date', [$ini, $fin])->exists();
     }
 
     /**
-     * Aviso de mes pendiente. A partir del dia 15, si el mes anterior sigue
-     * abierto, se avisa (las gestorias suelen cerrar sobre el dia 19-20).
+     * Aviso de mes pendiente. A partir del día 15, si el mes anterior sigue
+     * abierto, se avisa (las gestorías suelen presentar sobre el día 19-20).
      */
     private function avisoPendiente(int $companyId): ?array
     {
@@ -263,28 +211,17 @@ class ClosedMonthController extends Controller
         }
 
         $anterior = $hoy->copy()->subMonthNoOverflow();
-        $cerrado = ClosedMonth::where('company_id', $companyId)
-            ->where('year', $anterior->year)
-            ->where('month', $anterior->month)
-            ->exists();
-
-        if ($cerrado) {
+        if (ClosedMonth::where('company_id', $companyId)->where('year', $anterior->year)->where('month', $anterior->month)->exists()) {
             return null;
         }
 
         return [
             'year'    => $anterior->year,
             'month'   => $anterior->month,
-            'nombre'  => $this->nombreMes($anterior->month).' de '.$anterior->year,
-            'mensaje' => 'Todavía no has cerrado '.$this->nombreMes($anterior->month)
+            'nombre'  => CierreMes::nombreMes($anterior->month).' de '.$anterior->year,
+            'mensaje' => 'Todavía no has cerrado '.CierreMes::nombreMes($anterior->month)
                         .'. Ciérralo para que tu gestoría pueda presentarlo a tiempo.',
         ];
-    }
-
-    private function nombreMes(int $m): string
-    {
-        return ['', 'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
-                'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'][$m];
     }
 
     private function error(string $mensaje)

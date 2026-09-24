@@ -112,6 +112,10 @@
                     <span class="px-2 py-1 text-xs font-semibold rounded whitespace-nowrap" :class="pillClass(mes.estado)">
                       {{ $t('gestoria.state_' + mes.estado) }}
                     </span>
+                    <span
+                      v-if="mes.estado === 'cerrado' && mes.entregado === false"
+                      class="block mt-1.5 text-xs text-amber-600 whitespace-nowrap"
+                    >{{ $t('gestoria.not_delivered') }}</span>
                   </td>
                   <td class="px-6 py-4 text-right tabular-nums" :class="cellClass(mes)">
                     {{ mes.totals ? mes.totals.facturas : '—' }}
@@ -154,6 +158,11 @@
                       v-else-if="mes.estado === 'abierto'"
                       class="text-xs text-amber-600 whitespace-nowrap"
                     >{{ $t('gestoria.pending_short') }}</span>
+                    <button
+                      v-else-if="mes.estado === 'cerrado'"
+                      class="text-xs font-semibold text-gray-500 hover:text-primary-500 hover:underline whitespace-nowrap"
+                      @click="descargarCsv(mes)"
+                    >{{ $t('gestoria.download_csv') }}</button>
                   </td>
                 </tr>
               </tbody>
@@ -223,58 +232,20 @@
 
       <!-- ─── Nota sobre el IVA de los gastos ─── -->
       <div class="flex gap-3 p-4 mt-6 text-sm border rounded-lg bg-amber-50 text-amber-800 border-amber-200">
-        <span>⚠</span>
+        <BaseIcon name="ExclamationTriangleIcon" class="w-5 h-5 shrink-0 text-amber-500" />
         <div v-html="$t('gestoria.expenses_vat_note')"></div>
       </div>
     </template>
 
     <!-- ═══ Modal de confirmación ════════════════════════════════ -->
-    <BaseModal :show="modal" @close="modal = false">
-      <template #header>
-        <div class="flex items-center gap-2">
-          <BaseIcon name="ExclamationTriangleIcon" class="w-5 h-5 text-red-600" />
-          <span>{{ $t('gestoria.confirm_title', { mes: preview?.nombre }) }}</span>
-        </div>
-      </template>
-
-      <div class="p-6">
-        <div class="grid grid-cols-2 gap-4 mb-5 sm:grid-cols-4">
-          <div v-for="b in bloquesPreview" :key="b.l">
-            <div class="text-xs tracking-wide text-gray-400 uppercase">{{ b.l }}</div>
-            <div class="mt-1 text-lg font-semibold tabular-nums">{{ b.v }}</div>
-          </div>
-        </div>
-
-        <div
-          v-if="preview?.tiene_borradores"
-          class="p-4 mb-5 border rounded-md bg-amber-50 border-amber-200"
-        >
-          <p class="text-sm font-semibold text-amber-800">{{ $t('gestoria.drafts_title') }}</p>
-          <ul class="mt-2 ml-4 text-sm list-disc text-amber-700">
-            <li v-for="d in preview.borradores" :key="d.tipo">{{ d.total }} {{ d.tipo }}</li>
-          </ul>
-          <p class="mt-2 text-sm text-amber-700">{{ $t('gestoria.drafts_help') }}</p>
-        </div>
-
-        <div class="p-4 border border-red-300 rounded-md bg-red-50">
-          <p class="text-sm font-semibold text-red-800">{{ $t('gestoria.irreversible_title') }}</p>
-          <ul class="mt-2 ml-4 space-y-1 text-sm text-red-700 list-disc">
-            <li>{{ $t('gestoria.irreversible_1') }}</li>
-            <li>{{ $t('gestoria.irreversible_2') }}</li>
-            <li>{{ $t('gestoria.irreversible_3') }}</li>
-          </ul>
-        </div>
-      </div>
-
-      <template #footer>
-        <div class="flex flex-wrap justify-end gap-3 px-8 py-4 border-t border-gray-200">
-          <BaseButton variant="white" @click="modal = false">{{ $t('general.cancel') }}</BaseButton>
-          <BaseButton variant="danger" :loading="cerrando" @click="cerrarMes">
-            {{ $t('gestoria.confirm_close') }}
-          </BaseButton>
-        </div>
-      </template>
-    </BaseModal>
+    <ModalCierreMes
+      :show="modal"
+      :preview="preview"
+      :cerrando="cerrando"
+      :money="money"
+      @close="modal = false"
+      @confirmar="cerrarMes"
+    />
   </BasePage>
 </template>
 
@@ -283,6 +254,7 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import axios from 'axios'
 import { useNotificationStore } from '@/scripts/stores/notification'
+import ModalCierreMes from './ModalCierreMes.vue'
 
 const { t } = useI18n()
 const notificationStore = useNotificationStore()
@@ -388,16 +360,6 @@ const bloquesAnuales = computed(() => {
   ]
 })
 
-const bloquesPreview = computed(() => {
-  const x = preview.value?.totales
-  if (!x) return []
-  return [
-    { l: t('gestoria.facturas'), v: x.facturas },
-    { l: t('gestoria.neto'), v: money(x.neto) + ' €' },
-    { l: t('gestoria.iva'), v: money(x.iva) + ' €' },
-    { l: t('gestoria.bruto'), v: money(x.bruto) + ' €' },
-  ]
-})
 
 async function cargarEstado() {
   try {
@@ -431,16 +393,15 @@ async function abrirCierre(mes) {
   }
 }
 
-async function cerrarMes() {
+async function cerrarMes(descargar = false) {
   cerrando.value = true
+  const mes = mesElegido.value
   try {
-    const { data } = await axios.post('/api/v1/closed-months', {
-      year: mesElegido.value.year,
-      month: mesElegido.value.month,
-    })
+    const { data } = await axios.post('/api/v1/closed-months', { year: mes.year, month: mes.month })
     notificationStore.showNotification({ type: 'success', message: data.message })
     modal.value = false
     await cargarMeses()
+    if (descargar) await descargarCsv(mes)
   } catch (e) {
     notificationStore.showNotification({
       type: 'error',
@@ -448,6 +409,28 @@ async function cerrarMes() {
     })
   } finally {
     cerrando.value = false
+  }
+}
+
+// CSV de un mes cerrado: lo mismo que ha recibido la gestoría
+async function descargarCsv(mes) {
+  try {
+    const res = await axios.get('/api/v1/closed-months/export', {
+      params: { year: mes.year, month: mes.month },
+      responseType: 'blob',
+    })
+    const cab = res.headers['content-disposition'] || ''
+    const nombre = (cab.match(/filename="([^"]+)"/) || [])[1] || `onfactu_${mes.year}_${mes.month}.csv`
+    const url = URL.createObjectURL(res.data)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = nombre
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    URL.revokeObjectURL(url)
+  } catch (e) {
+    notificationStore.showNotification({ type: 'error', message: t('gestoria.csv_error') })
   }
 }
 
