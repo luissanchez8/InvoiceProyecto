@@ -32,6 +32,8 @@
     '#onf-demo-candado[hidden]{display:none}' +
     '#onf-demo-candado .caja{background:#fff;border-radius:16px;box-shadow:0 10px 40px rgba(7,3,34,.12);' +
       'max-width:400px;width:100%;padding:36px 32px;text-align:center}' +
+    // Los estilos base de la aplicación ponen los SVG como bloque: se centra con márgenes
+    '#onf-demo-candado svg{display:block;margin:0 auto}' +
     '#onf-demo-candado h2{font-size:21px;font-weight:700;color:#070322;margin:16px 0 8px}' +
     '#onf-demo-candado p{font-size:15px;line-height:1.55;color:#4b5563;margin:0 0 24px}' +
     '#onf-demo-candado .principal{display:block;background:#38d587;color:#070322;font-weight:700;' +
