@@ -1,9 +1,9 @@
 <template>
   <PaymentsTabPaymentNumber />
 
-  <BaseDivider class="my-8" />
-
+  <!-- SOLO asistencia; su separador va dentro para no dejar dos líneas seguidas -->
   <template v-if="isAsistencia">
+    <BaseDivider class="my-8" />
     <PaymentsTabDefaultFormats />
     <BaseDivider class="mt-6 mb-2" />
     <ul class="divide-y divide-gray-200">

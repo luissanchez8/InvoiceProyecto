@@ -109,12 +109,12 @@
                     >{{ NOMBRES[mes.month - 1] }}</span>
                   </td>
                   <td class="px-6 py-4">
-                    <span class="px-2 py-1 text-xs font-semibold rounded whitespace-nowrap" :class="pillClass(mes.estado)">
+                    <span class="px-2 py-1 text-sm uppercase font-normal text-center whitespace-nowrap" :class="pillClass(mes.estado)">
                       {{ $t('gestoria.state_' + mes.estado) }}
                     </span>
                     <span
                       v-if="mes.estado === 'cerrado' && mes.entregado === false"
-                      class="block mt-1.5 text-xs text-amber-600 whitespace-nowrap"
+                      class="block w-fit mt-1.5 px-2 py-1 text-sm uppercase font-normal text-center whitespace-nowrap bg-orange-300 bg-opacity-30 text-orange-900"
                     >{{ $t('gestoria.not_delivered') }}</span>
                   </td>
                   <td class="px-6 py-4 text-right tabular-nums" :class="cellClass(mes)">
@@ -177,7 +177,7 @@
                     </div>
                   </td>
                   <td class="px-6 py-6">
-                    <span class="px-2 py-1 text-xs font-semibold rounded whitespace-nowrap" :class="pillClass(tri.estado)">
+                    <span class="px-2 py-1 text-sm uppercase font-normal text-center whitespace-nowrap" :class="pillClass(tri.estado)">
                       {{ $t('gestoria.state_' + tri.estado) }}
                     </span>
                   </td>
@@ -217,7 +217,7 @@
             <p class="mt-0.5 text-xs text-white/50">{{ $t('gestoria.total_year_help') }}</p>
           </div>
           <span
-            class="px-2 py-1 text-xs font-semibold rounded"
+            class="px-2 py-1 text-sm uppercase font-normal text-center whitespace-nowrap"
             :class="anioCompleto ? 'bg-[#38d587] text-[#070322]' : 'bg-white/15 text-white'"
           >{{ anioCompleto ? $t('gestoria.year_complete') : $t('gestoria.year_ongoing') }}</span>
           <div class="flex justify-end ml-auto w-52"></div>
@@ -297,13 +297,14 @@ function money(v) {
 
 function pillClass(e) {
   return {
-    cerrado: 'bg-emerald-50 text-emerald-700',
-    completo: 'bg-emerald-50 text-emerald-700',
-    abierto: 'bg-amber-50 text-amber-700',
-    incompleto: 'bg-amber-50 text-amber-700',
-    en_curso: 'bg-blue-50 text-blue-700',
-    futuro: 'bg-gray-100 text-gray-400',
-  }[e] || 'bg-gray-100 text-gray-500'
+    // Onfactu: mismos colores que las etiquetas de facturas (BaseInvoiceStatusBadge)
+    cerrado: 'bg-green-500 bg-opacity-25 text-green-900',
+    completo: 'bg-green-500 bg-opacity-25 text-green-900',
+    abierto: 'bg-yellow-500 bg-opacity-25 text-yellow-900',
+    incompleto: 'bg-yellow-500 bg-opacity-25 text-yellow-900',
+    en_curso: 'bg-blue-400 bg-opacity-25 text-blue-900',
+    futuro: 'bg-gray-500 bg-opacity-25 text-gray-900',
+  }[e] || 'bg-gray-500 bg-opacity-25 text-gray-900'
 }
 
 function cellClass(mes) {

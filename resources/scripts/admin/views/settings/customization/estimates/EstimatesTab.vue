@@ -10,13 +10,11 @@
 
   <EstimatesTabConvertEstimate />
 
-  <BaseDivider class="my-8" />
-
-  <!-- Formatos por defecto: SOLO asistencia -->
-  <EstimatesTabDefaultFormats v-if="isAsistencia" />
-
-  <!-- Adjuntar estimación: SOLO asistencia (sin líneas sueltas) -->
+  <!-- Formatos por defecto y adjunto: SOLO asistencia. Su separador va dentro
+       para que un usuario normal no vea dos líneas seguidas. -->
   <template v-if="isAsistencia">
+    <BaseDivider class="my-8" />
+    <EstimatesTabDefaultFormats />
     <BaseDivider class="mt-6 mb-2" />
     <ul class="divide-y divide-gray-200">
       <BaseSwitchSection

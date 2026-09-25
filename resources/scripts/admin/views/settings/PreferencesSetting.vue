@@ -152,7 +152,9 @@
         {{ $t('settings.company_info.save') }}
       </BaseButton>
 
-      <BaseDivider class="mt-6 mb-2" />
+      <!-- Onfactu: los separadores de abajo solo tienen sentido con los
+           ajustes de asistencia; sin ellos quedaban dos líneas sueltas. -->
+      <BaseDivider v-if="isAsistencia" class="mt-6 mb-2" />
 
       <!-- Expirar enlaces públicos (solo asistencia) -->
       <form @submit.prevent="submitData">
@@ -192,7 +194,7 @@
         </BaseButton>
       </form>
 
-      <BaseDivider class="mt-6 mb-2" />
+      <BaseDivider v-if="isAsistencia" class="mt-6 mb-2" />
 
       <!-- Descuento por artículo (solo asistencia) -->
       <BaseSwitchSection

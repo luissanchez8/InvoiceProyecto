@@ -7,10 +7,6 @@
 
   <BaseDivider class="my-8" />
 
-  <InvoicesTabRetrospective />
-
-  <BaseDivider class="my-8" />
-
   <!--
     VeriFactu
     ---------
@@ -49,13 +45,11 @@
     </p>
   </div>
 
-  <BaseDivider class="my-8" />
-
-  <!-- Formatos por defecto: SOLO asistencia -->
-  <InvoicesTabDefaultFormats v-if="isAsistencia" />
-
-  <!-- Adjuntar factura: SOLO asistencia (sin líneas sueltas) -->
+  <!-- Formatos por defecto y adjunto: SOLO asistencia. Su separador va dentro
+       para que un usuario normal no vea dos líneas seguidas. -->
   <template v-if="isAsistencia">
+    <BaseDivider class="my-8" />
+    <InvoicesTabDefaultFormats />
     <BaseDivider class="mt-6 mb-2" />
     <ul class="divide-y divide-gray-200">
       <BaseSwitchSection
@@ -82,7 +76,6 @@ import { useDialogStore } from '@/scripts/stores/dialog'
 import { useNotificationStore } from '@/scripts/stores/notification'
 import { useI18n } from 'vue-i18n'
 import InvoicesTabInvoiceNumber from './InvoicesTabInvoiceNumber.vue'
-import InvoicesTabRetrospective from './InvoicesTabRetrospective.vue'
 import InvoicesTabDueDate from './InvoicesTabDueDate.vue'
 import InvoicesTabDefaultFormats from './InvoicesTabDefaultFormats.vue'
 import InvoicesTabFooter from './InvoicesTabFooter.vue'
