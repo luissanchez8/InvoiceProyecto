@@ -51,8 +51,25 @@ Efecto para los clientes: tuvieron que iniciar sesión una vez más.
 - **Instancias existentes:** `tools/cookies_por_instancia.sh <instancia>...` o `--todas`. Recrea el contenedor y se puede repetir sin problema.
 - **Altas nuevas:** `crearInstancia.sh` ya pone las dos variables, tanto en el `.env` de la instancia como en el que retoca dentro del contenedor.
 
+## Sesiones: duración y aviso de caducidad
+
+Desde la v.1.12.2, la sesión dura **8 horas sin actividad** (`SESSION_LIFETIME=480`). Antes eran 2 horas y los clientes perdían la sesión a media mañana. Las sesiones se guardan en ficheros (`SESSION_DRIVER=file`).
+
+Al caducar, aparece "Tu sesión ha caducado. Vuelve a iniciar sesión." y se vuelve al acceso. El aviso sale una sola vez, aunque fallen varias peticiones a la vez.
+
+### Por qué salía "Unauthenticated." en rojo
+
+El frontend reconocía la sesión caducada por el texto "Unauthorized" de la respuesta. Con HTTP/2, que es lo que sirve Caddy, ese texto llega vacío: no lo detectaba, mostraba el mensaje del servidor en inglés y no llevaba al acceso. Ahora se mira el código de respuesta: 401, o 419 cuando lo que ha caducado es el token de seguridad (CSRF) de la sesión. Está en `resources/scripts/helpers/error-handling.js`.
+
+### Dónde se configura
+
+- **Instancias existentes:** `tools/env_instancias.sh SESSION_LIFETIME 480 <instancia>...` o `--todas`. Cambia cualquier variable en el `.env`, en `conf/.env` y en el `docker-compose.yml` (que tiene prioridad sobre el `.env`), y recrea el contenedor. Se puede repetir sin problema.
+  Recrea con la imagen actual pero **no registra la versión**: si se usa como despliegue, después `~/redeploy_instancias.sh --solo-version`.
+- **Altas nuevas:** la plantilla `plantilla.yml` y el `.env` de `conf/` ya llevan 480.
+
 ## Cosas que cuestan descubrir
 
 - **Nunca `sed -i` sobre un fichero que un contenedor monta suelto**, como el `Caddyfile`. `sed -i` crea un fichero nuevo y el contenedor sigue viendo el antiguo hasta reiniciarlo. Para editarlo: `sed ... > /tmp/x && cat /tmp/x > fichero`, que conserva el mismo fichero.
 - **`cfctl.js` y `crearInstancia.sh` rechazan subdominios de menos de 5 letras.** Para uno así, el DNS se crea con la API de Cloudflare.
 - **Un error de TLS "internal error" en un dominio nuestro** suele ser que Caddy no tiene su certificado: o no ve el bloque, o no pudo sacarlo.
+- **Con HTTP/2 el texto del estado de la respuesta llega vacío.** Para reconocer un error hay que mirar el código (401, 419…), nunca el texto ("Unauthorized").
