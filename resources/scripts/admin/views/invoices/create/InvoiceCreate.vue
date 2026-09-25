@@ -109,9 +109,9 @@
             @click="approveForm"
           >
             <template #left="slotProps">
-              <BaseIcon
+              <IconoAprobada
                 v-if="!isApproving"
-                name="CheckCircleIcon"
+                color="currentColor"
                 :class="slotProps.class"
               />
             </template>
@@ -222,6 +222,7 @@ import ItemModal from '@/scripts/admin/components/modal-components/ItemModal.vue
 import SalesTax from '@/scripts/admin/components/estimate-invoice-common/SalesTax.vue'
 import AprobarFacturaDialog from '@/scripts/admin/components/modal-components/AprobarFacturaDialog.vue'
 import { useAprobarFactura } from '@/scripts/admin/composables/useAprobarFactura'
+import IconoAprobada from '@/scripts/components/icons/estados/IconoAprobada.vue'
 import { useNotificationStore } from '@/scripts/stores/notification'
 import NumberWarningDialog from '@/scripts/admin/components/dialogs/NumberWarningDialog.vue'
 import axios from 'axios'

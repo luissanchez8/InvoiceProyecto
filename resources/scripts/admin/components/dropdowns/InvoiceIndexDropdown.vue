@@ -97,7 +97,7 @@
       v-if="row.status === 'DRAFT' && route.name !== 'invoices.view' && userStore.hasAbilities(abilities.SEND_INVOICE)"
       @click="pedirAprobacion(row)"
     >
-      <BaseIcon name="LockClosedIcon" class="w-5 h-5 mr-3 text-gray-400 group-hover:text-gray-500" />
+      <IconoAprobada color="currentColor" class="w-5 h-5 mr-3 text-gray-400 group-hover:text-gray-500" />
       {{ $t('estados.aprobar') }}
     </BaseDropdownItem>
 
@@ -185,6 +185,7 @@ import { inject, computed} from 'vue'
 import abilities from '@/scripts/admin/stub/abilities'
 import CompartirPdf from '@/scripts/admin/components/CompartirPdf.vue'
 import { useAprobarFactura } from '@/scripts/admin/composables/useAprobarFactura'
+import IconoAprobada from '@/scripts/components/icons/estados/IconoAprobada.vue'
 
 const props = defineProps({
   // Onfactu: "Ver PDF" y "Compartir" solo se muestran en la vista de detalle

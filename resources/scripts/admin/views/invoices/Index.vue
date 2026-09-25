@@ -163,7 +163,7 @@
 
           <!-- Onfactu v.1.13: aprobar varias a la vez -->
           <BaseDropdownItem v-if="userStore.hasAbilities(abilities.SEND_INVOICE)" @click="aprobarSeleccionadas">
-            <BaseIcon name="LockClosedIcon" class="mr-3 text-gray-600" />
+            <IconoAprobada color="currentColor" class="w-5 h-5 mr-3 text-gray-600" />
             {{ $t('estados.aprobar') }}
           </BaseDropdownItem>
           <BaseDropdownItem v-if="userStore.hasAbilities(abilities.DELETE_INVOICE)" @click="removeMultipleInvoices">
@@ -299,6 +299,7 @@ import InvoiceDropdown from '@/scripts/admin/components/dropdowns/InvoiceIndexDr
 import SendInvoiceModal from '@/scripts/admin/components/modal-components/SendInvoiceModal.vue'
 import AprobarFacturaDialog from '@/scripts/admin/components/modal-components/AprobarFacturaDialog.vue'
 import EstadoFactura from '@/scripts/components/estados/EstadoFactura.vue'
+import IconoAprobada from '@/scripts/components/icons/estados/IconoAprobada.vue'
 import { useAprobarFactura } from '@/scripts/admin/composables/useAprobarFactura'
 import BaseInvoiceStatusLabel from "@/scripts/components/base/BaseInvoiceStatusLabel.vue";
 import { useCompanyStore } from '@/scripts/admin/stores/company'

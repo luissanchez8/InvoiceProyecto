@@ -15,6 +15,7 @@ import { useNotificationStore } from '@/scripts/stores/notification'
 import SendInvoiceModal from '@/scripts/admin/components/modal-components/SendInvoiceModal.vue'
 import AprobarFacturaDialog from '@/scripts/admin/components/modal-components/AprobarFacturaDialog.vue'
 import EstadoFactura from '@/scripts/components/estados/EstadoFactura.vue'
+import IconoAprobada from '@/scripts/components/icons/estados/IconoAprobada.vue'
 import { useAprobarFactura } from '@/scripts/admin/composables/useAprobarFactura'
 import InvoiceDropdown from '@/scripts/admin/components/dropdowns/InvoiceIndexDropdown.vue'
 import LoadingIcon from '@/scripts/components/icons/LoadingIcon.vue'
@@ -352,7 +353,7 @@ onSearched = debounce(onSearched, 500)
           @click="onApproveInvoice"
         >
           <template #left="slotProps">
-            <BaseIcon name="LockClosedIcon" :class="slotProps.class" />
+            <IconoAprobada color="currentColor" :class="slotProps.class" />
           </template>
           {{ $t('estados.aprobar') }}
         </BaseButton>
