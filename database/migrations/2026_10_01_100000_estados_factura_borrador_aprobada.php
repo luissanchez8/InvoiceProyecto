@@ -68,13 +68,14 @@ return new class extends Migration
             ->update(['status' => 'DRAFT', 'invoice_number' => null, 'sequence_number' => null]);
 
         // Fecha de envío: la del último email que consta. Si se marcó como
-        // enviada a mano, no hay fecha: se queda solo "enviada".
+        // enviada a mano, no hay fecha: se queda solo "enviada". mailable_id es texto:
+        // por eso i.id::text.
         DB::statement("
             UPDATE invoices i SET sent_at = e.ultima
             FROM (SELECT mailable_id, MAX(created_at) AS ultima
                   FROM email_logs WHERE mailable_type = 'App\\Models\\Invoice'
                   GROUP BY mailable_id) e
-            WHERE e.mailable_id = i.id AND i.sent_at IS NULL
+            WHERE e.mailable_id = i.id::text AND i.sent_at IS NULL
         ");
 
         DB::table('recurring_invoices')->where('send_automatically', true)->update(['auto_approve' => true]);
