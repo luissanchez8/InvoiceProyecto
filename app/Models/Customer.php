@@ -18,6 +18,17 @@ use Spatie\MediaLibrary\InteractsWithMedia;
 
 class Customer extends Authenticatable implements HasMedia
 {
+    // Onfactu: ordenar solo por campos permitidos (ver Concerns/OrdenSeguro)
+    use \App\Models\Concerns\OrdenSeguro;
+
+    /** Onfactu: campos calculados de la lista que se pueden ordenar. */
+    protected function ordenesExtra(): array
+    {
+        return [
+            'due_amount' => 'SELECT COALESCE(SUM(due_amount), 0) FROM invoices WHERE invoices.customer_id = customers.id',
+        ];
+    }
+
     use HasApiTokens;
     use HasCustomFieldsTrait;
     use HasFactory;
@@ -269,7 +280,7 @@ class Customer extends Authenticatable implements HasMedia
 
     public function scopeWhereOrder($query, $orderByField, $orderBy)
     {
-        $query->orderBy($orderByField, $orderBy);
+        $query->ordenSeguro($orderByField, $orderBy);
     }
 
     public function scopeWhereSearch($query, $search)

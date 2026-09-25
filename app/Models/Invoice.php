@@ -22,6 +22,17 @@ use Vinkla\Hashids\Facades\Hashids;
 
 class Invoice extends Model implements HasMedia
 {
+    // Onfactu: ordenar solo por campos permitidos (ver Concerns/OrdenSeguro)
+    use \App\Models\Concerns\OrdenSeguro;
+
+    /** Onfactu: campos calculados de la lista que se pueden ordenar. */
+    protected function ordenesExtra(): array
+    {
+        return [
+            'name' => 'SELECT name FROM customers WHERE customers.id = invoices.customer_id',
+        ];
+    }
+
     use GeneratesPdfTrait;
     use HasCustomFieldsTrait;
     use HasFactory;
@@ -324,7 +335,7 @@ class Invoice extends Model implements HasMedia
 
     public function scopeWhereOrder($query, $orderByField, $orderBy)
     {
-        $query->orderBy($orderByField, $orderBy);
+        $query->ordenSeguro($orderByField, $orderBy);
     }
 
     public function scopeApplyFilters($query, array $filters)
@@ -353,7 +364,7 @@ class Invoice extends Model implements HasMedia
             $query->where('customer_id', $customerId);
         })->when($filters['orderByField'] ?? null, function ($query, $orderByField) use ($filters) {
             $orderBy = $filters['orderBy'] ?? 'desc';
-            $query->orderBy($orderByField, $orderBy);
+            $query->ordenSeguro($orderByField, $orderBy);
         }, function ($query) {
             $query->orderBy('sequence_number', 'desc');
         });

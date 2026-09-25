@@ -11,6 +11,17 @@ use Illuminate\Support\Facades\Auth;
 
 class Item extends Model
 {
+    // Onfactu: ordenar solo por campos permitidos (ver Concerns/OrdenSeguro)
+    use \App\Models\Concerns\OrdenSeguro;
+
+    /** Onfactu: campos calculados de la lista que se pueden ordenar. */
+    protected function ordenesExtra(): array
+    {
+        return [
+            'unit_name' => 'SELECT name FROM units WHERE units.id = items.unit_id',
+        ];
+    }
+
     use HasFactory;
 
     protected $guarded = ['id'];
@@ -63,7 +74,7 @@ class Item extends Model
 
     public function scopeWhereOrder($query, $orderByField, $orderBy)
     {
-        $query->orderBy($orderByField, $orderBy);
+        $query->ordenSeguro($orderByField, $orderBy);
     }
 
     public function scopeWhereItem($query, $item_id)

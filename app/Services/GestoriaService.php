@@ -244,6 +244,32 @@ class GestoriaService
         }
     }
 
+    /**
+     * Copia a la central el nombre, el NIF y el logo de la empresa, para que
+     * el portal los muestre al día. Se llama al abrir la pantalla de gestoría
+     * y al cerrar un mes. Si la central no responde, no pasa nada: se
+     * intentará la próxima vez.
+     */
+    public static function sincronizarEmpresa(): void
+    {
+        try {
+            $empresa = \App\Models\Company::query()->orderBy('id')->first();
+            if (! $empresa) {
+                return;
+            }
+            DB::connection(self::CONN)->table('gestoria_cuentas')
+                ->where('subdominio', self::subdominio())
+                ->whereIn('estado', ['pendiente', 'aceptada'])
+                ->update([
+                    'empresa_nombre' => $empresa->name,
+                    'empresa_nif'    => $empresa->tax_id ?: $empresa->vat_id,
+                    'logo_url'       => $empresa->logo ?: null,
+                ]);
+        } catch (\Throwable $e) {
+            // Sin conexión con la central o sin la columna aún: se reintenta la próxima vez
+        }
+    }
+
     private static function nombreEmpresa(): ?string
     {
         try {

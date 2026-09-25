@@ -13,6 +13,18 @@ use Spatie\MediaLibrary\InteractsWithMedia;
 
 class Expense extends Model implements HasMedia
 {
+    // Onfactu: ordenar solo por campos permitidos (ver Concerns/OrdenSeguro)
+    use \App\Models\Concerns\OrdenSeguro;
+
+    /** Onfactu: campos calculados de la lista que se pueden ordenar. */
+    protected function ordenesExtra(): array
+    {
+        return [
+            'name' => 'SELECT name FROM expense_categories WHERE expense_categories.id = expenses.expense_category_id',
+            'user_name' => 'SELECT name FROM customers WHERE customers.id = expenses.customer_id',
+        ];
+    }
+
     use HasCustomFieldsTrait;
     use HasFactory;
     use InteractsWithMedia;
@@ -200,7 +212,7 @@ class Expense extends Model implements HasMedia
 
     public function scopeWhereOrder($query, $orderByField, $orderBy)
     {
-        $query->orderBy($orderByField, $orderBy);
+        $query->ordenSeguro($orderByField, $orderBy);
     }
 
     public function scopeWhereCompany($query)

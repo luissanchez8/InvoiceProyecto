@@ -15,6 +15,17 @@ use Vinkla\Hashids\Facades\Hashids;
 
 class RecurringInvoice extends Model
 {
+    // Onfactu: ordenar solo por campos permitidos (ver Concerns/OrdenSeguro)
+    use \App\Models\Concerns\OrdenSeguro;
+
+    /** Onfactu: campos calculados de la lista que se pueden ordenar. */
+    protected function ordenesExtra(): array
+    {
+        return [
+            'customer' => 'SELECT name FROM customers WHERE customers.id = recurring_invoices.customer_id',
+        ];
+    }
+
     use HasCustomFieldsTrait;
     use HasFactory;
 
@@ -137,7 +148,7 @@ class RecurringInvoice extends Model
 
     public function scopeWhereOrder($query, $orderByField, $orderBy)
     {
-        $query->orderBy($orderByField, $orderBy);
+        $query->ordenSeguro($orderByField, $orderBy);
     }
 
     public function scopeWhereStatus($query, $status)

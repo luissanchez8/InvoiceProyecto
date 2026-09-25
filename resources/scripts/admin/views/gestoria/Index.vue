@@ -135,7 +135,7 @@
                   <td class="px-6 py-4 text-right">
                     <template v-if="mes.totals">
                       <span class="text-gray-600 tabular-nums">{{ money(mes.totals.importe_gastos) }}</span>
-                      <span class="block mt-0.5 text-xs text-gray-400">
+                      <span v-if="mes.totals.gastos > 0" class="block mt-0.5 text-xs text-gray-400">
                         {{ $t('gestoria.records', { n: mes.totals.gastos }) }}
                       </span>
                     </template>
@@ -144,8 +144,8 @@
                   <td class="px-6 py-4 text-center">
                     <span
                       v-if="mes.totals && mes.totals.rectificativas"
-                      class="px-2 py-0.5 text-xs font-semibold rounded bg-amber-100 text-amber-800 tabular-nums"
-                    >{{ money(mes.totals.importe_rectificativas) }}</span>
+                      class="text-gray-600 tabular-nums"
+                    >{{ money(mes.totals.importe_rectificativas) }} €</span>
                     <span v-else class="text-gray-300">—</span>
                   </td>
                   <td class="px-6 py-4 text-right">

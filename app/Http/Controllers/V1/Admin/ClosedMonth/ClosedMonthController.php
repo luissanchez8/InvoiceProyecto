@@ -58,6 +58,9 @@ class ClosedMonthController extends Controller
         // pantalla (además de la tarea programada de cada hora).
         CierreMes::reenviarPendientes($companyId);
 
+        // Nombre, NIF y logo de la empresa al día en el portal de la gestoría
+        GestoriaService::sincronizarEmpresa();
+
         $cerrados = ClosedMonth::where('company_id', $companyId)->where('year', $year)->get()->keyBy('month');
         $hoy = now();
         $meses = [];
@@ -199,6 +202,8 @@ class ClosedMonthController extends Controller
             'sent_attempts' => 1,
         ]);
 
+        GestoriaService::sincronizarEmpresa();
+
         $mes = CierreMes::nombreMes($month, true).' de '.$year;
 
         return response()->json([
@@ -238,27 +243,35 @@ class ClosedMonthController extends Controller
     }
 
     /**
-     * Aviso de mes pendiente. A partir del día 15, si el mes anterior sigue
-     * abierto, se avisa (las gestorías suelen presentar sobre el día 19-20).
+     * Aviso de mes pendiente: desde el día 1, si el mes anterior sigue abierto.
+     *
+     * Si ese mes cierra un trimestre, el aviso da la fecha real de
+     * presentación del IVA (modelo 303): hasta el día 20 de abril, julio y
+     * octubre, y hasta el 30 de enero el cuarto trimestre.
      */
     private function avisoPendiente(int $companyId): ?array
     {
         $hoy = now();
-        if ($hoy->day < 15) {
+        $anterior = $hoy->copy()->subMonthNoOverflow();
+
+        if (ClosedMonth::where('company_id', $companyId)->where('year', $anterior->year)->where('month', $anterior->month)->exists()) {
             return null;
         }
 
-        $anterior = $hoy->copy()->subMonthNoOverflow();
-        if (ClosedMonth::where('company_id', $companyId)->where('year', $anterior->year)->where('month', $anterior->month)->exists()) {
-            return null;
+        $nombre = CierreMes::nombreMes($anterior->month);
+        $mensaje = 'Todavía no has cerrado '.$nombre.'. Ciérralo para que tu gestoría tenga tus facturas y gastos al día.';
+
+        if ($anterior->month % 3 === 0) {
+            $limite = $anterior->month === 12 ? 30 : 20;
+            $mensaje = 'Todavía no has cerrado '.$nombre.'. Tu gestoría presenta el IVA del trimestre hasta el '
+                .$limite.' de '.CierreMes::nombreMes($hoy->month).': ciérralo cuanto antes.';
         }
 
         return [
             'year'    => $anterior->year,
             'month'   => $anterior->month,
-            'nombre'  => CierreMes::nombreMes($anterior->month).' de '.$anterior->year,
-            'mensaje' => 'Todavía no has cerrado '.CierreMes::nombreMes($anterior->month)
-                        .'. Ciérralo para que tu gestoría pueda presentarlo a tiempo.',
+            'nombre'  => $nombre.' de '.$anterior->year,
+            'mensaje' => $mensaje,
         ];
     }
 

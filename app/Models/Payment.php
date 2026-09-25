@@ -19,6 +19,19 @@ use Vinkla\Hashids\Facades\Hashids;
 
 class Payment extends Model implements HasMedia
 {
+    // Onfactu: ordenar solo por campos permitidos (ver Concerns/OrdenSeguro)
+    use \App\Models\Concerns\OrdenSeguro;
+
+    /** Onfactu: campos calculados de la lista que se pueden ordenar. */
+    protected function ordenesExtra(): array
+    {
+        return [
+            'name' => 'SELECT name FROM customers WHERE customers.id = payments.customer_id',
+            'payment_mode' => 'SELECT name FROM payment_methods WHERE payment_methods.id = payments.payment_method_id',
+            'invoice_number' => 'SELECT invoice_number FROM invoices WHERE invoices.id = payments.invoice_id',
+        ];
+    }
+
     use GeneratesPdfTrait;
     use HasCustomFieldsTrait;
     use HasFactory;
@@ -349,7 +362,7 @@ class Payment extends Model implements HasMedia
 
     public function scopeWhereOrder($query, $orderByField, $orderBy)
     {
-        $query->orderBy($orderByField, $orderBy);
+        $query->ordenSeguro($orderByField, $orderBy);
     }
 
     public function scopeWherePayment($query, $payment_id)

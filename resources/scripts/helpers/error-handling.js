@@ -1,6 +1,10 @@
 import { useAuthStore } from '@/scripts/admin/stores/auth'
 import { useNotificationStore } from '@/scripts/stores/notification'
 
+// Onfactu: cuando caduca la sesión fallan varias peticiones a la vez;
+// se avisa una sola vez.
+let sesionCaducadaAvisada = false
+
 export const handleError = (err) => {
   const authStore = useAuthStore()
   const notificationStore = useNotificationStore()
@@ -59,19 +63,17 @@ export const handleError = (err) => {
   }
 
   // Tiene response: es un error HTTP normal
-  if (
-    err.response.data &&
-    (err.response.statusText === 'Unauthorized' ||
-      err.response.data === ' Unauthorized.')
-  ) {
-    // Unauthorized and log out
-    const msg = err.response.data.message
-      ? err.response.data.message
-      : 'Tu sesión ha caducado. Vuelve a iniciar sesión.'
-
-    showToaster(msg)
-
-    authStore.logout()
+  // Onfactu: sesión caducada. Se mira el código 401 y no el texto
+  // "Unauthorized", que con HTTP/2 llega vacío (por eso salía
+  // "Unauthenticated." en rojo y no llevaba al acceso). El 419 es el aviso
+  // de Laravel cuando el token de seguridad caduca junto con la sesión.
+  if (err.response.status === 401 || err.response.status === 419) {
+    if (!sesionCaducadaAvisada) {
+      sesionCaducadaAvisada = true
+      setTimeout(() => { sesionCaducadaAvisada = false }, 10000)
+      showToaster('Tu sesión ha caducado. Vuelve a iniciar sesión.', false)
+      authStore.logout()
+    }
   } else if (err.response.data.errors) {
     // Show a notification per error
     const errors = JSON.parse(JSON.stringify(err.response.data.errors))

@@ -8,6 +8,9 @@ use Illuminate\Database\Eloquent\Model;
 
 class FileDisk extends Model
 {
+    // Onfactu: ordenar solo por campos permitidos (ver Concerns/OrdenSeguro)
+    use \App\Models\Concerns\OrdenSeguro;
+
     use HasFactory;
 
     public const DISK_TYPE_SYSTEM = 'SYSTEM';
@@ -32,7 +35,7 @@ class FileDisk extends Model
 
     public function scopeWhereOrder($query, $orderByField, $orderBy)
     {
-        $query->orderBy($orderByField, $orderBy);
+        $query->ordenSeguro($orderByField, $orderBy);
     }
 
     public function scopeFileDisksBetween($query, $start, $end)

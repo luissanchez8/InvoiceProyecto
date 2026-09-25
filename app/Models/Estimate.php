@@ -22,6 +22,17 @@ use Vinkla\Hashids\Facades\Hashids;
 
 class Estimate extends Model implements HasMedia
 {
+    // Onfactu: ordenar solo por campos permitidos (ver Concerns/OrdenSeguro)
+    use \App\Models\Concerns\OrdenSeguro;
+
+    /** Onfactu: campos calculados de la lista que se pueden ordenar. */
+    protected function ordenesExtra(): array
+    {
+        return [
+            'name' => 'SELECT name FROM customers WHERE customers.id = estimates.customer_id',
+        ];
+    }
+
     use GeneratesPdfTrait;
     use HasCustomFieldsTrait;
     use HasFactory;
@@ -204,7 +215,7 @@ class Estimate extends Model implements HasMedia
 
     public function scopeWhereOrder($query, $orderByField, $orderBy)
     {
-        $query->orderBy($orderByField, $orderBy);
+        $query->ordenSeguro($orderByField, $orderBy);
     }
 
     public function scopeWhereCompany($query)
