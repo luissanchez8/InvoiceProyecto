@@ -7,6 +7,25 @@
       type="recurring-invoice"
     />
 
+    <!-- Onfactu v.1.13: aprobar sola la factura generada, o crearla en borrador -->
+    <div class="flex mt-7">
+      <div class="relative w-20 mt-8">
+        <BaseSwitch
+          v-model="recurringInvoiceStore.newRecurringInvoice.auto_approve"
+          class="absolute -top-4"
+        />
+      </div>
+
+      <div class="ml-2">
+        <p class="p-0 mb-1 leading-snug text-left text-black">
+          {{ $t('estados.aprobar_automaticamente') }}
+        </p>
+        <p class="p-0 m-0 text-xs leading-tight text-left text-gray-500" style="max-width: 480px">
+          {{ $t('estados.aprobar_automaticamente_desc') }}
+        </p>
+      </div>
+    </div>
+
     <div class="flex mt-7">
       <div class="relative w-20 mt-8">
         <BaseSwitch
@@ -258,6 +277,20 @@ const recurringInvoiceStore = useRecurringInvoiceStore()
 const paymentStore = usePaymentStore()
 const globalStore = useGlobalStore()
 const { t } = useI18n()
+
+// Onfactu v.1.13: una factura solo se envía sola si se aprueba sola
+watch(
+  () => recurringInvoiceStore.newRecurringInvoice.auto_approve,
+  (aprobar) => {
+    if (!aprobar) recurringInvoiceStore.newRecurringInvoice.send_automatically = false
+  }
+)
+watch(
+  () => recurringInvoiceStore.newRecurringInvoice.send_automatically,
+  (enviar) => {
+    if (enviar) recurringInvoiceStore.newRecurringInvoice.auto_approve = true
+  }
+)
 
 const isLoadingNextDate = ref(false)
 

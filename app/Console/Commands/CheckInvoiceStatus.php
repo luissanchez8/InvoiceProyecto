@@ -40,7 +40,9 @@ class CheckInvoiceStatus extends Command
     public function handle(): void
     {
         $date = Carbon::now();
-        $invoices = Invoice::whereNotIn('status', [Invoice::STATUS_COMPLETED, Invoice::STATUS_DRAFT])
+        // Onfactu v.1.13: vencidas son las aprobadas sin cobrar del todo
+        $invoices = Invoice::where('status', Invoice::STATUS_APPROVED)
+            ->where('paid_status', '<>', Invoice::STATUS_PAID)
             ->where('overdue', false)
             ->whereDate('due_date', '<', $date)
             ->get();

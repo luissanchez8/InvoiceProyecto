@@ -37,17 +37,16 @@
         />
       </BaseInputGroup>
 
+      <!-- Onfactu v.1.13: el número se asigna al aprobar; no se escribe a mano -->
       <BaseInputGroup
         :label="$t('invoices.invoice_number')"
         :content-loading="isLoading"
-        :error="v.invoice_number.$error && v.invoice_number.$errors[0].$message"
-        :help-text="$t('invoices.invoice_number_help')"
+        :help-text="$t('estados.numero_al_aprobar_ayuda')"
       >
         <BaseInput
-          v-model="invoiceStore.newInvoice.invoice_number"
+          :model-value="invoiceStore.newInvoice.invoice_number || $t('estados.numero_al_aprobar')"
           :content-loading="isLoading"
-          :placeholder="$t('invoices.invoice_number_placeholder')"
-          @input="v.invoice_number.$touch()"
+          disabled
         />
       </BaseInputGroup>
 

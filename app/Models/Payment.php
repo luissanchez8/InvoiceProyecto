@@ -170,6 +170,12 @@ class Payment extends Model implements HasMedia
 
         if ($request->invoice_id) {
             $invoice = Invoice::find($request->invoice_id);
+            if ($invoice && $invoice->status === Invoice::STATUS_DRAFT) {
+                // Onfactu v.1.13: un borrador no admite cobros; hay que aprobarlo antes
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'invoice_id' => 'Aprueba la factura antes de registrar un cobro.',
+                ]);
+            }
             $invoice->subtractInvoicePayment($request->amount);
         }
 
@@ -214,6 +220,12 @@ class Payment extends Model implements HasMedia
 
         if ($request->invoice_id && (! $this->invoice_id || $this->invoice_id !== $request->invoice_id)) {
             $invoice = Invoice::find($request->invoice_id);
+            if ($invoice && $invoice->status === Invoice::STATUS_DRAFT) {
+                // Onfactu v.1.13: un borrador no admite cobros; hay que aprobarlo antes
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'invoice_id' => 'Aprueba la factura antes de registrar un cobro.',
+                ]);
+            }
             $invoice->subtractInvoicePayment($request->amount);
         }
 

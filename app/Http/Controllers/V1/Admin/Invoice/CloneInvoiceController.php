@@ -59,9 +59,10 @@ class CloneInvoiceController extends Controller
         $newInvoice = Invoice::create([
             'invoice_date' => $date->format('Y-m-d'),
             'due_date' => $due_date,
-            'invoice_number' => $serial->getNextNumber(),
-            'sequence_number' => $serial->nextSequenceNumber,
-            'customer_sequence_number' => $serial->nextCustomerSequenceNumber,
+            // Onfactu v.1.13: la copia es un borrador y no consume número
+            'invoice_number' => null,
+            'sequence_number' => null,
+            'customer_sequence_number' => null,
             'reference_number' => $invoice->reference_number,
             'customer_id' => $invoice->customer_id,
             'company_id' => $request->header('company'),

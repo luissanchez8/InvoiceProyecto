@@ -82,7 +82,7 @@
     <!-- Record payment  -->
     <router-link :to="`/admin/payments/${row.id}/create`">
       <BaseDropdownItem
-        v-if="row.status == 'SENT' && route.name !== 'invoices.view'"
+        v-if="row.status === 'APPROVED' && row.paid_status !== 'PAID' && route.name !== 'invoices.view'"
       >
         <BaseIcon
           name="CreditCardIcon"
@@ -92,8 +92,26 @@
       </BaseDropdownItem>
     </router-link>
 
+    <!-- Onfactu v.1.13: aprobar (en la ficha va en un botón) -->
+    <BaseDropdownItem
+      v-if="row.status === 'DRAFT' && route.name !== 'invoices.view' && userStore.hasAbilities(abilities.SEND_INVOICE)"
+      @click="pedirAprobacion(row)"
+    >
+      <BaseIcon name="LockClosedIcon" class="w-5 h-5 mr-3 text-gray-400 group-hover:text-gray-500" />
+      {{ $t('estados.aprobar') }}
+    </BaseDropdownItem>
+
+    <!-- Onfactu v.1.13: darla por cobrada sin registrar un cobro -->
+    <BaseDropdownItem
+      v-if="row.status === 'APPROVED' && row.paid_status !== 'PAID' && userStore.hasAbilities(abilities.CREATE_PAYMENT)"
+      @click="onMarcarCobrada(row)"
+    >
+      <BaseIcon name="BanknotesIcon" class="w-5 h-5 mr-3 text-gray-400 group-hover:text-gray-500" />
+      {{ $t('estados.marcar_cobrada') }}
+    </BaseDropdownItem>
+
     <!-- Mark as sent Invoice -->
-    <BaseDropdownItem v-if="canSendInvoice(row)" @click="onMarkAsSent(row.id)">
+    <BaseDropdownItem v-if="!row.sent && userStore.hasAbilities(abilities.SEND_INVOICE)" @click="onMarkAsSent(row.id)">
       <BaseIcon
         name="CheckCircleIcon"
         class="w-5 h-5 mr-3 text-gray-400 group-hover:text-gray-500"
@@ -166,6 +184,7 @@ import { useUserStore } from '@/scripts/admin/stores/user'
 import { inject, computed} from 'vue'
 import abilities from '@/scripts/admin/stub/abilities'
 import CompartirPdf from '@/scripts/admin/components/CompartirPdf.vue'
+import { useAprobarFactura } from '@/scripts/admin/composables/useAprobarFactura'
 
 const props = defineProps({
   // Onfactu: "Ver PDF" y "Compartir" solo se muestran en la vista de detalle
@@ -199,17 +218,41 @@ const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const utils = inject('utils')
+const { pedirAprobacion } = useAprobarFactura()
+
+// Onfactu v.1.13: darla por cobrada. En la ficha, la fila es la propia factura:
+// se actualiza para que desaparezca "Registrar cobro".
+function onMarcarCobrada(row) {
+  dialogStore
+    .openDialog({
+      title: t('general.are_you_sure'),
+      message: t('estados.marcar_cobrada_confirmar'),
+      yesLabel: t('general.ok'),
+      noLabel: t('general.cancel'),
+      variant: 'primary',
+      hideNoButton: false,
+      size: 'lg',
+    })
+    .then((ok) => {
+      if (!ok) return
+      invoiceStore.markAsPaid(row.id).then(() => {
+        props.row.paid_status = 'PAID'
+        props.row.due_amount = 0
+        props.table && props.table.refresh()
+      })
+    })
+}
 
 function canReSendInvoice(row) {
   return (
-    (row.status == 'SENT' || row.status == 'VIEWED') &&
+    row.sent &&
     userStore.hasAbilities(abilities.SEND_INVOICE)
   )
 }
 
 function canSendInvoice(row) {
   return (
-    row.status == 'DRAFT' &&
+    !row.sent &&
     route.name !== 'invoices.view' &&
     userStore.hasAbilities(abilities.SEND_INVOICE)
   )
@@ -304,6 +347,7 @@ async function onMarkAsSent(id) {
       }
       if (response) {
         invoiceStore.markAsSent(data).then((response) => {
+          props.row.sent = true
           props.table && props.table.refresh()
         })
       }

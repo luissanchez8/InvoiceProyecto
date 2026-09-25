@@ -36,7 +36,7 @@ class InvoicesRequest extends FormRequest
             'invoice_number' => [
                 // Onfactu: si el usuario guarda como borrador, el número no
                 // se asigna (queda NULL). Solo es obligatorio para no-borrador.
-                Rule::requiredIf(fn () => ($this->status ?? null) !== Invoice::STATUS_DRAFT),
+                'nullable', // Onfactu v.1.13: el número se asigna al aprobar
                 'nullable',
                 Rule::unique('invoices')->where('company_id', $this->header('company')),
             ],
@@ -107,7 +107,7 @@ class InvoicesRequest extends FormRequest
         if ($this->isMethod('PUT')) {
             $rules['invoice_number'] = [
                 // Onfactu: igual que en POST, opcional si se guarda como borrador.
-                Rule::requiredIf(fn () => ($this->status ?? null) !== Invoice::STATUS_DRAFT),
+                'nullable', // Onfactu v.1.13: el número se asigna al aprobar
                 'nullable',
                 Rule::unique('invoices')
                     ->ignore($this->route('invoice')->id)

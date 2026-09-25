@@ -160,12 +160,10 @@ const route = useRoute()
 const table = ref(null)
 let isFetchingInitialData = ref(true)
 let showFilters = ref(false)
+// Onfactu v.1.13: el cliente solo ve facturas aprobadas; filtra por el cobro
 const status = ref([
-  {label: t('general.draft'), value: 'DRAFT'},
-  {label: t('general.due'), value: 'DUE'},
-  {label: t('general.sent'), value: 'SENT'},
-  {label: t('invoices.viewed'), value: 'VIEWED'},
-  {label: t('invoices.completed'), value: 'COMPLETED'}
+  { label: t('estados.pendientes_cobro'), value: 'DUE' },
+  { label: t('estados.cobrada'), value: 'PAID' },
 ])
 const filters = reactive({
   status: '',

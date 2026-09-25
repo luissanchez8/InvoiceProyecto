@@ -2,13 +2,7 @@
   <SelectTemplateModal />
   <ItemModal />
   <TaxTypeModal />
-  <ApproveInvoiceDialog
-    :visible="showApproveDialog"
-    :loading="isApproving"
-    @approve="confirmApprove"
-    @save-draft="onApproveSaveDraft"
-    @cancel="onApproveCancelled"
-  />
+  <AprobarFacturaDialog :factura="facturaAAprobar" @cerrar="onAprobarCerrado" @aprobada="onAprobadaDesdeFormulario" />
   <NumberWarningDialog
     :visible="showNumberWarning"
     :loading="isSaving || isSavingDraft"
@@ -104,11 +98,10 @@
                 :class="slotProps.class"
               />
             </template>
-            {{ $t('invoices.save_invoice') }}
+            {{ $t('estados.guardar') }}
           </BaseButton>
 
           <BaseButton
-            v-if="verifactuEnabled"
             :loading="isApproving"
             :disabled="isSaving || isSavingDraft || isApproving"
             variant="primary"
@@ -122,7 +115,7 @@
                 :class="slotProps.class"
               />
             </template>
-            {{ $t('verifactu.approve_invoice') }}
+            {{ $t('estados.aprobar') }}
           </BaseButton>
         </template>
       </BasePageHeader>
@@ -227,12 +220,15 @@ import SelectTemplateModal from '@/scripts/admin/components/modal-components/Sel
 import TaxTypeModal from '@/scripts/admin/components/modal-components/TaxTypeModal.vue'
 import ItemModal from '@/scripts/admin/components/modal-components/ItemModal.vue'
 import SalesTax from '@/scripts/admin/components/estimate-invoice-common/SalesTax.vue'
-import ApproveInvoiceDialog from '@/scripts/admin/components/modal-components/ApproveInvoiceDialog.vue'
+import AprobarFacturaDialog from '@/scripts/admin/components/modal-components/AprobarFacturaDialog.vue'
+import { useAprobarFactura } from '@/scripts/admin/composables/useAprobarFactura'
+import { useNotificationStore } from '@/scripts/stores/notification'
 import NumberWarningDialog from '@/scripts/admin/components/dialogs/NumberWarningDialog.vue'
 import axios from 'axios'
 
 const invoiceStore = useInvoiceStore()
 const companyStore = useCompanyStore()
+const notificationStore = useNotificationStore()
 const customFieldStore = useCustomFieldStore()
 const moduleStore = useModuleStore()
 const notesStore = useNotesStore()
@@ -290,10 +286,9 @@ let isEdit = computed(() => route.name === 'invoices.edit')
 // Onfactu: el botón "Guardar como borrador" solo aparece si aún no hay número
 // de serie asignado (factura nueva o borrador-sin-número). Si ya tiene número,
 // no se puede volver a borrador-sin-número.
-const showDraftButton = computed(() => {
-  if (!isEdit.value) return true
-  return !invoiceStore.newInvoice.invoice_number
-})
+// Onfactu v.1.13: ya no hay dos formas de guardar. "Guardar" guarda siempre un
+// borrador y el número se asigna al aprobar.
+const showDraftButton = computed(() => false)
 
 const rules = {
   invoice_date: {
@@ -344,9 +339,9 @@ watch(
 )
 
 async function submitForm() {
-  // Onfactu: comprobar avisos antes de guardar. Si hay warning se muestra
-  // modal; si no, guarda directamente.
-  await preSave({ clearNumber: false })
+  // Onfactu v.1.13: guardar es guardar un borrador. El orden de números y
+  // fechas se comprueba al aprobar.
+  await doSave({ clearNumber: true })
 }
 
 // Onfactu: "Guardar como borrador" → envía invoice_number vacío para que
@@ -481,7 +476,7 @@ function onCancelNumberWarning() {
   isSavingDraft.value = false
 }
 
-async function doSave({ clearNumber }) {
+async function doSave({ clearNumber, sinNavegar = false }) {
   v$.value.$touch()
 
   // Al guardar como borrador no validamos invoice_number (el required es
@@ -543,6 +538,13 @@ async function doSave({ clearNumber }) {
 
     const response = await action(data)
 
+    // Onfactu v.1.13: al guardar para aprobar, se queda aquí y abre el diálogo
+    if (sinNavegar) {
+      isSaving.value = false
+      isSavingDraft.value = false
+      return response.data.data
+    }
+
     router.push(`/admin/invoices/${response.data.data.id}/view`)
   } catch (err) {
     console.error(err)
@@ -552,12 +554,30 @@ async function doSave({ clearNumber }) {
   isSavingDraft.value = false
 }
 
-function approveForm() {
-  v$.value.$touch()
-  if (v$.value.$invalid) {
-    return false
-  }
-  showApproveDialog.value = true
+// Onfactu v.1.13: aprobar desde el formulario = guardar el borrador y abrir
+// el diálogo de aprobar. Si se cancela, el borrador queda guardado.
+const { facturaAAprobar, pedirAprobacion, cerrarAprobacion } = useAprobarFactura()
+
+async function approveForm() {
+  isApproving.value = true
+  const guardada = await doSave({ clearNumber: true, sinNavegar: true })
+  isApproving.value = false
+  if (guardada && guardada.id) pedirAprobacion(guardada)
+}
+
+function onAprobarCerrado() {
+  const id = facturaAAprobar.value?.id
+  cerrarAprobacion()
+  if (id) router.push(`/admin/invoices/${id}/view`)
+}
+
+function onAprobadaDesdeFormulario(aprobada) {
+  cerrarAprobacion()
+  notificationStore.showNotification({
+    type: 'success',
+    message: t('estados.aprobada_ok', { numero: aprobada?.invoice_number || '' }),
+  })
+  if (aprobada?.id) router.push(`/admin/invoices/${aprobada.id}/view`)
 }
 
 async function confirmApprove() {

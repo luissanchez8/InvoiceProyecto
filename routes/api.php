@@ -294,6 +294,9 @@ Route::prefix('/v1')->group(function () {
 
             Route::post('/invoices/{invoice}/approve', ApproveInvoiceController::class);
 
+            // Onfactu v.1.13: aprobar varias a la vez desde la lista
+            Route::post('/invoices/approve-multiple', \App\Http\Controllers\V1\Admin\Invoice\ApproveMultipleInvoicesController::class);
+
             Route::post('/invoices/delete', [InvoicesController::class, 'delete']);
 
             Route::get('/invoices/templates', InvoiceTemplatesController::class);

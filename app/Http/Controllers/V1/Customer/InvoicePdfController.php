@@ -18,9 +18,11 @@ class InvoicePdfController extends Controller
         $invoice = Invoice::find($emailLog->mailable_id);
 
         if (! $emailLog->isExpired()) {
-            if ($invoice && ($invoice->status == Invoice::STATUS_SENT || $invoice->status == Invoice::STATUS_DRAFT)) {
-                $invoice->status = Invoice::STATUS_VIEWED;
+            // Onfactu v.1.13: verla no cambia el estado; se apunta que la ha visto
+            // y cuándo. El aviso a la empresa sale solo la primera vez.
+            if ($invoice && ! $invoice->viewed) {
                 $invoice->viewed = true;
+                $invoice->viewed_at = now();
                 $invoice->save();
                 $notifyInvoiceViewed = CompanySetting::getSetting(
                     'notify_invoice_viewed',

@@ -70,6 +70,16 @@ class CheckMonthClosed
         }
 
         // ── 2. Documento(s) existente(s) afectados por la operacion ──
+        // Onfactu v.1.13: enviar, marcar como enviada o cobrada no tocan el
+        // contenido de la factura, y una factura de mayo se puede cobrar en
+        // septiembre. Aprobar con la fecha de hoy la saca del mes cerrado, y
+        // aprobar varias lo comprueba factura a factura (AprobarFactura).
+        $accion = strtolower((string) last($request->segments()));
+        if (in_array($accion, ['send', 'status', 'approve-multiple'], true)
+            || ($accion === 'approve' && $request->boolean('usar_fecha_hoy'))) {
+            return $next($request);
+        }
+
         $ids = $this->targetIds($request, $segment);
         if (! empty($ids)) {
             $fechas = DB::table($cfg['table'])

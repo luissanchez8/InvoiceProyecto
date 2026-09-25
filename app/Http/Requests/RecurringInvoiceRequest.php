@@ -32,6 +32,11 @@ class RecurringInvoiceRequest extends FormRequest
                 'required',
                 'boolean',
             ],
+            // Onfactu v.1.13: aprobar sola la factura generada o dejarla en borrador
+            'auto_approve' => [
+                'nullable',
+                'boolean',
+            ],
             'customer_id' => [
                 'required',
             ],

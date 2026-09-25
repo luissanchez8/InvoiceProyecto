@@ -1,12 +1,6 @@
 <template>
   <SendInvoiceModal />
-  <ApproveInvoiceDialog
-    :visible="showApproveDialog"
-    :loading="isApproving"
-    @approve="confirmApproveFromIndex"
-    @save-draft="onApproveSaveDraftFromIndex"
-    @cancel="onApproveCancelFromIndex"
-  />
+  <AprobarFacturaDialog :factura="facturaAAprobar" @cerrar="cerrarAprobacion" @aprobada="onAprobadaDesdeLista" />
   <BasePage>
     <BasePageHeader :title="$t('invoices.title')">
       <BaseBreadcrumb>
@@ -139,15 +133,15 @@
         <!-- Tabs -->
         <BaseTabGroup class="-mb-5" @change="setStatusFilter">
           <BaseTab :title="$t('general.all')" filter="" />
-          <BaseTab :title="$t('general.draft')" filter="DRAFT" />
-          <BaseTab :title="$t('general.sent')" filter="SENT" />
-          <BaseTab :title="$t('general.due')" filter="DUE" />
+          <BaseTab :title="$t('estados.borradores')" filter="DRAFT" />
+          <BaseTab :title="$t('estados.aprobadas')" filter="APPROVED" />
+          <BaseTab :title="$t('estados.pendientes_cobro')" filter="DUE" />
         </BaseTabGroup>
 
         <BaseDropdown
           v-if="
             invoiceStore.selectedInvoices.length &&
-            userStore.hasAbilities(abilities.DELETE_INVOICE)
+            (userStore.hasAbilities(abilities.DELETE_INVOICE) || userStore.hasAbilities(abilities.SEND_INVOICE))
           "
           class="absolute float-right"
         >
@@ -167,7 +161,12 @@
             </span>
           </template>
 
-          <BaseDropdownItem @click="removeMultipleInvoices">
+          <!-- Onfactu v.1.13: aprobar varias a la vez -->
+          <BaseDropdownItem v-if="userStore.hasAbilities(abilities.SEND_INVOICE)" @click="aprobarSeleccionadas">
+            <BaseIcon name="LockClosedIcon" class="mr-3 text-gray-600" />
+            {{ $t('estados.aprobar') }}
+          </BaseDropdownItem>
+          <BaseDropdownItem v-if="userStore.hasAbilities(abilities.DELETE_INVOICE)" @click="removeMultipleInvoices">
             <BaseIcon name="TrashIcon" class="mr-3 text-gray-600" />
             {{ $t('general.delete') }}
           </BaseDropdownItem>
@@ -233,15 +232,7 @@
 
         <!-- Invoice status  -->
         <template #cell-status="{ row }">
-          <BaseInvoiceStatusBadge
-            :status="row.data.verifactu_status === 'PENDING' ? 'VERIFACTU_PENDING' : row.data.status"
-            class="px-3 py-1"
-          >
-            <template v-if="row.data.verifactu_status === 'PENDING'">
-              Pendiente VeriFactu
-            </template>
-            <BaseInvoiceStatusLabel v-else :status="row.data.status" />
-          </BaseInvoiceStatusBadge>
+          <EstadoFactura :status="row.data.status" :verifactu-status="row.data.verifactu_status" />
         </template>
 
         <!-- Due Amount + Paid Status  -->
@@ -261,6 +252,7 @@
             </BasePaidStatusBadge>
 
             <BasePaidStatusBadge
+              v-if="row.data.status === 'APPROVED'"
               :status="row.data.paid_status"
               class="px-1 py-0.5 ml-2"
             >
@@ -270,19 +262,15 @@
         </template>
 
         <template v-if="verifactuEnabled" #cell-verifactu="{ row }">
-          <BaseButton
-            v-if="row.data.status === 'DRAFT' && !row.data.verifactu_status"
-            variant="primary-outline"
-            size="sm"
-            @click="openApproveDialog(row.data)"
-          >
-            {{ $t('verifactu.approve_invoice') }}
-          </BaseButton>
-          <span v-else-if="row.data.verifactu_status === 'PENDING'" class="text-amber-600 font-medium text-xs animate-pulse">
-            Pendiente...
+          <!-- Onfactu v.1.13: aprobar va aparte; aquí solo el estado del envío -->
+          <span v-if="row.data.verifactu_status === 'PENDING'" class="text-xs font-medium text-amber-600 animate-pulse">
+            {{ $t('estados.verifactu_enviando') }}
           </span>
-          <span v-else-if="row.data.status === 'APPROVED'" class="text-[#38d587] font-medium text-xs">
-            ✓ {{ $t('verifactu.approved') }}
+          <span v-else-if="row.data.verifactu_status === 'SIGNED'" class="text-xs font-medium text-green-700">
+            {{ $t('estados.verifactu_registrada') }}
+          </span>
+          <span v-else-if="row.data.verifactu_status === 'ERROR'" class="text-xs font-medium text-red-600">
+            {{ $t('estados.verifactu_error') }}
           </span>
         </template>
         
@@ -309,7 +297,9 @@ import { debouncedWatch } from '@vueuse/core'
 import MoonwalkerIcon from '@/scripts/components/icons/empty/MoonwalkerIcon.vue'
 import InvoiceDropdown from '@/scripts/admin/components/dropdowns/InvoiceIndexDropdown.vue'
 import SendInvoiceModal from '@/scripts/admin/components/modal-components/SendInvoiceModal.vue'
-import ApproveInvoiceDialog from '@/scripts/admin/components/modal-components/ApproveInvoiceDialog.vue'
+import AprobarFacturaDialog from '@/scripts/admin/components/modal-components/AprobarFacturaDialog.vue'
+import EstadoFactura from '@/scripts/components/estados/EstadoFactura.vue'
+import { useAprobarFactura } from '@/scripts/admin/composables/useAprobarFactura'
 import BaseInvoiceStatusLabel from "@/scripts/components/base/BaseInvoiceStatusLabel.vue";
 import { useCompanyStore } from '@/scripts/admin/stores/company'
 // Stores
@@ -355,21 +345,19 @@ const status = ref([
   {
     label: t('invoices.status'),
     options: [
-      {label: t('general.draft'), value: 'DRAFT'},
-      {label: t('general.due'), value: 'DUE'},
-      {label: t('general.sent'), value: 'SENT'},
-      {label: t('invoices.viewed'), value: 'VIEWED'},
-      {label: t('invoices.completed'), value: 'COMPLETED'}
+      { label: t('estados.borrador'), value: 'DRAFT' },
+      { label: t('estados.aprobada'), value: 'APPROVED' },
     ],
   },
   {
     label: t('invoices.paid_status'),
     options: [
-      {label: t('invoices.unpaid'), value: 'UNPAID'},
-      {label: t('invoices.paid'), value: 'PAID'},
-      {label: t('invoices.partially_paid'), value: 'PARTIALLY_PAID'}],
+      { label: t('estados.pendientes_cobro'), value: 'DUE' },
+      { label: t('estados.pendiente'), value: 'UNPAID' },
+      { label: t('estados.parcial'), value: 'PARTIALLY_PAID' },
+      { label: t('estados.cobrada'), value: 'PAID' },
+    ],
   },
-  ,
 ])
 const isRequestOngoing = ref(true)
 const activeTab = ref('general.draft')
@@ -514,14 +502,14 @@ function setStatusFilter(val) {
   activeTab.value = val.title
 
   switch (val.title) {
-    case t('general.draft'):
+    case t('estados.borradores'):
       filters.status = 'DRAFT'
       break
-    case t('general.sent'):
-      filters.status = 'SENT'
+    case t('estados.aprobadas'):
+      filters.status = 'APPROVED'
       break
 
-    case t('general.due'):
+    case t('estados.pendientes_cobro'):
       filters.status = 'DUE'
       break
 
@@ -590,14 +578,14 @@ function toggleFilter() {
 function setActiveTab(val) {
   switch (val) {
     case 'DRAFT':
-      activeTab.value = t('general.draft')
+      activeTab.value = t('estados.borradores')
       break
-    case 'SENT':
-      activeTab.value = t('general.sent')
+    case 'APPROVED':
+      activeTab.value = t('estados.aprobadas')
       break
 
     case 'DUE':
-      activeTab.value = t('general.due')
+      activeTab.value = t('estados.pendientes_cobro')
       break
 
     case 'COMPLETED':
@@ -625,9 +613,49 @@ function setActiveTab(val) {
       break
   }
 }
+// Onfactu v.1.13: aprobar una (desde el menú de la fila) o varias a la vez
+const { facturaAAprobar, pedirAprobacion, cerrarAprobacion } = useAprobarFactura()
+
 function openApproveDialog(invoice) {
-  approvingInvoice.value = invoice
-  showApproveDialog.value = true
+  pedirAprobacion(invoice)
+}
+
+function onAprobadaDesdeLista(aprobada, verifactu) {
+  cerrarAprobacion()
+  notificationStore.showNotification({
+    type: 'success',
+    message: t('estados.aprobada_ok', { numero: aprobada?.invoice_number || '' }),
+  })
+  refreshTable()
+  if (verifactu === true) startVerifactuPolling()
+}
+
+function aprobarSeleccionadas() {
+  const ids = [...invoiceStore.selectedInvoices]
+  dialogStore
+    .openDialog({
+      title: t('estados.aprobar_varias_titulo'),
+      message: t('estados.aprobar_varias_mensaje', { n: ids.length }),
+      yesLabel: t('estados.aprobar'),
+      noLabel: t('general.cancel'),
+      variant: 'primary',
+      hideNoButton: false,
+      size: 'lg',
+    })
+    .then(async (ok) => {
+      if (!ok) return
+      const res = await invoiceStore.approveMultiple(ids)
+      const { aprobadas, errores } = res.data
+      notificationStore.showNotification(errores.length
+        ? { type: 'error', message: t('estados.aprobadas_con_errores', { ok: aprobadas.length, ko: errores.length }) + ' ' + errores[0].mensaje }
+        : { type: 'success', message: t('estados.aprobadas_ok', { n: aprobadas.length }) })
+      refreshTable()
+      invoiceStore.$patch((state) => {
+        state.selectedInvoices = []
+        state.selectAllField = false
+      })
+      if (verifactuEnabled.value && aprobadas.length) startVerifactuPolling()
+    })
 }
 
 async function confirmApproveFromIndex() {

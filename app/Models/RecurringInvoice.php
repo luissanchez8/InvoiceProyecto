@@ -360,9 +360,11 @@ class RecurringInvoice extends Model
         $newInvoice['exchange_rate'] = $this->exchange_rate;
         $newInvoice['sales_tax_type'] = $this->sales_tax_type;
         $newInvoice['sales_tax_address_type'] = $this->sales_tax_address_type;
-        $newInvoice['invoice_number'] = $serial->getNextNumber();
-        $newInvoice['sequence_number'] = $serial->nextSequenceNumber;
-        $newInvoice['customer_sequence_number'] = $serial->nextCustomerSequenceNumber;
+        // Onfactu v.1.13: nace en borrador y sin número. Si la recurrente se aprueba
+        // sola, se aprueba justo después (y ahí recibe el número).
+        $newInvoice['invoice_number'] = null;
+        $newInvoice['sequence_number'] = null;
+        $newInvoice['customer_sequence_number'] = null;
         $newInvoice['base_due_amount'] = $this->exchange_rate * $this->due_amount;
         $newInvoice['base_discount_val'] = $this->exchange_rate * $this->discount_val;
         $newInvoice['base_sub_total'] = $this->exchange_rate * $this->sub_total;
@@ -392,8 +394,20 @@ class RecurringInvoice extends Model
             $invoice->addCustomFields($customField);
         }
 
-        // send automatically
-        if ($this->send_automatically == true) {
+        if ($this->auto_approve) {
+            try {
+                $invoice = \App\Services\AprobarFactura::aprobar($invoice);
+                \App\Services\VerifactuPublicador::siEstaActivo($invoice);
+            } catch (\App\Exceptions\AprobacionFacturaException $e) {
+                // Se queda en borrador para que el cliente la revise
+                \Illuminate\Support\Facades\Log::warning('Recurrente: la factura generada se queda en borrador', [
+                    'recurring_invoice_id' => $this->id, 'invoice_id' => $invoice->id, 'motivo' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        // send automatically: solo si se ha aprobado
+        if ($this->send_automatically == true && $invoice->status === Invoice::STATUS_APPROVED) {
             // Onfactu: asunto en castellano con el número de la factura generada.
             // Antes usaba trans('invoices')['new_invoice'] que dependía del locale
             // del servidor y salía como "New Invoice" aunque el panel estuviese

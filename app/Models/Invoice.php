@@ -102,6 +102,26 @@ class Invoice extends Model implements HasMedia
     /**
      * Onfactu — rectificativa que anula ESTA factura (solo en facturas normales).
      */
+    protected static function booted(): void
+    {
+        // Onfactu v.1.13: ninguna factura sale del borrador sin número. Aprobar
+        // (AprobarFactura) ya lo asigna; esto cubre cualquier otro camino.
+        static::saving(function (Invoice $invoice) {
+            if ($invoice->status !== self::STATUS_DRAFT && empty($invoice->invoice_number) && $invoice->company_id) {
+                $serial = (new SerialNumberFormatter)
+                    ->setModel($invoice)
+                    ->setCompany($invoice->company_id)
+                    ->setCustomer($invoice->customer_id)
+                    ->setNextNumbers();
+                $invoice->sequence_number = $serial->nextSequenceNumber;
+                $invoice->invoice_number = $serial->getNextNumber();
+                if (empty($invoice->customer_sequence_number)) {
+                    $invoice->customer_sequence_number = $serial->nextCustomerSequenceNumber;
+                }
+            }
+        });
+    }
+
     public function rectification()
     {
         return $this->hasOne(Invoice::class, 'rectifies_invoice_id');
@@ -123,8 +143,8 @@ class Invoice extends Model implements HasMedia
         if ($this->rectifies_invoice_id !== null) {
             return 'Este documento ya es una factura rectificativa.';
         }
-        if ($this->status !== self::STATUS_COMPLETED) {
-            return 'Solo se pueden rectificar facturas en estado Completado.';
+        if ($this->status !== self::STATUS_APPROVED) {
+            return 'Solo se pueden rectificar facturas aprobadas.';
         }
         if (self::where('rectifies_invoice_id', $this->id)->exists()) {
             return 'Esta factura ya ha sido rectificada.';
@@ -209,49 +229,19 @@ class Invoice extends Model implements HasMedia
 
     public function getAllowEditAttribute()
     {
-        // Onfactu: Solo los borradores son editables.
-        // Una factura emitida no debe modificarse (inalterabilidad); para
-        // corregirla se emite una factura rectificativa.
-        if ($this->status !== self::STATUS_DRAFT) {
-            return false;
-        }
-
-        $retrospective_edit = CompanySetting::getSetting('retrospective_edits', $this->company_id);
-
-        $allowed = true;
-
-        $status = [
-            self::STATUS_DRAFT,
-            self::STATUS_SENT,
-            self::STATUS_VIEWED,
-            self::STATUS_COMPLETED,
-        ];
-
-        if ($retrospective_edit == 'disable_on_invoice_sent' && (in_array($this->status, $status)) && ($this->paid_status === Invoice::STATUS_PARTIALLY_PAID || $this->paid_status === Invoice::STATUS_PAID)) {
-            $allowed = false;
-        } elseif ($retrospective_edit == 'disable_on_invoice_partial_paid' && ($this->paid_status === Invoice::STATUS_PARTIALLY_PAID || $this->paid_status === Invoice::STATUS_PAID)) {
-            $allowed = false;
-        } elseif ($retrospective_edit == 'disable_on_invoice_paid' && $this->paid_status === Invoice::STATUS_PAID) {
-            $allowed = false;
-        }
-
-        // Facturas aprobadas en VeriFactu no se pueden editar
-        if ($this->status === self::STATUS_APPROVED || $this->verifactu_status === self::VERIFACTU_PENDING || $this->verifactu_status === self::VERIFACTU_SIGNED) {
-            $allowed = false;
-        }
-
-        return $allowed;
+        // Onfactu v.1.13: solo los borradores se editan. Una factura aprobada es
+        // inalterable; para corregirla, rectificativa. Tampoco mientras se envía
+        // a VeriFactu.
+        return $this->status === self::STATUS_DRAFT
+            && ! in_array($this->verifactu_status, [self::VERIFACTU_PENDING, self::VERIFACTU_SIGNED], true);
     }
 
     public function getPreviousStatus()
     {
-        if ($this->viewed) {
-            return self::STATUS_VIEWED;
-        } elseif ($this->sent) {
-            return self::STATUS_SENT;
-        } else {
-            return self::STATUS_DRAFT;
-        }
+        // Onfactu v.1.13: el cobro ya no cambia el estado. Antes devolvía
+        // Enviada, Vista o Borrador según los avisos, y al borrar un cobro una
+        // factura aprobada podía volver a Borrador.
+        return $this->status;
     }
 
     public function getFormattedNotesAttribute($value)
@@ -346,8 +336,11 @@ class Invoice extends Model implements HasMedia
             $query->whereSearch($search);
         })->when($filters['status'] ?? null, function ($query, $status) {
             match ($status) {
-                self::STATUS_UNPAID, self::STATUS_PARTIALLY_PAID, self::STATUS_PAID => $query->wherePaidStatus($status),
-                'DUE' => $query->whereDueStatus($status),
+                // Onfactu v.1.13: pendiente de cobro solo tiene sentido en las aprobadas
+                // (un borrador también tiene el pago como pendiente)
+                self::STATUS_UNPAID, self::STATUS_PARTIALLY_PAID => $query->where('invoices.status', self::STATUS_APPROVED)->wherePaidStatus($status),
+                self::STATUS_PAID => $query->wherePaidStatus($status),
+                'DUE' => $query->where('invoices.status', self::STATUS_APPROVED)->whereDueStatus($status),
                 default => $query->whereStatus($status),
             };
         })->when($filters['paid_status'] ?? null, function ($query, $paidStatus) {
@@ -448,15 +441,14 @@ class Invoice extends Model implements HasMedia
     {
         $data = $request->getInvoicePayload();
 
-        if ($request->has('invoiceSend')) {
-            $data['status'] = Invoice::STATUS_SENT;
-        }
 
         // Onfactu: si el frontend NO envió invoice_number, es un borrador sin
         // número. No consumimos serie. Si sí envió invoice_number, se guarda
         // con el número que toque (puede ser una factura finalizada directamente
         // o un borrador que se acaba de finalizar).
-        $savedAsDraftWithoutNumber = empty($data['invoice_number']);
+        // Onfactu v.1.13: una factura nueva siempre nace en borrador y sin
+        // número. El número se asigna al aprobar (AprobarFactura).
+        $savedAsDraftWithoutNumber = true;
 
         if ($savedAsDraftWithoutNumber) {
             $data['invoice_number']  = null;
@@ -510,6 +502,12 @@ class Invoice extends Model implements HasMedia
 
     public function updateInvoice($request)
     {
+        // Onfactu v.1.13: una factura aprobada no se modifica. Las pantallas no
+        // lo permiten, pero se comprueba aquí también.
+        if ($this->status !== Invoice::STATUS_DRAFT) {
+            return 'Una factura aprobada no se puede modificar. Para corregirla, crea una factura rectificativa.';
+        }
+
         $data = $request->getInvoicePayload();
         $oldTotal = $this->total;
 
@@ -528,10 +526,12 @@ class Invoice extends Model implements HasMedia
         // un invoice_number, estamos "finalizando" el borrador y hay que
         // asignarle sequence_number con el SerialNumberFormatter (no lo que
         // venga del payload, para evitar huecos).
-        $wasDraftWithoutNumber  = empty($this->invoice_number);
-        $nowHasNumber           = ! empty($data['invoice_number'] ?? null);
-        $finalizingDraft        = $wasDraftWithoutNumber && $nowHasNumber;
-        $stillDraftNoNumber     = $wasDraftWithoutNumber && ! $nowHasNumber;
+        // Onfactu v.1.13: editar un borrador nunca cambia su número ni su estado.
+        // El número se asigna al aprobar; un borrador numerado de antes lo conserva.
+        unset($data['invoice_number'], $data['sequence_number']);
+        $data['status']     = $this->status;
+        $finalizingDraft    = false;
+        $stillDraftNoNumber = empty($this->invoice_number);
 
         if ($stillDraftNoNumber) {
             // Sigue siendo borrador-sin-número: no tocar número/sequence.
@@ -651,11 +651,11 @@ class Invoice extends Model implements HasMedia
 
         \Mail::to($data['to'])->send(new SendInvoiceMail($data));
 
-        if ($this->status == Invoice::STATUS_DRAFT) {
-            $this->status = Invoice::STATUS_SENT;
-            $this->sent = true;
-            $this->save();
-        }
+        // Onfactu v.1.13: enviar no cambia el estado; se apunta que se ha enviado
+        // y cuándo. Un borrador se puede enviar al cliente para que lo revise.
+        $this->sent = true;
+        $this->sent_at = now();
+        $this->save();
 
         return [
             'success' => true,
@@ -874,18 +874,15 @@ class Invoice extends Model implements HasMedia
 
         if ($amount == 0) {
             $data = [
-                'status' => Invoice::STATUS_COMPLETED,
                 'paid_status' => Invoice::STATUS_PAID,
                 'overdue' => false,
             ];
         } elseif ($amount == $this->total) {
             $data = [
-                'status' => $this->getPreviousStatus(),
                 'paid_status' => Invoice::STATUS_UNPAID,
             ];
         } else {
             $data = [
-                'status' => $this->getPreviousStatus(),
                 'paid_status' => Invoice::STATUS_PARTIALLY_PAID,
             ];
         }

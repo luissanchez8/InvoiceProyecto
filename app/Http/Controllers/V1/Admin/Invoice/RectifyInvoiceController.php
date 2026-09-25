@@ -42,8 +42,8 @@ class RectifyInvoiceController extends Controller
             return $this->error('Este documento ya es una factura rectificativa, no puede rectificarse.');
         }
 
-        if ($invoice->status !== Invoice::STATUS_COMPLETED) {
-            return $this->error('Solo se pueden rectificar facturas en estado Completado.');
+        if ($invoice->status !== Invoice::STATUS_APPROVED) {
+            return $this->error('Solo se pueden rectificar facturas aprobadas.');
         }
 
         $yaRectificada = Invoice::where('rectifies_invoice_id', $invoice->id)->first();
@@ -79,7 +79,8 @@ class RectifyInvoiceController extends Controller
                 'customer_id'               => $invoice->customer_id,
                 'company_id'                => $companyId,
                 'template_name'             => $invoice->template_name ?: 'invoice1',
-                'status'                    => Invoice::STATUS_COMPLETED,
+                'status'                    => Invoice::STATUS_APPROVED,
+                'approved_at'               => now(),
                 'paid_status'               => Invoice::STATUS_UNPAID,
                 'rectifies_invoice_id'      => $invoice->id,
 

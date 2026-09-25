@@ -195,12 +195,12 @@ class FacturasDemo
 
             if ($f['pago'] === 'PAID') {
                 $f['cobros'][] = [$cobro, $total];
-                $f['estado'] = 'COMPLETED';
+                $f['estado'] = 'APPROVED';
             } elseif ($f['pago'] === 'PARTIALLY_PAID') {
                 $f['cobros'][] = [$cobro, (int) round($total / 2)];
-                $f['estado'] = 'SENT';
+                $f['estado'] = 'APPROVED';
             } else {
-                $f['estado'] = 'SENT';
+                $f['estado'] = 'APPROVED';
             }
         }
         unset($f);
@@ -233,6 +233,7 @@ class FacturasDemo
                 'invoice_number' => $numero, 'status' => $f['estado'], 'paid_status' => $f['pago'],
                 'notes' => $f['notas'], 'due_amount' => $pendiente, 'base_due_amount' => $pendiente,
                 'sent' => ! $borrador, 'viewed' => ! $borrador && $this->c->probable(0.6),
+                'approved_at' => $borrador ? null : $fecha, 'sent_at' => $borrador ? null : $fecha,
                 'template_name' => $this->c->plantillaFactura, 'customer_id' => $f['cliente']['id'],
                 'recurring_invoice_id' => $f['recurrente'],
                 'sequence_number' => $borrador ? null : $n,
@@ -274,7 +275,7 @@ class FacturasDemo
 
             $id = (int) DB::table('invoices')->insertGetId($this->c->importes($calc) + [
                 'invoice_date' => $fecha, 'due_date' => $fechaC->toDateString(),
-                'invoice_number' => $numero, 'status' => 'COMPLETED', 'paid_status' => 'PAID',
+                'invoice_number' => $numero, 'status' => 'APPROVED', 'paid_status' => 'PAID',
                 'notes' => "Rectifica la factura {$orig['numero']} por un error en los datos del servicio.",
                 'due_amount' => 0, 'base_due_amount' => 0, 'sent' => true, 'viewed' => true,
                 'template_name' => $this->c->plantillaFactura, 'customer_id' => $orig['cliente']['id'],

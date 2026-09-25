@@ -369,7 +369,8 @@ export const useInvoiceStore = (useWindow = false) => {
               )
 
               if (this.invoices[pos]) {
-                this.invoices[pos].status = 'SENT'
+                // Onfactu v.1.13: marcarla como enviada no cambia el estado
+                this.invoices[pos].sent = true
               }
 
               notificationStore.showNotification({
@@ -385,47 +386,57 @@ export const useInvoiceStore = (useWindow = false) => {
         })
       },
 
-      approveInvoice(id) {
+      // Onfactu v.1.13: aprobar es el único paso para salir del borrador
+      approveInvoice(id, params = {}) {
         return new Promise((resolve, reject) => {
           axios
-            .post(`/api/v1/invoices/${id}/approve`)
+            .post(`/api/v1/invoices/${id}/approve`, params)
             .then((response) => {
-              // Onfactu — proteger findIndex de elementos undefined.
-              // En algunos momentos this.invoices puede contener huecos o
-              // estar siendo reactivamente actualizado por otra parte de la
-              // UI; sin esta protección, invoice.id revienta con
-              // "Cannot read properties of undefined" y handleError lo
-              // interpreta erróneamente como error de red.
-              try {
-                if (Array.isArray(this.invoices)) {
-                  let pos = this.invoices.findIndex(
-                    (invoice) => invoice && invoice.id === id
-                  )
-                  if (pos >= 0 && this.invoices[pos]) {
-                    this.invoices[pos].status = 'SENT'
-                  }
-                }
-              } catch (e) {
-                // Silencioso: no es crítico actualizar el listado en memoria,
-                // se refrescará la próxima vez que se navegue al listado.
-                console.warn('approveInvoice: no se pudo actualizar listado en memoria', e)
+              const aprobada = response.data?.data
+              if (aprobada && Array.isArray(this.invoices)) {
+                const pos = this.invoices.findIndex((f) => f && f.id === id)
+                if (pos >= 0) Object.assign(this.invoices[pos], aprobada)
               }
-
               resolve(response)
             })
             .catch((err) => {
-              // Onfactu — numeración diferida:
-              // Si es 409 (colisión de número), NO mostramos el toast genérico;
-              // dejamos que la view muestre un modal con datos del conflicto.
-              // Para los demás errores, seguimos usando handleError.
-              const status = err?.response?.status
-              const errorCode = err?.response?.data?.error_code
-              const isCollision = status === 409 && errorCode === 'number_collision'
-
-              if (!isCollision) {
+              // Los motivos para no aprobar (fecha, mes cerrado...) los enseña el
+              // diálogo de aprobar; el resto de errores, el aviso de siempre.
+              if (!(err?.response?.status === 422 && err?.response?.data?.code)) {
                 handleError(err)
               }
+              reject(err)
+            })
+        })
+      },
 
+      approveMultiple(ids) {
+        return new Promise((resolve, reject) => {
+          axios
+            .post('/api/v1/invoices/approve-multiple', { ids })
+            .then((response) => resolve(response))
+            .catch((err) => {
+              handleError(err)
+              reject(err)
+            })
+        })
+      },
+
+      // Onfactu v.1.13: darla por cobrada sin registrar un cobro (antes era
+      // "Marcar como completada")
+      markAsPaid(id) {
+        return new Promise((resolve, reject) => {
+          axios
+            .post(`/api/v1/invoices/${id}/status`, { id, status: 'PAID' })
+            .then((response) => {
+              notificationStore.showNotification({
+                type: 'success',
+                message: global.t('estados.marcada_cobrada'),
+              })
+              resolve(response)
+            })
+            .catch((err) => {
+              handleError(err)
               reject(err)
             })
         })
@@ -658,7 +669,8 @@ export const useInvoiceStore = (useWindow = false) => {
               //  - Si es "skipped" y no la tocó → se persiste literal (reserva
               //    ese hueco concreto en la secuencia).
               if (res4.data) {
-                this.newInvoice.invoice_number = res4.data.nextNumber
+                // Onfactu v.1.13: el número se asigna al aprobar; no se prerellena
+                this.newInvoice.invoice_number = null
                 this.suggestedInvoiceNumber = res4.data.nextNumber
                 this.suggestedInvoiceNumberIsSkipped = !!res4.data.isSkipped
                 this.naturalNextInvoiceNumber = res4.data.naturalNext || res4.data.nextNumber
@@ -682,9 +694,7 @@ export const useInvoiceStore = (useWindow = false) => {
                 // nacen sin numero (numeracion diferida) y el campo aparecia
                 // vacio, cuando al crear una factura normal sale prerelleno.
                 // Solo se rellena si esta vacio: nunca pisa un numero existente.
-                if (!this.newInvoice.invoice_number) {
-                  this.newInvoice.invoice_number = res4.data.nextNumber
-                }
+                // Onfactu v.1.13: ya no se prerellena; el número se asigna al aprobar
               }
               this.addSalesTaxUs()
             }

@@ -13,7 +13,9 @@ import { useDialogStore } from '@/scripts/stores/dialog'
 import { useNotificationStore } from '@/scripts/stores/notification'
 
 import SendInvoiceModal from '@/scripts/admin/components/modal-components/SendInvoiceModal.vue'
-import ApproveInvoiceDialog from '@/scripts/admin/components/modal-components/ApproveInvoiceDialog.vue'
+import AprobarFacturaDialog from '@/scripts/admin/components/modal-components/AprobarFacturaDialog.vue'
+import EstadoFactura from '@/scripts/components/estados/EstadoFactura.vue'
+import { useAprobarFactura } from '@/scripts/admin/composables/useAprobarFactura'
 import InvoiceDropdown from '@/scripts/admin/components/dropdowns/InvoiceIndexDropdown.vue'
 import LoadingIcon from '@/scripts/components/icons/LoadingIcon.vue'
 
@@ -139,7 +141,7 @@ async function onMarkAsSent() {
           id: invoiceData.value.id,
           status: 'SENT',
         })
-        invoiceData.value.status = 'SENT'
+        invoiceData.value.sent = true
         isMarkAsSent.value = true
       }
       isMarkAsSent.value = false
@@ -156,49 +158,44 @@ async function onSendInvoice(id) {
   })
 }
 
+// Onfactu v.1.13: aprobar, con el diálogo común (AprobarFacturaDialog)
+const { facturaAAprobar, pedirAprobacion, cerrarAprobacion } = useAprobarFactura()
+
 function onApproveInvoice() {
-  showApproveDialog.value = true
+  pedirAprobacion(invoiceData.value)
 }
 
-async function confirmApprove() {
-  isApproving.value = true
-  try {
-    const response = await invoiceStore.approveInvoice(invoiceData.value.id)
-    if (response.data?.data) {
-      invoiceData.value = { ...invoiceData.value, ...response.data.data }
-    }
-    // Forzar verifactu_status a PENDING para mostrar el spinner
-    invoiceData.value.verifactu_status = 'PENDING'
-    // Actualizar también el listado lateral
-    let pos = invoiceList.value?.findIndex(
-      (inv) => inv.id === invoiceData.value.id
-    )
-    if (pos >= 0 && invoiceList.value[pos]) {
-      invoiceList.value[pos].verifactu_status = 'PENDING'
-    }
-    showApproveDialog.value = false
-    notificationStore.showNotification({
-      type: 'success',
-      message: 'Factura enviada a VeriFactu. Esperando aprobación...',
-    })
-    startVerifactuPolling(invoiceData.value.id)
-  } catch (err) {
-    notificationStore.showNotification({
-      type: 'error',
-      message: t('verifactu.approved_error'),
-    })
+function onAprobada(aprobada, verifactu) {
+  cerrarAprobacion()
+  if (!aprobada) return
+  invoiceData.value = { ...invoiceData.value, ...aprobada }
+  const pos = invoiceList.value?.findIndex((inv) => inv.id === aprobada.id)
+  if (pos >= 0 && invoiceList.value[pos]) {
+    Object.assign(invoiceList.value[pos], aprobada)
   }
-  isApproving.value = false
+  notificationStore.showNotification({
+    type: 'success',
+    message: t('estados.aprobada_ok', { numero: aprobada.invoice_number }),
+  })
+  if (verifactu === true) {
+    startVerifactuPolling(aprobada.id)
+  }
 }
 
-function onApproveSaveDraft() {
-  showApproveDialog.value = false
-  router.push('/admin/invoices')
-}
-
-function onApproveCancelled() {
-  showApproveDialog.value = false
-}
+// Onfactu v.1.13: enviada y vista ya no son estados; se enseñan como información
+const infoEnvio = computed(() => {
+  const f = invoiceData.value
+  if (!f) return ''
+  const partes = []
+  if (f.sent) {
+    const fecha = f.sent_at ? new Date(f.sent_at) : null
+    partes.push(fecha && !isNaN(fecha)
+      ? t('estados.enviada_el', { fecha: fecha.toLocaleDateString('es-ES') })
+      : t('estados.enviada'))
+  }
+  if (f.viewed) partes.push(t('estados.vista_cliente'))
+  return partes.join(' · ')
+})
 
 function hasActiveUrl(id) {
   return route.params.id == id
@@ -317,8 +314,9 @@ function updateSentInvoice() {
   )
 
   if (invoiceList.value[pos]) {
-    invoiceList.value[pos].status = 'SENT'
-    invoiceData.value.status = 'SENT'
+    invoiceList.value[pos].sent = true
+    invoiceData.value.sent = true
+    invoiceData.value.sent_at = new Date().toISOString()
   }
 }
 
@@ -329,85 +327,54 @@ onSearched = debounce(onSearched, 500)
 
 <template>
   <SendInvoiceModal @update="updateSentInvoice" />
-  <ApproveInvoiceDialog
-    :visible="showApproveDialog"
-    :loading="isApproving"
-    @approve="confirmApprove"
-    @save-draft="onApproveSaveDraft"
-    @cancel="onApproveCancelled"
-  />
+  <AprobarFacturaDialog :factura="facturaAAprobar" @cerrar="cerrarAprobacion" @aprobada="onAprobada" />
 
   <BasePage v-if="invoiceData" class="xl:pl-96 xl:ml-8">
     <BasePageHeader :title="pageTitle">
       <template #actions>
-        <div class="text-sm mr-3">
-          <BaseButton
-            v-if="
-              invoiceData.status === 'DRAFT' &&
-              userStore.hasAbilities(abilities.EDIT_INVOICE)
-            "
-            :disabled="isMarkAsSent"
-            variant="primary-outline"
-            @click="onMarkAsSent"
-          >
-            {{ $t('invoices.mark_as_sent') }}
-          </BaseButton>
-        </div>
+        <!-- Onfactu v.1.13: enviada y vista, como información -->
+        <span v-if="infoEnvio" class="mr-4 text-sm text-gray-500 whitespace-nowrap">{{ infoEnvio }}</span>
 
         <BaseButton
-          v-if="
-            invoiceData.status === 'DRAFT' &&
-            userStore.hasAbilities(abilities.SEND_INVOICE)
-          "
-          variant="primary"
-          class="text-sm"
+          v-if="userStore.hasAbilities(abilities.SEND_INVOICE)"
+          variant="primary-outline"
+          class="mr-3 text-sm"
           @click="onSendInvoice"
         >
-          {{ $t('invoices.send_invoice') }}
+          {{ invoiceData.sent ? $t('invoices.resend_invoice') : $t('invoices.send_invoice') }}
         </BaseButton>
 
-        <!-- Approve (VeriFactu) -->
+        <!-- Onfactu v.1.13: aprobar, con o sin VeriFactu -->
         <BaseButton
-          v-if="verifactuEnabled && invoiceData.status === 'DRAFT' && !invoiceData.verifactu_status"
-          :loading="isApproving"
-          :disabled="isApproving"
+          v-if="invoiceData.status === 'DRAFT' && userStore.hasAbilities(abilities.SEND_INVOICE)"
           variant="primary"
-          class="ml-3 text-sm"
+          class="text-sm"
           @click="onApproveInvoice"
         >
           <template #left="slotProps">
-            <BaseIcon
-              v-if="!isApproving"
-              name="CheckCircleIcon"
-              :class="slotProps.class"
-            />
+            <BaseIcon name="LockClosedIcon" :class="slotProps.class" />
           </template>
-          {{ $t('verifactu.approve_invoice') }}
+          {{ $t('estados.aprobar') }}
         </BaseButton>
 
         <!-- VeriFactu pending -->
         <span
           v-if="invoiceData.verifactu_status === 'PENDING'"
-          class="ml-3 text-sm text-yellow-600 font-medium flex items-center"
+          class="flex items-center ml-3 text-sm font-medium text-yellow-600"
         >
-          <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-yellow-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <svg class="w-4 h-4 mr-2 -ml-1 text-yellow-600 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
           </svg>
           Enviando a VeriFactu...
         </span>
 
-        <!-- Record Payment  -->
+        <!-- Record Payment: solo aprobadas sin cobrar del todo -->
         <router-link
-          v-if="userStore.hasAbilities(abilities.CREATE_PAYMENT)"
+          v-if="invoiceData.status === 'APPROVED' && invoiceData.paid_status !== 'PAID' && userStore.hasAbilities(abilities.CREATE_PAYMENT)"
           :to="`/admin/payments/${$route.params.id}/create`"
         >
-          <BaseButton
-            v-if="
-              invoiceData.status === 'SENT' || invoiceData.status === 'VIEWED'
-            "
-            variant="primary"
-          >
+          <BaseButton variant="primary">
             {{ $t('invoices.record_payment') }}
           </BaseButton>
         </router-link>
@@ -588,15 +555,7 @@ onSearched = debounce(onSearched, 500)
               >
                 {{ invoice.invoice_number || $t('general.draft').toUpperCase() }}
               </div>
-              <BaseEstimateStatusBadge
-                :status="invoice.verifactu_status === 'PENDING' ? 'VERIFACTU_PENDING' : invoice.status"
-                class="px-1 text-xs"
-              >
-                <template v-if="invoice.verifactu_status === 'PENDING'">
-                  Pendiente VeriFactu
-                </template>
-                <BaseInvoiceStatusLabel v-else :status="invoice.status" />
-              </BaseEstimateStatusBadge>
+              <EstadoFactura :status="invoice.status" :verifactu-status="invoice.verifactu_status" pequena />
             </div>
 
             <div class="flex-1 whitespace-nowrap right">

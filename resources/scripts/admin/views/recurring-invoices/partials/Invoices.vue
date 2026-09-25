@@ -34,9 +34,7 @@
 
       <!-- Invoice status  -->
       <template #cell-status="{ row }">
-        <BaseInvoiceStatusBadge :status="row.data.status" class="px-3 py-1">
-          <BaseInvoiceStatusLabel :status="row.data.status" />
-        </BaseInvoiceStatusBadge>
+        <EstadoFactura :status="row.data.status" :verifactu-status="row.data.verifactu_status" />
       </template>
 
       <!-- Actions -->
@@ -48,6 +46,7 @@
 </template>
 
 <script setup>
+import EstadoFactura from '@/scripts/components/estados/EstadoFactura.vue'
 import { computed, ref, inject } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
@@ -109,7 +108,7 @@ function updateSentInvoiceStatus(id) {
   )
 
   if (recurringInvoiceStore.newRecurringInvoice.invoices[pos]) {
-    recurringInvoiceStore.newRecurringInvoice.invoices[pos].status = 'SENT'
+    recurringInvoiceStore.newRecurringInvoice.invoices[pos].sent = true
   }
 }
 </script>

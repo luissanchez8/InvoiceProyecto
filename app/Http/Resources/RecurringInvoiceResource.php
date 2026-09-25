@@ -21,6 +21,7 @@ class RecurringInvoiceResource extends JsonResource
             'formatted_next_invoice_at' => $this->formattedNextInvoiceAt,
             'formatted_limit_date' => $this->formattedLimitDate,
             'send_automatically' => $this->send_automatically,
+            'auto_approve' => (bool) $this->auto_approve,
             'customer_id' => $this->customer_id,
             'company_id' => $this->company_id,
             'creator_id' => $this->creator_id,

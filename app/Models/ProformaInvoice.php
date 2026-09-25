@@ -580,15 +580,9 @@ class ProformaInvoice extends Model implements HasMedia
             ->setCustomer($invoice->customer_id)
             ->setNextNumbers();
 
-        $invoice->sequence_number = $serial->nextSequenceNumber;
-        $invoice->customer_sequence_number = $serial->nextCustomerSequenceNumber;
+        // Onfactu v.1.13: la factura nace en borrador y sin número; se numera al aprobarla
+        $invoice->invoice_number = null;
         $invoice->unique_hash = Hashids::connection(Invoice::class)->encode($invoice->id);
-        $invoice->invoice_number = (new SerialNumberFormatter)
-            ->setModel(new Invoice)
-            ->setCompany($invoice->company_id)
-            ->setCustomer($invoice->customer_id)
-            ->setModelObject($invoice->id)
-            ->getNextNumber();
         $invoice->save();
 
         // Copiar ítems de la proforma a la factura
