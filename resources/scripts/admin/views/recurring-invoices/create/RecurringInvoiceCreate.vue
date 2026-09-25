@@ -41,6 +41,7 @@
               variant="primary-outline"
               type="button"
             >
+              <template #left="slotProps"><IconoVerPdf :class="slotProps.class" /></template>
               <span class="flex">
                 {{ $t('general.view_pdf') }}
               </span>
@@ -135,6 +136,7 @@
 </template>
 
 <script setup>
+import IconoVerPdf from '@/scripts/components/icons/IconoVerPdf.vue'
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'

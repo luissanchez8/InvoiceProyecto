@@ -229,17 +229,21 @@ export const useInvoiceStore = (useWindow = false) => {
         })
       },
 
-      addInvoice(data) {
+      // Onfactu v.1.13.3: { silencioso: true } no enseña el aviso de guardado
+      // (al guardar para aprobar, el aviso lo da la aprobación)
+      addInvoice(data, opciones = {}) {
         return new Promise((resolve, reject) => {
           axios
             .post('/api/v1/invoices', data)
             .then((response) => {
               this.invoices = [...this.invoices, response.data.invoice]
 
-              notificationStore.showNotification({
-                type: 'success',
-                message: global.t('invoices.created_message'),
-              })
+              if (!opciones.silencioso) {
+                notificationStore.showNotification({
+                  type: 'success',
+                  message: global.t('invoices.created_message'),
+                })
+              }
 
               resolve(response)
             })
@@ -299,7 +303,7 @@ export const useInvoiceStore = (useWindow = false) => {
         })
       },
 
-      updateInvoice(data) {
+      updateInvoice(data, opciones = {}) {
         return new Promise((resolve, reject) => {
           axios
             .put(`/api/v1/invoices/${data.id}`, data)
@@ -309,10 +313,12 @@ export const useInvoiceStore = (useWindow = false) => {
               )
               this.invoices[pos] = response.data.data
 
-              notificationStore.showNotification({
-                type: 'success',
-                message: global.t('invoices.updated_message'),
-              })
+              if (!opciones.silencioso) {
+                notificationStore.showNotification({
+                  type: 'success',
+                  message: global.t('invoices.updated_message'),
+                })
+              }
 
               resolve(response)
             })

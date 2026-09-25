@@ -68,6 +68,59 @@ class AprobarFactura
         return $factura->fresh();
     }
 
+    /**
+     * Qué pasaría al aprobar, sin aprobar nada: el número que recibiría y,
+     * si no se puede, el motivo. Si con la fecha de hoy sí se podría, también
+     * el número que recibiría así. Lo usa el diálogo de aprobar al abrirse.
+     */
+    public static function previsualizar(Invoice $factura): array
+    {
+        $resultado = ['numero' => null, 'error' => null, 'numero_hoy' => null];
+
+        try {
+            $resultado['numero'] = self::simular(clone $factura, false);
+        } catch (AprobacionFacturaException $e) {
+            $resultado['error'] = [
+                'codigo'         => $e->codigo,
+                'mensaje'        => $e->getMessage(),
+                'puede_usar_hoy' => (bool) ($e->datos['puede_usar_hoy'] ?? false),
+            ];
+            if ($resultado['error']['puede_usar_hoy']) {
+                try {
+                    $resultado['numero_hoy'] = self::simular(clone $factura, true);
+                } catch (AprobacionFacturaException $e2) {
+                    $resultado['error']['puede_usar_hoy'] = false;
+                }
+            }
+        }
+
+        return $resultado;
+    }
+
+    /** Recorre los pasos de aprobar sobre una copia, sin guardar. */
+    private static function simular(Invoice $copia, bool $usarFechaHoy): string
+    {
+        if ($copia->status !== Invoice::STATUS_DRAFT) {
+            throw new AprobacionFacturaException('ya_aprobada', 'Esta factura ya está aprobada.');
+        }
+        if (! $copia->customer_id || ! $copia->items()->exists()) {
+            throw new AprobacionFacturaException('incompleta', 'Para aprobar la factura necesita un cliente y al menos una línea.');
+        }
+        if ($usarFechaHoy) {
+            self::moverAHoy($copia);
+        }
+        if (ClosedMonth::isClosed((int) $copia->company_id, $copia->invoice_date)) {
+            throw new AprobacionFacturaException(
+                'mes_cerrado',
+                'La fecha de la factura es de un mes cerrado. Puedes aprobarla con la fecha de hoy.',
+                ['puede_usar_hoy' => true],
+            );
+        }
+        self::numerar($copia);
+
+        return (string) $copia->invoice_number;
+    }
+
     /** Asigna número y serie comprobando el orden de fechas. No guarda. */
     private static function numerar(Invoice $f): void
     {

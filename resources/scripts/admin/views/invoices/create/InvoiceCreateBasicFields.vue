@@ -44,7 +44,10 @@
         :help-text="$t('estados.numero_al_aprobar_ayuda')"
       >
         <BaseInput
-          :model-value="invoiceStore.newInvoice.invoice_number || $t('estados.numero_al_aprobar')"
+          :model-value="invoiceStore.newInvoice.invoice_number
+            || (invoiceStore.suggestedInvoiceNumber
+              ? $t('estados.numero_previsto', { numero: invoiceStore.suggestedInvoiceNumber })
+              : $t('estados.numero_al_aprobar'))"
           :content-loading="isLoading"
           disabled
         />

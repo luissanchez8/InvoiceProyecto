@@ -1966,6 +1966,9 @@
     "numero_al_aprobar": "Se asigna al aprobar",
     "numero_al_aprobar_ayuda": "El número se asigna al aprobar la factura. El primero de la serie se configura en Ajustes, Personalización.",
     "aprobar_automaticamente": "Aprobar automáticamente",
-    "aprobar_automaticamente_desc": "La factura generada se aprueba sola y recibe su número. Si no, se crea en borrador para que la revises. Para enviarla sola tiene que aprobarse sola."
+    "aprobar_automaticamente_desc": "La factura generada se aprueba sola y recibe su número. Si no, se crea en borrador para que la revises. Para enviarla sola tiene que aprobarse sola.",
+    "comprobando": "Comprobando...",
+    "numero_previsto": "Se asigna al aprobar (previsto: {numero})",
+    "aprobar_hoy_con_numero": "Con la fecha de hoy recibirá el número {numero}."
   }
 }

@@ -52,6 +52,7 @@
             target="_blank"
           >
             <BaseButton class="mr-3" variant="primary-outline" type="button">
+              <template #left="slotProps"><IconoVerPdf :class="slotProps.class" /></template>
               <span class="flex">
                 {{ $t('general.view_pdf') }}
               </span>
@@ -87,7 +88,7 @@
           <BaseButton
             :loading="isSaving"
             :disabled="isSaving || isSavingDraft || isApproving"
-            variant="primary"
+            variant="primary-outline"
             type="submit"
             class="mr-3"
           >
@@ -189,6 +190,7 @@
 </template>
 
 <script setup>
+import IconoVerPdf from '@/scripts/components/icons/IconoVerPdf.vue'
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useBloqueoMesCerrado } from '@/scripts/admin/composables/useBloqueoMesCerrado'
@@ -537,7 +539,7 @@ async function doSave({ clearNumber, sinNavegar = false }) {
       ? invoiceStore.updateInvoice
       : invoiceStore.addInvoice
 
-    const response = await action(data)
+    const response = await action(data, { silencioso: sinNavegar })
 
     // Onfactu v.1.13: al guardar para aprobar, se queda aquí y abre el diálogo
     if (sinNavegar) {

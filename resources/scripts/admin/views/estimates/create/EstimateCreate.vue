@@ -51,6 +51,7 @@
             target="_blank"
           >
             <BaseButton class="mr-3" variant="primary-outline" type="button">
+              <template #left="slotProps"><IconoVerPdf :class="slotProps.class" /></template>
               <span class="flex">
                 {{ $t('general.view_pdf') }}
               </span>
@@ -168,6 +169,7 @@
 </template>
 
 <script setup>
+import IconoVerPdf from '@/scripts/components/icons/IconoVerPdf.vue'
 import { computed, ref, watch, onMounted } from 'vue'
 import { cloneDeep } from 'lodash'
 import { useRoute, useRouter } from 'vue-router'

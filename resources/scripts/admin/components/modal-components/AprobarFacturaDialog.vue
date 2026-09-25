@@ -1,9 +1,9 @@
 <!--
   Onfactu v.1.13.0 — Diálogo para aprobar una factura.
 
-  Avisa de lo que significa aprobar (número definitivo, ya no se puede
-  modificar) y llama al servidor. Si la fecha no encaja con el orden de las
-  facturas aprobadas, o es de un mes cerrado, enseña el motivo y, si sirve,
+  Al abrirse pregunta al servidor qué pasaría al aprobar (approve-preview):
+  enseña el número exacto que recibirá la factura y, si la fecha no encaja con
+  el orden de las aprobadas o es de un mes cerrado, lo avisa antes de pulsar y
   ofrece aprobarla con la fecha de hoy.
 
   Props:  factura  la factura a aprobar ({ id, invoice_number }), o null para
@@ -42,9 +42,9 @@
                 {{ $t('estados.aprobar_titulo') }}
               </DialogTitle>
               <p class="mt-3 text-sm leading-relaxed text-gray-600">
-                {{ factura?.invoice_number
-                  ? $t('estados.aprobar_con_numero', { numero: factura.invoice_number })
-                  : $t('estados.aprobar_siguiente_numero') }}
+                <template v-if="comprobando">{{ $t('estados.comprobando') }}</template>
+                <template v-else-if="numero">{{ $t('estados.aprobar_con_numero', { numero }) }}</template>
+                <template v-else-if="puedeUsarHoy && numeroHoy">{{ $t('estados.aprobar_hoy_con_numero', { numero: numeroHoy }) }}</template>
                 {{ $t('estados.aprobar_aviso') }}
               </p>
               <p v-if="verifactuActivo" class="mt-2 text-sm text-gray-500">
@@ -62,7 +62,7 @@
                 variant="primary"
                 class="justify-center w-full"
                 :loading="cargando"
-                :disabled="cargando || (!!error && !puedeUsarHoy)"
+                :disabled="cargando || comprobando || (!!error && !puedeUsarHoy)"
                 @click="aprobar(false)"
               >
                 {{ $t('estados.aprobar') }}
@@ -89,6 +89,7 @@
 </template>
 
 <script setup>
+import axios from 'axios'
 import { computed, ref, watch } from 'vue'
 import { Dialog, DialogOverlay, DialogTitle, TransitionChild, TransitionRoot } from '@headlessui/vue'
 import { useInvoiceStore } from '@/scripts/admin/stores/invoice'
@@ -106,13 +107,33 @@ const companyStore = useCompanyStore()
 const cargando = ref(false)
 const error = ref(null)
 const puedeUsarHoy = ref(false)
+const comprobando = ref(false)
+const numero = ref(null)
+const numeroHoy = ref(null)
 
 const verifactuActivo = computed(() => companyStore.selectedCompanySettings?.verifactu_enabled === 'YES')
 
-watch(() => props.factura?.id, () => {
+// Al abrirse: qué número recibiría y si hay algo que impida aprobarla
+watch(() => props.factura?.id, async (id) => {
   error.value = null
   puedeUsarHoy.value = false
-})
+  numero.value = null
+  numeroHoy.value = null
+  if (!id) return
+  comprobando.value = true
+  try {
+    const { data } = await axios.get(`/api/v1/invoices/${id}/approve-preview`)
+    numero.value = data.numero
+    numeroHoy.value = data.numero_hoy
+    if (data.error) {
+      error.value = data.error.mensaje
+      puedeUsarHoy.value = !!data.error.puede_usar_hoy
+    }
+  } catch (e) {
+    // Sin previsualización se puede aprobar igual: el servidor lo comprueba al aprobar
+  }
+  comprobando.value = false
+}, { immediate: true })
 
 async function aprobar(usarFechaHoy) {
   if (!props.factura) return
