@@ -53,7 +53,9 @@ class AppServiceProvider extends ServiceProvider
             $this->app->booted(function () {
                 $mailer = app('mail.manager')->mailer();
                 $transport = $mailer->getSymfonyTransport();
-                if ($transport instanceof \Symfony\Component\Mailer\Transport\Smtp\EsmtpTransport) {
+                // Onfactu v.1.14: solo se relaja la verificación si la configuración lo pide
+                if (! config('mail.verificar_certificado')
+                    && $transport instanceof \Symfony\Component\Mailer\Transport\Smtp\EsmtpTransport) {
                     $transport->getStream()->setStreamOptions([
                         'ssl' => [
                             'allow_self_signed' => true,

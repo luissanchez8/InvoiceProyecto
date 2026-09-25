@@ -8,6 +8,9 @@ return [
     'password' => env('MAIL_PASSWORD'),
     'sendmail' => '/usr/sbin/sendmail -bs',
     'log_channel' => env('MAIL_LOG_CHANNEL'),
+    // Onfactu v.1.14: verificar el certificado del servidor de correo. Siempre,
+    // salvo con el antiguo de Furanet, que no lo tenía bien.
+    'verificar_certificado' => env('MAIL_VERIFY_PEER', env('MAIL_HOST') !== 'mail.onfactu.com'),
     'stream' => [
         'ssl' => [
             'allow_self_signed' => true,
@@ -28,9 +31,9 @@ return [
             'local_domain' => env('MAIL_EHLO_DOMAIN', parse_url(env('APP_URL', 'http://localhost'), PHP_URL_HOST)),
             'stream' => [
                 'ssl' => [
-                    'allow_self_signed' => true,
-                    'verify_peer' => false,
-                    'verify_peer_name' => false,
+                    'allow_self_signed' => ! env('MAIL_VERIFY_PEER', env('MAIL_HOST') !== 'mail.onfactu.com'),
+                    'verify_peer' => env('MAIL_VERIFY_PEER', env('MAIL_HOST') !== 'mail.onfactu.com'),
+                    'verify_peer_name' => env('MAIL_VERIFY_PEER', env('MAIL_HOST') !== 'mail.onfactu.com'),
                 ],
             ],
         ],

@@ -7,4 +7,5 @@ return [
     App\Providers\ViewServiceProvider::class,
     App\Providers\PDFServiceProvider::class,
     App\Providers\MailStreamServiceProvider::class,
+    App\Providers\RemitenteCorreoServiceProvider::class,
 ];
