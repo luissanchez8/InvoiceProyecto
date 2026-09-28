@@ -63,6 +63,19 @@ El número del formulario no se edita: sale el previsto, y el definitivo se asig
 
 La ficha enseña el envío y la visita como texto, junto a los botones.
 
+## Qué cuenta como venta
+
+Solo las facturas **aprobadas**. Un borrador no está emitido y no suma en ningún total:
+
+- el panel de inicio: ventas, pendiente de cobro, número de facturas y facturas vencidas recientes;
+- la ficha de cliente: gráfico y total de ventas;
+- los informes en PDF y en Excel: ventas por cliente, ventas por artículo y resumen de impuestos;
+- el cierre de mes y el portal de la gestoría (ver **Gestoría → Qué se entrega**).
+
+**El resumen de impuestos cuenta el IVA de todas las facturas aprobadas del periodo, se hayan cobrado o no**, porque el IVA se declara por la fecha de la factura. Hasta la v.1.14.5 solo contaba las cobradas, que era lo que hacía el programa base. Las rectificativas restan.
+
+Esto estaba en el plan de la fase 2 y se quedó sin hacer al desplegarla: el panel y los informes siguieron sumando los borradores hasta la v.1.14.5.
+
 ## Un borrador se puede enviar, pero lo dice
 
 Un borrador se puede mandar al cliente para que lo revise. Su PDF sale con el título **BORRADOR** en vez de FACTURA, con el número "Pendiente", y el adjunto del correo se llama `Borrador.pdf`.

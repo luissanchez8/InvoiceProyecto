@@ -262,9 +262,9 @@ class ClosedMonthController extends Controller
         $mensaje = 'Todavía no has cerrado '.$nombre.'. Ciérralo para que tu gestoría tenga tus facturas y gastos al día.';
 
         if ($anterior->month % 3 === 0) {
-            $limite = $anterior->month === 12 ? 30 : 20;
+            $limite = self::plazoIva($hoy->year, $hoy->month);
             $mensaje = 'Todavía no has cerrado '.$nombre.'. Tu gestoría presenta el IVA del trimestre hasta el '
-                .$limite.' de '.CierreMes::nombreMes($hoy->month).': ciérralo cuanto antes.';
+                .$limite->day.' de '.CierreMes::nombreMes($limite->month).': ciérralo cuanto antes.';
         }
 
         return [
@@ -273,6 +273,58 @@ class ClosedMonthController extends Controller
             'nombre'  => $nombre.' de '.$anterior->year,
             'mensaje' => $mensaje,
         ];
+    }
+
+    /**
+     * Onfactu v.1.14.5 — Último día para presentar el IVA trimestral (modelo
+     * 303) en el mes indicado: el 20 (el 30 en enero). Si cae en sábado,
+     * domingo o festivo nacional, pasa al siguiente día hábil, como indica
+     * la Agencia Tributaria (Ley 39/2015). Solo se tienen en cuenta los
+     * festivos nacionales: en algunas comunidades un festivo propio (como el
+     * Lunes de Pascua) alarga el plazo un día más, así que la fecha del aviso
+     * puede ser un día anterior a la real, nunca posterior.
+     */
+    public static function plazoIva(int $year, int $month): Carbon
+    {
+        $dia = Carbon::create($year, $month, $month === 1 ? 30 : 20)->startOfDay();
+
+        while ($dia->isWeekend() || self::esFestivoNacional($dia)) {
+            $dia->addDay();
+        }
+
+        return $dia;
+    }
+
+    /** Festivos nacionales comunes a toda España, incluido el Viernes Santo. */
+    private static function esFestivoNacional(Carbon $dia): bool
+    {
+        $fijos = ['01-01', '01-06', '05-01', '08-15', '10-12', '11-01', '12-06', '12-08', '12-25'];
+        if (in_array($dia->format('m-d'), $fijos, true)) {
+            return true;
+        }
+
+        return $dia->isSameDay(self::domingoDePascua($dia->year)->subDays(2));
+    }
+
+    /** Domingo de Pascua (algoritmo de Gauss, sin depender de la extensión calendar). */
+    private static function domingoDePascua(int $y): Carbon
+    {
+        $a = $y % 19;
+        $b = intdiv($y, 100);
+        $c = $y % 100;
+        $d = intdiv($b, 4);
+        $e = $b % 4;
+        $f = intdiv($b + 8, 25);
+        $g = intdiv($b - $f + 1, 3);
+        $h = (19 * $a + $b - $d - $g + 15) % 30;
+        $i = intdiv($c, 4);
+        $k = $c % 4;
+        $l = (32 + 2 * $e + 2 * $i - $h - $k) % 7;
+        $m = intdiv($a + 11 * $h + 22 * $l, 451);
+        $mes = intdiv($h + $l - 7 * $m + 114, 31);
+        $diaMes = (($h + $l - 7 * $m + 114) % 31) + 1;
+
+        return Carbon::create($y, $mes, $diaMes)->startOfDay();
     }
 
     private function error(string $mensaje)

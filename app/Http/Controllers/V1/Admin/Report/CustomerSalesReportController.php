@@ -33,8 +33,9 @@ class CustomerSalesReportController extends Controller
         $start = Carbon::createFromFormat('Y-m-d', $request->from_date);
         $end = Carbon::createFromFormat('Y-m-d', $request->to_date);
 
+        // Onfactu v.1.14.5: solo facturas aprobadas
         $customers = Customer::with(['invoices' => function ($query) use ($start, $end) {
-            $query->whereBetween(
+            $query->where('status', \App\Models\Invoice::STATUS_APPROVED)->whereBetween(
                 'invoice_date',
                 [$start->format('Y-m-d'), $end->format('Y-m-d')]
             );

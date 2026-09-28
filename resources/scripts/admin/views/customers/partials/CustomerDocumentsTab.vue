@@ -39,7 +39,9 @@
                 <span v-else class="font-medium">{{ row.number_label }}</span>
               </td>
               <td v-if="hasStatusColumn" class="px-4 py-3 text-sm">
-                <BaseInvoiceStatusBadge :status="row.status" class="px-3 py-1">
+                <!-- Onfactu v.1.14.5: las facturas, con su etiqueta de Borrador o Aprobada -->
+                <EstadoFactura v-if="docType === 'invoices'" :status="row.status" :verifactu-status="row.verifactu_status" />
+                <BaseInvoiceStatusBadge v-else :status="row.status" class="px-3 py-1">
                   <BaseInvoiceStatusLabel :status="row.status" />
                 </BaseInvoiceStatusBadge>
               </td>
@@ -76,6 +78,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import axios from 'axios'
 import LoadingIcon from '@/scripts/components/icons/LoadingIcon.vue'
 import SatelliteIcon from '@/scripts/components/icons/empty/SatelliteIcon.vue'
+import EstadoFactura from '@/scripts/components/estados/EstadoFactura.vue'
 
 const props = defineProps({
   customerId: { type: [Number, String], required: true },

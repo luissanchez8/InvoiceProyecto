@@ -64,8 +64,10 @@ class ExcelReportController extends Controller
     // ── Ventas por cliente ──────────────────────────────────────────────
     private function salesByCustomer(Company $company, Carbon $from, Carbon $to, string $symbol)
     {
+        // Onfactu v.1.14.5: solo facturas aprobadas
         $customers = Customer::with(['invoices' => function ($q) use ($from, $to) {
-            $q->whereBetween('invoice_date', [$from->format('Y-m-d'), $to->format('Y-m-d')]);
+            $q->where('status', Invoice::STATUS_APPROVED)
+                ->whereBetween('invoice_date', [$from->format('Y-m-d'), $to->format('Y-m-d')]);
         }])
             ->where('company_id', $company->id)
             ->get();
@@ -100,6 +102,7 @@ class ExcelReportController extends Controller
     {
         $invoices = Invoice::with('items')
             ->where('company_id', $company->id)
+            ->where('status', Invoice::STATUS_APPROVED)
             ->whereBetween('invoice_date', [$from->format('Y-m-d'), $to->format('Y-m-d')])
             ->get();
 
@@ -201,10 +204,16 @@ class ExcelReportController extends Controller
     // ── Resumen de impuestos ────────────────────────────────────────────
     private function taxSummary(Company $company, Carbon $from, Carbon $to, string $symbol)
     {
-        $taxTypes = TaxType::with(['taxes' => function ($q) use ($from, $to, $company) {
-            $q->whereHas('invoice', function ($iq) use ($from, $to, $company) {
-                $iq->where('company_id', $company->id)
-                    ->whereBetween('invoice_date', [$from->format('Y-m-d'), $to->format('Y-m-d')]);
+        // Onfactu v.1.14.5: como el informe en PDF, las facturas aprobadas del
+        // periodo, con el impuesto de la factura o el de cada línea.
+        $factura = function ($iq) use ($from, $to, $company) {
+            $iq->where('company_id', $company->id)
+                ->where('status', Invoice::STATUS_APPROVED)
+                ->whereBetween('invoice_date', [$from->format('Y-m-d'), $to->format('Y-m-d')]);
+        };
+        $taxTypes = TaxType::with(['taxes' => function ($q) use ($factura) {
+            $q->where(function ($q) use ($factura) {
+                $q->whereHas('invoice', $factura)->orWhereHas('invoiceItem.invoice', $factura);
             });
         }])
             ->where('company_id', $company->id)
@@ -220,9 +229,10 @@ class ExcelReportController extends Controller
             foreach ($taxTypes as $tt) {
                 $totalTax = 0;
                 foreach ($tt->taxes as $tax) {
-                    $totalTax += $tax->amount;
+                    $totalTax += $tax->base_amount ?? $tax->amount;
                 }
-                if ($totalTax > 0) {
+                // Las rectificativas restan: puede salir negativo
+                if ($totalTax != 0) {
                     fputcsv($h, [$tt->name, $tt->percent . '%', $this->fmt($totalTax)], ';');
                 }
             }

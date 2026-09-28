@@ -45,7 +45,8 @@ const labelStatus = computed(() => {
     case 'DELIVERED':
       return t('general.delivered')
     case 'APPROVED':
-      return t('verifactu.approved')
+      // Onfactu v.1.14.5: la clave anterior no existía en español
+      return t('estados.aprobada')
     default:
       return props.status
   }

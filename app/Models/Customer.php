@@ -317,8 +317,9 @@ class Customer extends Authenticatable implements HasMedia
 
     public function scopeInvoicesBetween($query, $start, $end)
     {
+        // Onfactu v.1.14.5: solo facturas aprobadas
         $query->whereHas('invoices', function ($query) use ($start, $end) {
-            $query->whereBetween(
+            $query->where('status', Invoice::STATUS_APPROVED)->whereBetween(
                 'invoice_date',
                 [$start->format('Y-m-d'), $end->format('Y-m-d')]
             );

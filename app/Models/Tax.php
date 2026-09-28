@@ -79,20 +79,22 @@ class Tax extends Model
 
     public function scopeInvoicesBetween($query, $start, $end)
     {
-        $query->whereHas('invoice', function ($query) use ($start, $end) {
-            $query->where('paid_status', Invoice::STATUS_PAID)
+        // Onfactu v.1.14.5: el IVA se declara por la fecha de la factura, se
+        // cobre o no, así que cuentan todas las aprobadas del periodo (antes,
+        // solo las cobradas). Las dos condiciones van agrupadas para que el
+        // filtro de empresa se aplique a las dos.
+        $factura = function ($query) use ($start, $end) {
+            $query->where('status', Invoice::STATUS_APPROVED)
                 ->whereBetween(
                     'invoice_date',
                     [$start->format('Y-m-d'), $end->format('Y-m-d')]
                 );
-        })
-            ->orWhereHas('invoiceItem.invoice', function ($query) use ($start, $end) {
-                $query->where('paid_status', Invoice::STATUS_PAID)
-                    ->whereBetween(
-                        'invoice_date',
-                        [$start->format('Y-m-d'), $end->format('Y-m-d')]
-                    );
-            });
+        };
+
+        $query->where(function ($query) use ($factura) {
+            $query->whereHas('invoice', $factura)
+                ->orWhereHas('invoiceItem.invoice', $factura);
+        });
     }
 
     public function scopeWhereInvoicesFilters($query, array $filters)
