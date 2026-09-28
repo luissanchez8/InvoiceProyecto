@@ -26,6 +26,14 @@ docker exec onf-<instancia>-invoiceshelf_app php artisan tinker --execute='echo 
 
 **Tras un redespliegue, esperar antes de comprobar.** `redeploy_instancias.sh` no espera a que cada contenedor termine de arrancar. Si se comprueba justo después, las últimas instancias pueden estar todavía aplicando migraciones y parecer incompletas.
 
+### Si una migración falla al arrancar
+
+La instancia no llega a arrancar y responde **502** (Bad Gateway). Laravel deshace la migración que falla, así que no queda nada a medias: sigue pendiente y se vuelve a intentar en el siguiente arranque. El motivo se ve con `docker logs onf-<instancia>-invoiceshelf_app`. Por eso las migraciones se prueban siempre en demos antes de desplegarlas.
+
+### Los identificadores polimórficos son texto
+
+En las tablas que apuntan a "cualquier documento" (como `email_logs.mailable_id`), el identificador se guarda como **texto**. Para cruzarlas con una tabla de documentos hay que convertir el número: `e.mailable_id = i.id::text`. Comparar texto con número falla en PostgreSQL (`operator does not exist: character varying = integer`). Pasó con la migración de los estados de las facturas (v.1.13.1): dejó demos con error 502 hasta corregirla.
+
 ## Sesiones: una cookie por instancia
 
 Desde la v.1.11.2, cada instancia tiene en su `.env`:
@@ -73,3 +81,4 @@ El frontend reconocía la sesión caducada por el texto "Unauthorized" de la res
 - **`cfctl.js` y `crearInstancia.sh` rechazan subdominios de menos de 5 letras.** Para uno así, el DNS se crea con la API de Cloudflare.
 - **Un error de TLS "internal error" en un dominio nuestro** suele ser que Caddy no tiene su certificado: o no ve el bloque, o no pudo sacarlo.
 - **Con HTTP/2 el texto del estado de la respuesta llega vacío.** Para reconocer un error hay que mirar el código (401, 419…), nunca el texto ("Unauthorized").
+- **Dentro del contenedor, la aplicación está en `/var/www/html/InvoiceShelf`**, no en `/var/www/html`. Buscar ficheros en la carpeta de arriba da resultados falsos.
