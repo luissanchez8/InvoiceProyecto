@@ -114,11 +114,7 @@
               class="mb-6"
             />
 
-            <!-- Invoice Template Button-->
-            <SelectTemplateButton
-              :store="recurringInvoiceStore"
-              store-prop="newRecurringInvoice"
-            />
+            <!-- Onfactu v.1.14.3: plantilla única, sin selector -->
           </div>
 
           <!-- Invoice Total Card -->

@@ -12,8 +12,8 @@ use Illuminate\Http\Request;
  * Ninguna de las dos cambia el estado: una factura solo es Borrador o
  * Aprobada, y se aprueba con ApproveInvoiceController.
  *
- *  - SENT: apunta que se ha enviado (fuera de Onfactu, por ejemplo). Vale
- *    también para un borrador que se manda al cliente para que lo revise.
+ *  - SENT: apunta que se ha enviado (fuera de Onfactu, por ejemplo). Solo
+ *    para facturas aprobadas (v.1.14.3): un borrador no se envía.
  *  - PAID: la da por cobrada sin registrar un cobro, como hacía antes
  *    "Marcar como completada". Solo para facturas aprobadas.
  *
@@ -26,6 +26,13 @@ class ChangeInvoiceStatusController extends Controller
         $this->authorize('send invoice', $invoice);
 
         if ($request->status === 'SENT') {
+            if ($invoice->status === Invoice::STATUS_DRAFT) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Aprueba la factura antes de marcarla como enviada.',
+                ], 422);
+            }
+
             $invoice->sent = true;
             $invoice->sent_at = $invoice->sent_at ?? now();
             $invoice->save();

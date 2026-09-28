@@ -56,6 +56,14 @@ class RecurringInvoice extends Model
         'formattedLimitDate',
     ];
 
+    /** Onfactu v.1.14.3: las recurrentes usan siempre la plantilla única. */
+    protected static function booted(): void
+    {
+        static::saving(function (RecurringInvoice $recurrente) {
+            $recurrente->template_name = Invoice::PLANTILLA_PDF;
+        });
+    }
+
     protected function casts(): array
     {
         return [

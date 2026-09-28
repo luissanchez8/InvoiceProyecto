@@ -409,7 +409,8 @@ export const useRecurringInvoiceStore = (useWindow = false) => {
             }
 
             if (!isEdit) {
-              this.setTemplate(this.templates[0].name)
+              // Onfactu v.1.14.3: plantilla única
+              this.setTemplate('invoice4')
             }
 
             if (isEdit && res5?.data) {

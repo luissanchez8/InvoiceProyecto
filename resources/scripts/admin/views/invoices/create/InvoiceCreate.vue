@@ -167,13 +167,7 @@
               class="mb-6"
             />
 
-            <!-- Invoice Template Button-->
-            <SelectTemplate
-              :store="invoiceStore"
-              store-prop="newInvoice"
-              component-name="InvoiceTemplate"
-              :is-mark-as-default="isMarkAsDefault"
-            />
+            <!-- Onfactu v.1.14.3: plantilla única, sin selector -->
           </div>
 
           <InvoiceTotal

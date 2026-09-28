@@ -40,6 +40,9 @@ class Invoice extends Model implements HasMedia
 
     public const STATUS_DRAFT = 'DRAFT';
 
+    /** Onfactu v.1.14.3: plantilla PDF única de las facturas. */
+    public const PLANTILLA_PDF = 'invoice4';
+
     public const STATUS_SENT = 'SENT';
 
     public const STATUS_VIEWED = 'VIEWED';
@@ -104,6 +107,19 @@ class Invoice extends Model implements HasMedia
      */
     protected static function booted(): void
     {
+        // Onfactu v.1.14.3: una sola plantilla PDF. Toda factura nueva o en
+        // borrador, y la que se aprueba en este momento, usa la universal, venga
+        // de donde venga (duplicar, recurrente, conversión, rectificativa). Las
+        // ya aprobadas conservan la suya: se entregaron así al cliente.
+        static::saving(function (Invoice $invoice) {
+            $abierta = ! $invoice->exists
+                || $invoice->status === self::STATUS_DRAFT
+                || $invoice->getOriginal('status') === self::STATUS_DRAFT;
+            if ($abierta && $invoice->template_name !== self::PLANTILLA_PDF) {
+                $invoice->template_name = self::PLANTILLA_PDF;
+            }
+        });
+
         // Onfactu v.1.13: ninguna factura sale del borrador sin número. Aprobar
         // (AprobarFactura) ya lo asigna; esto cubre cualquier otro camino.
         static::saving(function (Invoice $invoice) {
@@ -652,7 +668,8 @@ class Invoice extends Model implements HasMedia
         \Mail::to($data['to'])->send(new SendInvoiceMail($data));
 
         // Onfactu v.1.13: enviar no cambia el estado; se apunta que se ha enviado
-        // y cuándo. Un borrador se puede enviar al cliente para que lo revise.
+        // y cuándo. Desde la v.1.14.3 un borrador no se envía (lo impiden los
+        // controladores): para que el cliente revise algo está el presupuesto.
         $this->sent = true;
         $this->sent_at = now();
         $this->save();
