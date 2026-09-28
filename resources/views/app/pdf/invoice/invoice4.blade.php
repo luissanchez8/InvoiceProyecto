@@ -53,12 +53,18 @@
     ];
     $docTitle = $docTitles[$docType] ?? __('pdf_invoice_label');
 
+    // Onfactu v.1.14.4: el PDF de un borrador de factura lo dice claramente,
+    // para que no se confunda con una factura (no tiene número ni validez).
+    $esBorrador = $docType === 'invoice' && ($invoice->status ?? null) === 'DRAFT';
+    if ($esBorrador) $docTitle = 'Borrador';
+
     // Número del documento (cada modelo usa un campo diferente)
     $docNumber = $invoice->invoice_number
         ?? $invoice->estimate_number
         ?? $invoice->proforma_invoice_number
         ?? $invoice->delivery_note_number
         ?? '';
+    if ($esBorrador && $docNumber === '') $docNumber = 'Pendiente';
 
     // Fecha principal del documento
     $docDate = $invoice->formattedInvoiceDate

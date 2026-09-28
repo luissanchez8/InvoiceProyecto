@@ -18,14 +18,6 @@ class SendInvoiceController extends Controller
     {
         $this->authorize('send invoice', $invoice);
 
-        // Onfactu v.1.14.3: un borrador no es una factura; se aprueba antes.
-        if ($invoice->status === Invoice::STATUS_DRAFT) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Aprueba la factura antes de enviarla.',
-            ], 422);
-        }
-
         $invoice->send($request->all());
 
         return response()->json([

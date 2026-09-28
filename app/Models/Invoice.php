@@ -668,8 +668,8 @@ class Invoice extends Model implements HasMedia
         \Mail::to($data['to'])->send(new SendInvoiceMail($data));
 
         // Onfactu v.1.13: enviar no cambia el estado; se apunta que se ha enviado
-        // y cuándo. Desde la v.1.14.3 un borrador no se envía (lo impiden los
-        // controladores): para que el cliente revise algo está el presupuesto.
+        // y cuándo. Un borrador también se puede enviar: su PDF sale como
+        // "BORRADOR" y sin número (v.1.14.4), para que no pase por factura.
         $this->sent = true;
         $this->sent_at = now();
         $this->save();

@@ -111,7 +111,7 @@
     </BaseDropdownItem>
 
     <!-- Mark as sent Invoice -->
-    <BaseDropdownItem v-if="row.status !== 'DRAFT' && !row.sent && userStore.hasAbilities(abilities.SEND_INVOICE)" @click="onMarkAsSent(row.id)">
+    <BaseDropdownItem v-if="!row.sent && userStore.hasAbilities(abilities.SEND_INVOICE)" @click="onMarkAsSent(row.id)">
       <BaseIcon
         name="CheckCircleIcon"
         class="w-5 h-5 mr-3 text-gray-400 group-hover:text-gray-500"
@@ -246,7 +246,6 @@ function onMarcarCobrada(row) {
 
 function canReSendInvoice(row) {
   return (
-    row.status !== 'DRAFT' &&
     row.sent &&
     userStore.hasAbilities(abilities.SEND_INVOICE)
   )
@@ -254,7 +253,6 @@ function canReSendInvoice(row) {
 
 function canSendInvoice(row) {
   return (
-    row.status !== 'DRAFT' &&
     !row.sent &&
     route.name !== 'invoices.view' &&
     userStore.hasAbilities(abilities.SEND_INVOICE)

@@ -336,9 +336,8 @@ onSearched = debounce(onSearched, 500)
         <!-- Onfactu v.1.13: enviada y vista, como información -->
         <span v-if="infoEnvio" class="mr-4 text-sm text-gray-500 whitespace-nowrap">{{ infoEnvio }}</span>
 
-        <!-- Onfactu v.1.14.3: un borrador no se envía; primero se aprueba -->
         <BaseButton
-          v-if="invoiceData.status !== 'DRAFT' && userStore.hasAbilities(abilities.SEND_INVOICE)"
+          v-if="userStore.hasAbilities(abilities.SEND_INVOICE)"
           variant="primary-outline"
           class="mr-3 text-sm"
           @click="onSendInvoice"
