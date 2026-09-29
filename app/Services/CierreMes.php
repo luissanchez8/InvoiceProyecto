@@ -191,6 +191,9 @@ class CierreMes
      * impuestos de la factura y los de sus líneas. La retención es un impuesto
      * de porcentaje negativo: aquí sale en positivo (en negativo si es de una
      * rectificativa, que la devuelve).
+     *
+     * El portal de gestorías tiene la misma consulta en SQL_IMPUESTOS_FACTURA
+     * (lib/detalle.php): si cambia aquí, hay que cambiarla allí.
      */
     public static function impuestosPorFactura()
     {
