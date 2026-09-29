@@ -1995,6 +1995,21 @@
     "sin_desglose": "Sin desglose de IVA",
     "sin_desglose_ayuda": "Este gasto no tiene el IVA desglosado.",
     "desglosar": "Desglosar IVA",
-    "autoliquidado": "IVA autoliquidado"
+    "autoliquidado": "IVA autoliquidado",
+    "gestionar": "Gestionar",
+    "proveedores": "Proveedores",
+    "proveedores_ayuda": "Los cambios se aplican a todos los gastos del proveedor, salvo a los de meses cerrados.",
+    "buscar_proveedor": "Buscar por nombre o NIF",
+    "sin_proveedores": "Todavía no hay proveedores. Se añaden al escribirlos en un gasto.",
+    "n_gastos": "1 gasto | {n} gastos",
+    "n_cerrados": "{n} en meses cerrados",
+    "editar": "Editar",
+    "quitar_proveedor": "Quitar",
+    "quitar_aviso": "Se quitará de sus gastos. Los gastos no se borran.",
+    "se_unira": "Ya existe un proveedor con ese nombre: se unirán en uno.",
+    "actualizado": "Proveedor actualizado en 1 gasto. | Proveedor actualizado en {n} gastos.",
+    "quitado": "Proveedor quitado de 1 gasto. | Proveedor quitado de {n} gastos.",
+    "cerrados_sin_cambiar": "El de un mes cerrado no se ha cambiado. | Los {n} de meses cerrados no se han cambiado.",
+    "cerrar": "Cerrar"
   }
 }

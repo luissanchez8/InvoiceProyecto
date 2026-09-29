@@ -401,6 +401,11 @@ Route::prefix('/v1')->group(function () {
 
             Route::get('/expenses/iva/proveedores', [\App\Http\Controllers\V1\Admin\Expense\IvaGastosController::class, 'proveedores']);
 
+            // Onfactu v.1.15.3: gestionar los proveedores desde el formulario del gasto
+            Route::get('/expenses/iva/proveedores/gestion', [\App\Http\Controllers\V1\Admin\Expense\ProveedoresGastoController::class, 'index']);
+            Route::put('/expenses/iva/proveedores', [\App\Http\Controllers\V1\Admin\Expense\ProveedoresGastoController::class, 'update']);
+            Route::post('/expenses/iva/proveedores/quitar', [\App\Http\Controllers\V1\Admin\Expense\ProveedoresGastoController::class, 'quitar']);
+
             Route::apiResource('expenses', ExpensesController::class);
 
             Route::apiResource('categories', ExpenseCategoriesController::class);

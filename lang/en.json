@@ -1936,6 +1936,21 @@
         "sin_desglose": "No VAT breakdown",
         "sin_desglose_ayuda": "This expense has no VAT breakdown.",
         "desglosar": "Break down VAT",
-        "autoliquidado": "Reverse-charge VAT"
+        "autoliquidado": "Reverse-charge VAT",
+        "gestionar": "Manage",
+        "proveedores": "Suppliers",
+        "proveedores_ayuda": "Changes apply to all the supplier's expenses, except those in closed months.",
+        "buscar_proveedor": "Search by name or tax ID",
+        "sin_proveedores": "No suppliers yet. They are added when you type them in an expense.",
+        "n_gastos": "1 expense | {n} expenses",
+        "n_cerrados": "{n} in closed months",
+        "editar": "Edit",
+        "quitar_proveedor": "Remove",
+        "quitar_aviso": "It will be removed from its expenses. The expenses are not deleted.",
+        "se_unira": "A supplier with that name already exists: they will be merged.",
+        "actualizado": "Supplier updated in 1 expense. | Supplier updated in {n} expenses.",
+        "quitado": "Supplier removed from 1 expense. | Supplier removed from {n} expenses.",
+        "cerrados_sin_cambiar": "The one in a closed month was not changed. | The {n} in closed months were not changed.",
+        "cerrar": "Close"
     }
 }
