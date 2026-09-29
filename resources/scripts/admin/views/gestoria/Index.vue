@@ -64,6 +64,18 @@
         <div>{{ aviso.mensaje }}</div>
       </div>
 
+      <!-- v.1.16.0: mes abierto para corregir -->
+      <div
+        v-if="mesAbierto"
+        class="flex flex-wrap items-center gap-3 p-4 mt-6 text-sm border rounded-lg bg-orange-50 text-orange-900 border-orange-200"
+      >
+        <BaseIcon name="LockOpenIcon" class="w-5 h-5 shrink-0 text-orange-500" />
+        <div class="flex-1 min-w-[240px]">
+          {{ $t('gestoria.reopened_banner', { mes: mesAbierto.nombre, hasta: fecha(mesAbierto.hasta) }) }}
+        </div>
+        <BaseButton size="sm" variant="primary" @click="recerrar(mesAbierto)">{{ $t('gestoria.reclose') }}</BaseButton>
+      </div>
+
       <p class="mt-6 mb-6 text-sm text-gray-500">
         {{ $t('gestoria.linked_help', { gestoria: estado.gestoria?.nombre }) }}
       </p>
@@ -78,9 +90,9 @@
           <div class="overflow-x-auto">
             <table class="w-full text-sm table-fixed min-w-[980px]">
               <colgroup>
-                <col style="width: 15%" /><col style="width: 11%" /><col style="width: 9%" />
-                <col style="width: 13%" /><col style="width: 12%" /><col style="width: 14%" />
-                <col style="width: 12%" /><col style="width: 8%" /><col style="width: 6%" />
+                <col style="width: 13%" /><col style="width: 11%" /><col style="width: 7%" />
+                <col style="width: 12%" /><col style="width: 11%" /><col style="width: 13%" />
+                <col style="width: 12%" /><col style="width: 8%" /><col style="width: 13%" />
               </colgroup>
               <thead>
                 <tr class="border-b border-gray-100 bg-gray-50/70">
@@ -109,8 +121,8 @@
                     >{{ NOMBRES[mes.month - 1] }}</span>
                   </td>
                   <td class="px-6 py-4">
-                    <span class="px-2 py-1 text-sm uppercase font-normal text-center whitespace-nowrap" :class="pillClass(mes.estado)">
-                      {{ $t('gestoria.state_' + mes.estado) }}
+                    <span class="px-2 py-1 text-sm uppercase font-normal text-center whitespace-nowrap" :class="pillClass(mes.reabierto ? 'reabierto' : mes.estado)">
+                      {{ $t('gestoria.state_' + (mes.reabierto ? 'reabierto' : mes.estado)) }}
                     </span>
                     <span
                       v-if="mes.estado === 'cerrado' && mes.entregado === false"
@@ -163,10 +175,22 @@
                       class="text-xs text-amber-600 whitespace-nowrap"
                     >{{ $t('gestoria.pending_short') }}</span>
                     <button
-                      v-else-if="mes.estado === 'cerrado'"
-                      class="text-xs font-semibold text-gray-500 hover:text-primary-500 hover:underline whitespace-nowrap"
-                      @click="descargarCsv(mes)"
-                    >{{ $t('gestoria.download_csv') }}</button>
+                      v-else-if="mes.reabierto"
+                      class="text-xs font-semibold text-primary-500 hover:underline whitespace-nowrap"
+                      @click="recerrar(mes)"
+                    >{{ $t('gestoria.reclose') }}</button>
+                    <template v-else-if="mes.estado === 'cerrado'">
+                      <button
+                        class="text-xs font-semibold text-gray-500 hover:text-primary-500 hover:underline whitespace-nowrap"
+                        @click="descargarCsv(mes)"
+                      >{{ $t('gestoria.download_csv') }}</button>
+                      <!-- v.1.16.0: abrir para corregir, solo el propietario -->
+                      <button
+                        v-if="mes.puede_reabrir"
+                        class="block mt-1 ml-auto text-xs text-gray-400 hover:text-primary-500 hover:underline whitespace-nowrap"
+                        @click="reabrir(mes)"
+                      >{{ $t('gestoria.reopen') }}</button>
+                    </template>
                   </td>
                 </tr>
               </tbody>
@@ -253,6 +277,10 @@
       @close="modal = false"
       @confirmar="cerrarMes"
     />
+
+    <!-- v.1.16.0: abrir un mes cerrado y volver a cerrarlo -->
+    <ModalReabrirMes :show="modalReabrir" :mes="mesElegido" :nombres="NOMBRES" @close="modalReabrir = false" @hecho="trasReapertura" />
+    <ModalRecerrarMes :show="modalRecerrar" :mes="mesElegido" @close="modalRecerrar = false" @hecho="trasReapertura" />
   </BasePage>
 </template>
 
@@ -262,6 +290,8 @@ import { useI18n } from 'vue-i18n'
 import axios from 'axios'
 import { useNotificationStore } from '@/scripts/stores/notification'
 import ModalCierreMes from './ModalCierreMes.vue'
+import ModalReabrirMes from './ModalReabrirMes.vue'
+import ModalRecerrarMes from './ModalRecerrarMes.vue'
 
 const { t } = useI18n()
 const notificationStore = useNotificationStore()
@@ -283,6 +313,9 @@ const preview = ref(null)
 const mesElegido = ref(null)
 const meses = ref([])
 const aviso = ref(null)
+const mesAbierto = ref(null)
+const modalReabrir = ref(false)
+const modalRecerrar = ref(false)
 const anio = ref(new Date().getFullYear())
 
 const anios = computed(() => {
@@ -311,6 +344,7 @@ function pillClass(e) {
     incompleto: 'bg-yellow-500 bg-opacity-25 text-yellow-900',
     en_curso: 'bg-blue-400 bg-opacity-25 text-blue-900',
     futuro: 'bg-gray-500 bg-opacity-25 text-gray-900',
+    reabierto: 'bg-orange-300 bg-opacity-30 text-orange-900',
   }[e] || 'bg-gray-500 bg-opacity-25 text-gray-900'
 }
 
@@ -391,6 +425,7 @@ async function cargarMeses() {
     const { data } = await axios.get('/api/v1/closed-months', { params: { year: anio.value } })
     meses.value = data.meses
     aviso.value = data.aviso_pendiente
+    mesAbierto.value = data.mes_abierto
   } catch (e) { /* silencioso */ }
 }
 
@@ -427,6 +462,27 @@ async function cerrarMes(descargar = false) {
   } finally {
     cerrando.value = false
   }
+}
+
+// v.1.16.0: abrir un mes cerrado para corregirlo y volver a cerrarlo
+function reabrir(mes) {
+  mesElegido.value = mes
+  modalReabrir.value = true
+}
+
+function recerrar(mes) {
+  mesElegido.value = mes
+  modalRecerrar.value = true
+}
+
+async function trasReapertura() {
+  modalReabrir.value = modalRecerrar.value = false
+  await cargarMeses()
+}
+
+function fecha(iso) {
+  if (!iso) return ''
+  return new Date(iso).toLocaleString('es-ES', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
 }
 
 // CSV de un mes cerrado: lo mismo que ha recibido la gestoría

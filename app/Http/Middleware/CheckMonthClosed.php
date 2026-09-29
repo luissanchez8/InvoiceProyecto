@@ -24,6 +24,11 @@ use Symfony\Component\HttpFoundation\Response;
  *
  * Responde 422 con un mensaje claro para que el frontend lo muestre en el
  * formulario igual que un error de validacion.
+ *
+ * v.1.16.0: si el propietario ha abierto el mes para corregirlo, deja pasar
+ * todo menos las facturas (ClosedMonth::isLocked). Y rectificar una factura
+ * de un mes cerrado se permite siempre: la rectificativa lleva la fecha de
+ * hoy y la original no cambia de importe.
  */
 class CheckMonthClosed
 {
@@ -65,7 +70,7 @@ class CheckMonthClosed
 
         // ── 1. Fecha que llega en el body (crear o mover el documento) ──
         $bodyDate = $request->input($cfg['date']);
-        if ($bodyDate && ClosedMonth::isClosed($companyId, $bodyDate)) {
+        if ($bodyDate && ClosedMonth::isLocked($companyId, $bodyDate, $segment)) {
             return $this->blocked($bodyDate, $cfg['label'], 'destino');
         }
 
@@ -75,7 +80,7 @@ class CheckMonthClosed
         // septiembre. Aprobar con la fecha de hoy la saca del mes cerrado, y
         // aprobar varias lo comprueba factura a factura (AprobarFactura).
         $accion = strtolower((string) last($request->segments()));
-        if (in_array($accion, ['send', 'status', 'approve-multiple'], true)
+        if (in_array($accion, ['send', 'status', 'approve-multiple', 'rectify'], true)
             || ($accion === 'approve' && $request->boolean('usar_fecha_hoy'))) {
             return $next($request);
         }
@@ -88,7 +93,7 @@ class CheckMonthClosed
                 ->pluck($cfg['date']);
 
             foreach ($fechas as $f) {
-                if (ClosedMonth::isClosed($companyId, $f)) {
+                if (ClosedMonth::isLocked($companyId, $f, $segment)) {
                     return $this->blocked($f, $cfg['label'], 'origen');
                 }
             }
@@ -176,6 +181,11 @@ class CheckMonthClosed
         $msg = $motivo === 'destino'
             ? "No puedes usar una fecha de {$mes}: ese mes ya está cerrado y no admite nuevos documentos."
             : "No puedes modificar {$label} porque pertenece a {$mes}, un mes ya cerrado.";
+
+        // v.1.16.0: aunque el mes esté abierto para corregir, las facturas no
+        if ($label === 'la factura') {
+            $msg .= ' Las facturas de un mes cerrado se corrigen con una rectificativa.';
+        }
 
         return response()->json([
             'error'   => 'month_closed',

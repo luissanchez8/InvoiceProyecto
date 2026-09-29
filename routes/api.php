@@ -320,6 +320,10 @@ Route::prefix('/v1')->group(function () {
             Route::get('/closed-months/check/{tipo}/{id}', [\App\Http\Controllers\V1\Admin\ClosedMonth\ClosedMonthController::class, 'check'])->whereNumber('id');
             Route::get('/closed-months', [\App\Http\Controllers\V1\Admin\ClosedMonth\ClosedMonthController::class, 'index']);
             Route::post('/closed-months', [\App\Http\Controllers\V1\Admin\ClosedMonth\ClosedMonthController::class, 'store']);
+            // Onfactu v.1.16.0: abrir un mes cerrado para corregirlo
+            Route::post('/closed-months/reabrir', [\App\Http\Controllers\V1\Admin\ClosedMonth\ReaperturaMesController::class, 'abrir']);
+            Route::get('/closed-months/reabierto', [\App\Http\Controllers\V1\Admin\ClosedMonth\ReaperturaMesController::class, 'vistaPrevia']);
+            Route::post('/closed-months/recerrar', [\App\Http\Controllers\V1\Admin\ClosedMonth\ReaperturaMesController::class, 'cerrar']);
 
             // Proforma Invoices (Facturas Proforma)
             // -------------------------------------------------

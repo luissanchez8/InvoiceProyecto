@@ -245,6 +245,56 @@ class GestoriaService
     }
 
     /**
+     * Onfactu v.1.16.0 — Guarda en la central una reapertura de un mes (tabla
+     * gestoria_reaperturas), para que el portal la enseñe. Una fila por cada
+     * vez que se abre el mes (numero); al volver a cerrarlo se completa la
+     * misma fila con los cambios. De mejor esfuerzo: si falla, devuelve false.
+     */
+    public static function reapertura(int $year, int $month, int $numero, array $datos): bool
+    {
+        $v = self::vinculacion();
+        if (! $v || $v->estado !== 'aceptada') {
+            return false;
+        }
+
+        foreach (['cambios', 'totales_antes', 'totales_despues'] as $json) {
+            if (array_key_exists($json, $datos) && is_array($datos[$json])) {
+                $datos[$json] = json_encode($datos[$json], JSON_UNESCAPED_UNICODE);
+            }
+        }
+
+        try {
+            DB::connection(self::CONN)->table('gestoria_reaperturas')->updateOrInsert(
+                ['subdominio' => self::subdominio(), 'year' => $year, 'month' => $month, 'numero' => $numero],
+                $datos
+            );
+
+            return true;
+        } catch (\Throwable $e) {
+            \Log::warning('Reapertura no registrada en la central', ['error' => $e->getMessage()]);
+
+            return false;
+        }
+    }
+
+    /**
+     * Aviso por email a la gestoría vinculada, con la plantilla corporativa.
+     * Lo usa App\Services\ReaperturaMes.
+     */
+    public static function avisar(string $asunto, array $opts): void
+    {
+        $v = self::vinculacion();
+        if ($v && $v->estado === 'aceptada') {
+            self::avisarGestoria($v->gestoria_email ?? null, $asunto.' · '.self::nombreEmpresa(), $opts);
+        }
+    }
+
+    public static function empresa(): string
+    {
+        return (string) self::nombreEmpresa();
+    }
+
+    /**
      * Copia a la central el nombre, el NIF y el logo de la empresa, para que
      * el portal los muestre al día. Se llama al abrir la pantalla de gestoría
      * y al cerrar un mes. Si la central no responde, no pasa nada: se

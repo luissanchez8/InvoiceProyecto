@@ -22,7 +22,9 @@ use Illuminate\Support\Facades\DB;
  * GET    /api/v1/closed-months/preview    -> resumen de un mes (no cierra)
  * GET    /api/v1/closed-months/export     -> CSV de un mes cerrado
  * GET    /api/v1/closed-months/check/{tipo}/{id} -> si un documento es de un mes cerrado
- * POST   /api/v1/closed-months            -> cierra el mes (IRREVERSIBLE)
+ * POST   /api/v1/closed-months            -> cierra el mes
+ *
+ * Abrir un mes cerrado para corregirlo: ReaperturaMesController (v.1.16.0).
  *
  * Al cerrar, el mes queda congelado: el middleware CheckMonthClosed impide
  * cualquier escritura sobre documentos con fecha en ese periodo.
@@ -61,6 +63,12 @@ class ClosedMonthController extends Controller
         // Nombre, NIF y logo de la empresa al día en el portal de la gestoría
         GestoriaService::sincronizarEmpresa();
 
+        // v.1.16.0: los meses abiertos para corregir que han caducado se
+        // cierran al abrir la pantalla, además de la tarea programada
+        \App\Services\ReaperturaMes::cerrarCaducados($companyId);
+        $propietario = (bool) $request->user()?->isOwner();
+        $abierto = ClosedMonth::where('company_id', $companyId)->whereNotNull('reopened_at')->first();
+
         $cerrados = ClosedMonth::where('company_id', $companyId)->where('year', $year)->get()->keyBy('month');
         $hoy = now();
         $meses = [];
@@ -78,6 +86,11 @@ class ClosedMonthController extends Controller
                 'totals'         => $cerrado?->totals,
                 'entregado'      => $cerrado ? $cerrado->sent_status === 'sent' : null,
                 'puede_cerrarse' => ! $cerrado && ! $futuro && ! $enCurso,
+                // v.1.16.0: abierto para corregir
+                'reabierto'       => (bool) $cerrado?->estaAbierto(),
+                'reabierto_hasta' => $cerrado?->estaAbierto() ? $cerrado->reopen_expires_at?->toIso8601String() : null,
+                'veces_reabierto' => (int) ($cerrado?->reopen_count ?? 0),
+                'puede_reabrir'   => $cerrado !== null && $propietario && ! $abierto,
             ];
         }
 
@@ -85,6 +98,12 @@ class ClosedMonthController extends Controller
             'year'            => $year,
             'meses'           => $meses,
             'aviso_pendiente' => $this->avisoPendiente($companyId),
+            // v.1.16.0: el mes abierto para corregir, aunque sea de otro año
+            'mes_abierto'     => $abierto ? [
+                'year' => $abierto->year, 'month' => $abierto->month,
+                'nombre' => CierreMes::nombreMes($abierto->month, true).' de '.$abierto->year,
+                'hasta' => $abierto->reopen_expires_at?->toIso8601String(),
+            ] : null,
         ]);
     }
 
@@ -129,7 +148,8 @@ class ClosedMonthController extends Controller
         [$tabla, $columna, $nombre] = $cfg;
         $fecha = DB::table($tabla)->where('id', $id)->where('company_id', $companyId)->value($columna);
 
-        if (! $fecha || ! ClosedMonth::isClosed($companyId, $fecha)) {
+        // v.1.16.0: con el mes abierto para corregir se puede editar todo menos las facturas
+        if (! $fecha || ! ClosedMonth::isLocked($companyId, $fecha, $tipo)) {
             return response()->json(['cerrado' => false]);
         }
 
@@ -140,7 +160,8 @@ class ClosedMonthController extends Controller
     }
 
     /**
-     * Cierra el mes. IRREVERSIBLE.
+     * Cierra el mes. Solo se puede volver a abrir para corregir gastos y
+     * cobros (ReaperturaMesController); las facturas quedan cerradas.
      */
     public function store(Request $request)
     {

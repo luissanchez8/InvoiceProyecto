@@ -1,7 +1,8 @@
 <template>
   <!--
     Confirmación del cierre de mes. Enseña lo que se entrega, lo que queda
-    fuera (facturas en borrador) y que el cierre es irreversible.
+    fuera (facturas en borrador) y que las facturas quedan cerradas (v.1.16.0:
+    gastos y cobros se pueden corregir abriendo el mes, ver ModalReabrirMes).
     Emite `confirmar` con si el cliente quiere descargar también el CSV.
   -->
   <BaseModal :show="show" @close="$emit('close')">

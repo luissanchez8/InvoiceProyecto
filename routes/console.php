@@ -36,3 +36,5 @@ if (InstallUtils::isDbCreated()) {
 // Onfactu: los meses cerrados que no llegaron a la gestoría se reintentan
 // cada hora (y también al abrir la pantalla de gestoría del cliente).
 Schedule::command('gestoria:reenviar-cierres')->hourly()->withoutOverlapping();
+// Onfactu v.1.16.0: meses abiertos para corregir que han pasado las 24 horas
+Schedule::command('gestoria:cerrar-reabiertos')->everyFifteenMinutes()->withoutOverlapping();

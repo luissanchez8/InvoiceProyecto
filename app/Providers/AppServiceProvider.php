@@ -45,6 +45,8 @@ class AppServiceProvider extends ServiceProvider
         View::share('appConfig', AppConfig::load());
         $this->bootAuth();
         $this->bootBroadcast();
+        // Onfactu v.1.16.0: registro de lo que se cambia con un mes abierto para corregir
+        \App\Observers\CambiosMesAbierto::registrar();
         if (config('app.env') === 'demo') {
             \Illuminate\Support\Facades\Mail::fake();
             \Illuminate\Support\Facades\Notification::fake();

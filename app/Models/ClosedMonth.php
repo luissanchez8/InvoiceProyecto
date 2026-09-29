@@ -9,13 +9,20 @@ use Illuminate\Database\Eloquent\Model;
  * Onfactu — Mes cerrado.
  *
  * Un registro por (company_id, year, month). Su existencia significa que ese
- * mes esta CERRADO de forma irreversible.
+ * mes esta CERRADO.
+ *
+ * v.1.16.0: el propietario puede abrirlo para corregirlo (reopened_at), hasta
+ * reopen_expires_at como mucho. Mientras está abierto se pueden cambiar sus
+ * gastos, cobros, presupuestos, proformas y albaranes, pero NUNCA sus facturas:
+ * una factura emitida no se modifica, se corrige con una rectificativa
+ * (Real Decreto 1007/2023). Ver App\Services\ReaperturaMes.
  */
 class ClosedMonth extends Model
 {
     protected $fillable = [
         'company_id', 'year', 'month', 'closed_by', 'closed_at', 'totals',
         'sent_status', 'sent_at', 'sent_error', 'sent_attempts',
+        'reopened_at', 'reopened_by', 'reopen_reason', 'reopen_expires_at', 'reopen_count',
     ];
 
     protected $casts = [
@@ -25,6 +32,9 @@ class ClosedMonth extends Model
         'year'          => 'integer',
         'month'         => 'integer',
         'sent_attempts' => 'integer',
+        'reopened_at'   => 'datetime',
+        'reopen_expires_at' => 'datetime',
+        'reopen_count'  => 'integer',
     ];
 
     /**
@@ -38,12 +48,24 @@ class ClosedMonth extends Model
      */
     public static function periodsFor(int $companyId): array
     {
+        return static::cargar($companyId)['cerrados'];
+    }
+
+    /** Periodos cerrados que ahora mismo están abiertos para corregir. */
+    public static function reopenedPeriodsFor(int $companyId): array
+    {
+        return static::cargar($companyId)['abiertos'];
+    }
+
+    private static function cargar(int $companyId): array
+    {
         if (! array_key_exists($companyId, static::$cache)) {
-            static::$cache[$companyId] = static::query()
-                ->where('company_id', $companyId)
-                ->get(['year', 'month'])
-                ->map(fn ($r) => sprintf('%04d-%02d', $r->year, $r->month))
-                ->all();
+            $filas = static::query()->where('company_id', $companyId)->get();
+            $periodo = fn ($r) => sprintf('%04d-%02d', $r->year, $r->month);
+            static::$cache[$companyId] = [
+                'cerrados' => $filas->map($periodo)->all(),
+                'abiertos' => $filas->filter(fn ($r) => $r->estaAbierto())->map($periodo)->values()->all(),
+            ];
         }
 
         return static::$cache[$companyId];
@@ -73,6 +95,43 @@ class ClosedMonth extends Model
         }
 
         return in_array($period, static::periodsFor($companyId), true);
+    }
+
+    /**
+     * True si la fecha cae en un mes cerrado que ahora está abierto para
+     * corregir (y no ha caducado).
+     */
+    public static function isReopened(int $companyId, $date): bool
+    {
+        $period = static::toPeriod($date);
+
+        return $period !== null && in_array($period, static::reopenedPeriodsFor($companyId), true);
+    }
+
+    /**
+     * True si un documento de ese tipo, con esa fecha, no se puede tocar.
+     * Las facturas no se abren nunca; lo demás, sí mientras el mes esté
+     * abierto para corregir.
+     */
+    public static function isLocked(int $companyId, $date, string $recurso): bool
+    {
+        if (! static::isClosed($companyId, $date)) {
+            return false;
+        }
+
+        return $recurso === 'invoices' || ! static::isReopened($companyId, $date);
+    }
+
+    /** Si este mes está abierto para corregir ahora mismo. */
+    public function estaAbierto(): bool
+    {
+        return $this->reopened_at !== null
+            && ($this->reopen_expires_at === null || $this->reopen_expires_at->isFuture());
+    }
+
+    public function cambios()
+    {
+        return $this->hasMany(ClosedMonthChange::class);
     }
 
     /**

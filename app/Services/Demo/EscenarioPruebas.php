@@ -114,6 +114,9 @@ class EscenarioPruebas
 
         $avisos[] = LimpiezaPruebas::borrarImpuestosBasura();
 
+        // v.1.16.0: M-2 abierto para corregir y vuelto a cerrar
+        $avisos[] = ReaperturaPruebas::crear($this, $this->c->empresa, $this->c->usuario);
+
         return array_values(array_filter($avisos));
     }
 

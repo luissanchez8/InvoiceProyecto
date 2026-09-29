@@ -33,8 +33,10 @@ class GastosPruebas
     public function plan(): array
     {
         $casero = ['Inmuebles Centro S.L.', CatalogoDemo::cif(4000004)];
+        // v.1.16.0: el de M-2 se crea con el número mal escrito (sin el cero)
+        // y ReaperturaPruebas lo corrige abriendo el mes, como haría el cliente
         $alquiler = fn (int $atras) => [$atras, 1, 'Alquiler', 'Alquiler de la oficina', $casero[0], $casero[1],
-            'ALQ-'.$this->e->dia($atras, 1)->format('Y-m'), [['iva21', 50000, true]], 19, null];
+            'ALQ-'.$this->e->dia($atras, 1)->format($atras === 2 ? 'Y-n' : 'Y-m'), [['iva21', 50000, true]], 19, null];
 
         return [
             $alquiler(3),
