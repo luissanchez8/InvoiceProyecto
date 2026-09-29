@@ -29,7 +29,7 @@ class ReaperturaMesController extends Controller
             'motivo.min' => 'Explica un poco más el motivo.',
         ]);
 
-        if (! $request->user()->isOwner()) {
+        if (! ReaperturaMes::puedeAbrir($request->user())) {
             return $this->error('Solo el propietario de la cuenta puede abrir un mes cerrado.', 403);
         }
 

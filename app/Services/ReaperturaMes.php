@@ -25,6 +25,17 @@ class ReaperturaMes
 {
     public const HORAS = 24;
 
+    /**
+     * v.1.16.1: quién es el "propietario de la cuenta". Es el usuario con rol
+     * super admin, el titular. No sirve companies.owner_id: en las instancias
+     * el propietario técnico de la empresa es el usuario de asistencia, que
+     * crea la instancia al darla de alta.
+     */
+    public static function puedeAbrir($usuario): bool
+    {
+        return $usuario !== null && $usuario->role === 'super admin';
+    }
+
     /** Totales que pueden cambiar con el mes abierto (las facturas no cambian). */
     private const COMPARAR = [
         'gastos'           => ['Gastos', false],

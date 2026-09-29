@@ -66,7 +66,7 @@ class ClosedMonthController extends Controller
         // v.1.16.0: los meses abiertos para corregir que han caducado se
         // cierran al abrir la pantalla, además de la tarea programada
         \App\Services\ReaperturaMes::cerrarCaducados($companyId);
-        $propietario = (bool) $request->user()?->isOwner();
+        $propietario = \App\Services\ReaperturaMes::puedeAbrir($request->user());
         $abierto = ClosedMonth::where('company_id', $companyId)->whereNotNull('reopened_at')->first();
 
         $cerrados = ClosedMonth::where('company_id', $companyId)->where('year', $year)->get()->keyBy('month');
