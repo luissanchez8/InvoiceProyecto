@@ -1935,6 +1935,7 @@
         "numero_factura": "Their invoice number",
         "sin_desglose": "No VAT breakdown",
         "sin_desglose_ayuda": "This expense has no VAT breakdown.",
-        "desglosar": "Break down VAT"
+        "desglosar": "Break down VAT",
+        "autoliquidado": "Reverse-charge VAT"
     }
 }

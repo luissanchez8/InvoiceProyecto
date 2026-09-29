@@ -1994,6 +1994,7 @@
     "numero_factura": "Nº de su factura",
     "sin_desglose": "Sin desglose de IVA",
     "sin_desglose_ayuda": "Este gasto no tiene el IVA desglosado.",
-    "desglosar": "Desglosar IVA"
+    "desglosar": "Desglosar IVA",
+    "autoliquidado": "IVA autoliquidado"
   }
 }

@@ -119,46 +119,6 @@
           <!-- Onfactu v.1.15.0: proveedor del gasto, opcional -->
           <ProveedorGasto :store="expenseStore" :loading="isFetchingInitialData" />
 
-          <!-- Onfactu v.1.15.0: sin desglose (gastos de antes) se escribe el total a mano -->
-          <BaseInputGroup
-            v-if="!expenseStore.currentExpense.con_desglose"
-            :label="$t('expenses.amount')"
-            :error="
-              v$.currentExpense.amount.$error &&
-              v$.currentExpense.amount.$errors[0].$message
-            "
-            :content-loading="isFetchingInitialData"
-            :help-text="$t('gastos_iva.sin_desglose_ayuda')"
-            required
-          >
-            <BaseMoney
-              :key="expenseStore.currentExpense.selectedCurrency"
-              v-model="amountData"
-              class="focus:border focus:border-solid focus:border-primary-500"
-              :invalid="v$.currentExpense.amount.$error"
-              :currency="expenseStore.currentExpense.selectedCurrency"
-              @input="v$.currentExpense.amount.$touch()"
-            />
-            <button
-              type="button"
-              class="block mt-2 text-sm font-medium text-left underline text-primary-500 hover:text-primary-600"
-              @click="desglosarIva"
-            >
-              {{ $t('gastos_iva.desglosar') }}
-            </button>
-          </BaseInputGroup>
-
-          <!-- Onfactu v.1.15.0: IVA desglosado por tipos -->
-          <DesgloseIvaGasto
-            v-if="expenseStore.currentExpense.con_desglose && !isFetchingInitialData"
-            :store="expenseStore"
-          />
-          <p
-            v-if="expenseStore.currentExpense.con_desglose && v$.currentExpense.amount.$error"
-            class="col-span-2 -mt-2 text-sm text-red-500"
-          >
-            {{ $t('gastos_iva.total_obligatorio') }}
-          </p>
           <BaseInputGroup
             :label="$t('expenses.currency')"
             :content-loading="isFetchingInitialData"
@@ -240,7 +200,51 @@
               </template> -->
             </BaseMultiselect>
           </BaseInputGroup>
+        </BaseInputGrid>
+      </BaseCard>
 
+      <!-- Onfactu v.1.15.0: importe e IVA, con el aspecto de los artículos y el total de las facturas -->
+      <div v-if="!isFetchingInitialData" class="mt-6">
+        <template v-if="expenseStore.currentExpense.con_desglose">
+          <DesgloseIvaGasto :desglose="desglose" :currency="expenseStore.currentExpense.selectedCurrency" />
+          <p v-if="v$.currentExpense.amount.$error" class="mt-2 text-sm text-red-500">
+            {{ $t('gastos_iva.total_obligatorio') }}
+          </p>
+        </template>
+
+        <!-- Gastos de antes de la v.1.15.0: solo el total, y se puede desglosar -->
+        <BaseCard v-else>
+          <div class="grid items-end gap-4 md:grid-cols-2">
+            <BaseInputGroup
+              :label="$t('expenses.amount')"
+              :error="
+                v$.currentExpense.amount.$error &&
+                v$.currentExpense.amount.$errors[0].$message
+              "
+              :help-text="$t('gastos_iva.sin_desglose_ayuda')"
+              required
+            >
+              <BaseMoney
+              :key="expenseStore.currentExpense.selectedCurrency"
+              v-model="amountData"
+              class="focus:border focus:border-solid focus:border-primary-500"
+              :invalid="v$.currentExpense.amount.$error"
+              :currency="expenseStore.currentExpense.selectedCurrency"
+              @input="v$.currentExpense.amount.$touch()"
+            />
+            </BaseInputGroup>
+            <div class="pb-6">
+              <BaseButton variant="primary-outline" type="button" @click="desglosarIva">
+                {{ $t('gastos_iva.desglosar') }}
+              </BaseButton>
+            </div>
+          </div>
+        </BaseCard>
+      </div>
+
+      <div class="block mt-6 lg:flex lg:justify-between lg:items-start lg:gap-8">
+        <BaseCard class="w-full">
+          <BaseInputGrid>
           <BaseInputGroup
             :content-loading="isFetchingInitialData"
             :label="$t('expenses.note')"
@@ -277,8 +281,18 @@
             store-prop="currentExpense"
             :custom-field-scope="expenseValidationScope"
           />
+          </BaseInputGrid>
+        </BaseCard>
 
-          <div class="block md:hidden">
+        <TotalesGasto
+          v-if="expenseStore.currentExpense.con_desglose && !isFetchingInitialData"
+          :desglose="desglose"
+          :currency="expenseStore.currentExpense.selectedCurrency"
+          class="mt-6 lg:mt-0 shrink-0"
+        />
+      </div>
+
+          <div class="block mt-6 md:hidden">
             <BaseButton
               :loading="isSaving"
               :tabindex="6"
@@ -300,8 +314,6 @@
               }}
             </BaseButton>
           </div>
-        </BaseInputGrid>
-      </BaseCard>
     </form>
   </BasePage>
 </template>
@@ -331,7 +343,9 @@ import CategoryModal from '@/scripts/admin/components/modal-components/CategoryM
 import ExchangeRateConverter from '@/scripts/admin/components/estimate-invoice-common/ExchangeRateConverter.vue'
 import { useGlobalStore } from '@/scripts/admin/stores/global'
 import DesgloseIvaGasto from '@/scripts/admin/components/expenses/DesgloseIvaGasto.vue'
+import TotalesGasto from '@/scripts/admin/components/expenses/TotalesGasto.vue'
 import ProveedorGasto from '@/scripts/admin/components/expenses/ProveedorGasto.vue'
+import { useDesgloseIva } from '@/scripts/admin/composables/useDesgloseIva'
 
 const customerStore = useCustomerStore()
 const companyStore = useCompanyStore()
@@ -431,8 +445,12 @@ function onFileInputRemove() {
   isAttachmentReceiptRemoved.value = true
 }
 
-// Onfactu v.1.15.0: pasar un gasto sin desglose a desglosado, con su total
-// como IVA 21 % para empezar (se puede cambiar el tipo o añadir más)
+// Onfactu v.1.15.0: desglose del IVA, compartido por la tabla de tipos y el
+// cuadro de totales. Se carga cuando el gasto ya está en el formulario.
+const desglose = useDesgloseIva(expenseStore)
+
+// Pasar un gasto sin desglose a desglosado, con su total como IVA 21 % para
+// empezar (se puede cambiar el tipo o añadir más)
 function desglosarIva() {
   const gasto = expenseStore.currentExpense
   gasto.lineas_iva = [
@@ -440,6 +458,7 @@ function desglosarIva() {
   ]
   gasto.retencion_porcentaje = 0
   gasto.con_desglose = true
+  desglose.cargar()
 }
 
 function openCategoryModal() {
@@ -509,6 +528,13 @@ async function loadData() {
 
   } else if (route.query.customer) {
     expenseStore.currentExpense.customer_id = route.query.customer
+  }
+
+  // Onfactu v.1.15.0: con el gasto ya cargado, el desglose de IVA
+  if (expenseStore.currentExpense.con_desglose) {
+    await desglose.iniciar()
+  } else {
+    desglose.iniciar()
   }
 
   isFetchingInitialData.value = false

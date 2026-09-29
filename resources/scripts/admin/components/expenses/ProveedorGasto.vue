@@ -1,37 +1,40 @@
 <!--
   Onfactu v.1.15.0 — Proveedor del gasto: nombre, NIF y número de su factura.
 
-  Opcional y sin lista aparte: al escribir el nombre se sugieren los
-  proveedores de gastos anteriores y, al elegir uno, se rellena su NIF si está
-  vacío. Es lo que necesita la gestoría para el libro de facturas recibidas.
+  Opcional y sin lista de proveedores aparte. El nombre es un selector como el
+  de Cliente: sugiere los proveedores de gastos anteriores y deja escribir uno
+  nuevo. Al elegir uno ya usado, rellena su NIF si está vacío.
 -->
 <template>
   <BaseInputGroup :label="$t('gastos_iva.proveedor')" :content-loading="loading">
-    <BaseInput
+    <BaseMultiselect
+      v-if="!loading"
       v-model="gasto.proveedor_nombre"
-      :content-loading="loading"
-      :list="idLista"
-      maxlength="190"
-      autocomplete="off"
+      :options="buscar"
+      value-prop="nombre"
+      label="nombre"
+      track-by="nombre"
+      :filter-results="false"
+      :create-tag="true"
+      resolve-on-load
+      :delay="300"
+      searchable
       :placeholder="$t('gastos_iva.proveedor_ayuda')"
-      @update:modelValue="escribiendo"
+      @select="elegido"
     />
-    <datalist :id="idLista">
-      <option v-for="p in sugerencias" :key="p.nombre" :value="p.nombre" />
-    </datalist>
   </BaseInputGroup>
 
   <BaseInputGroup :label="$t('gastos_iva.nif_proveedor')" :content-loading="loading">
-    <BaseInput v-model="gasto.proveedor_nif" :content-loading="loading" maxlength="30" autocomplete="off" />
+    <BaseInput v-model="gasto.proveedor_nif" :content-loading="loading" maxlength="30" />
   </BaseInputGroup>
 
   <BaseInputGroup :label="$t('gastos_iva.numero_factura')" :content-loading="loading">
-    <BaseInput v-model="gasto.numero_factura" :content-loading="loading" maxlength="60" autocomplete="off" />
+    <BaseInput v-model="gasto.numero_factura" :content-loading="loading" maxlength="60" />
   </BaseInputGroup>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { computed } from 'vue'
 import axios from 'axios'
 
 const props = defineProps({
@@ -40,28 +43,27 @@ const props = defineProps({
 })
 
 const gasto = computed(() => props.store.currentExpense)
-const sugerencias = ref([])
-const idLista = 'proveedores-gasto'
-let temporizador = null
-
-function escribiendo(valor) {
-  const elegido = sugerencias.value.find((p) => p.nombre === valor)
-  if (elegido && elegido.nif && !gasto.value.proveedor_nif) {
-    gasto.value.proveedor_nif = elegido.nif
-  }
-
-  clearTimeout(temporizador)
-  temporizador = setTimeout(() => buscar(valor), 300)
-}
+let ultimos = []
 
 async function buscar(texto) {
   try {
     const res = await axios.get('/api/v1/expenses/iva/proveedores', { params: { search: texto || '' } })
-    sugerencias.value = res.data.data
+    ultimos = res.data.data
   } catch (e) {
-    sugerencias.value = []
+    ultimos = []
   }
+  // El proveedor del gasto que se edita, aunque no salga entre los sugeridos
+  const actual = gasto.value.proveedor_nombre
+  if (actual && !ultimos.some((p) => p.nombre === actual)) {
+    return [{ nombre: actual, nif: gasto.value.proveedor_nif }, ...ultimos]
+  }
+  return ultimos
 }
 
-buscar('')
+function elegido(nombre) {
+  const p = ultimos.find((x) => x.nombre === nombre)
+  if (p && p.nif && !gasto.value.proveedor_nif) {
+    gasto.value.proveedor_nif = p.nif
+  }
+}
 </script>
