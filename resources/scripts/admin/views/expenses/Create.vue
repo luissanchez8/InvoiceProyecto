@@ -116,13 +116,19 @@
             />
           </BaseInputGroup>
 
+          <!-- Onfactu v.1.15.0: proveedor del gasto, opcional -->
+          <ProveedorGasto :store="expenseStore" :loading="isFetchingInitialData" />
+
+          <!-- Onfactu v.1.15.0: sin desglose (gastos de antes) se escribe el total a mano -->
           <BaseInputGroup
+            v-if="!expenseStore.currentExpense.con_desglose"
             :label="$t('expenses.amount')"
             :error="
               v$.currentExpense.amount.$error &&
               v$.currentExpense.amount.$errors[0].$message
             "
             :content-loading="isFetchingInitialData"
+            :help-text="$t('gastos_iva.sin_desglose_ayuda')"
             required
           >
             <BaseMoney
@@ -133,7 +139,26 @@
               :currency="expenseStore.currentExpense.selectedCurrency"
               @input="v$.currentExpense.amount.$touch()"
             />
+            <button
+              type="button"
+              class="block mt-2 text-sm font-medium text-left underline text-primary-500 hover:text-primary-600"
+              @click="desglosarIva"
+            >
+              {{ $t('gastos_iva.desglosar') }}
+            </button>
           </BaseInputGroup>
+
+          <!-- Onfactu v.1.15.0: IVA desglosado por tipos -->
+          <DesgloseIvaGasto
+            v-if="expenseStore.currentExpense.con_desglose && !isFetchingInitialData"
+            :store="expenseStore"
+          />
+          <p
+            v-if="expenseStore.currentExpense.con_desglose && v$.currentExpense.amount.$error"
+            class="col-span-2 -mt-2 text-sm text-red-500"
+          >
+            {{ $t('gastos_iva.total_obligatorio') }}
+          </p>
           <BaseInputGroup
             :label="$t('expenses.currency')"
             :content-loading="isFetchingInitialData"
@@ -305,6 +330,8 @@ import ExpenseCustomFields from '@/scripts/admin/components/custom-fields/Create
 import CategoryModal from '@/scripts/admin/components/modal-components/CategoryModal.vue'
 import ExchangeRateConverter from '@/scripts/admin/components/estimate-invoice-common/ExchangeRateConverter.vue'
 import { useGlobalStore } from '@/scripts/admin/stores/global'
+import DesgloseIvaGasto from '@/scripts/admin/components/expenses/DesgloseIvaGasto.vue'
+import ProveedorGasto from '@/scripts/admin/components/expenses/ProveedorGasto.vue'
 
 const customerStore = useCustomerStore()
 const companyStore = useCompanyStore()
@@ -402,6 +429,17 @@ function onFileInputChange(fileName, file) {
 function onFileInputRemove() {
   expenseStore.currentExpense.attachment_receipt = null
   isAttachmentReceiptRemoved.value = true
+}
+
+// Onfactu v.1.15.0: pasar un gasto sin desglose a desglosado, con su total
+// como IVA 21 % para empezar (se puede cambiar el tipo o añadir más)
+function desglosarIva() {
+  const gasto = expenseStore.currentExpense
+  gasto.lineas_iva = [
+    { tipo: 'iva21', base: Math.round(((gasto.amount || 0) * 100) / 121), deducible: true },
+  ]
+  gasto.retencion_porcentaje = 0
+  gasto.con_desglose = true
 }
 
 function openCategoryModal() {

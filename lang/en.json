@@ -1910,6 +1910,31 @@
         "total_year_help": "Sum of the months you have closed",
         "year_complete": "Full year",
         "year_ongoing": "In progress",
-        "expenses_vat_note": "<strong>Expenses have no VAT breakdown in Onfactu.</strong> Only the total amount and category are stored."
+        "expenses_vat_note": "<strong>Some expenses have no VAT breakdown.</strong> Expenses recorded before October 2026 only store the total amount, so they are not included in expenses VAT.",
+        "iva_gastos": "Expenses VAT",
+        "iva_gastos_corto": "VAT {importe}"
+    },
+    "gastos_iva": {
+        "titulo": "Expense VAT",
+        "tipo": "VAT rate",
+        "base": "Base",
+        "iva": "VAT",
+        "total_linea": "Total",
+        "no_deducible": "Not deductible",
+        "no_deducible_ayuda": "Tick it if this VAT cannot be deducted",
+        "no_se_paga": "Reverse charge: not paid",
+        "quitar": "Remove",
+        "anadir_tipo": "Add another VAT rate",
+        "retencion": "Withholding",
+        "sin_retencion": "No withholding",
+        "total_pagar": "Total to pay",
+        "total_obligatorio": "Enter the base or the total of the expense.",
+        "proveedor": "Supplier",
+        "proveedor_ayuda": "Optional",
+        "nif_proveedor": "Supplier tax ID",
+        "numero_factura": "Their invoice number",
+        "sin_desglose": "No VAT breakdown",
+        "sin_desglose_ayuda": "This expense has no VAT breakdown.",
+        "desglosar": "Break down VAT"
     }
 }

@@ -31,6 +31,24 @@ class ExpenseResource extends JsonResource
             'currency_id' => $this->currency_id,
             'base_amount' => $this->base_amount,
             'payment_method_id' => $this->payment_method_id,
+            // Onfactu v.1.15.0: proveedor e IVA
+            'proveedor_nombre' => $this->proveedor_nombre,
+            'proveedor_nif' => $this->proveedor_nif,
+            'numero_factura' => $this->numero_factura,
+            'con_desglose' => (bool) $this->con_desglose,
+            'base_imponible' => $this->base_imponible,
+            'cuota_iva' => $this->cuota_iva,
+            'cuota_deducible' => $this->cuota_deducible,
+            'cuota_autoliquidada' => $this->cuota_autoliquidada,
+            'retencion_porcentaje' => $this->retencion_porcentaje,
+            'retencion' => $this->retencion,
+            'lineas_iva' => $this->con_desglose
+                ? $this->lineasIva->map(fn ($l) => [
+                    'tipo' => $l->tipo, 'nombre' => $l->nombre, 'porcentaje' => $l->porcentaje,
+                    'base' => $l->base, 'cuota' => $l->cuota,
+                    'deducible' => $l->deducible, 'autoliquidacion' => $l->autoliquidacion,
+                ])->values()
+                : [],
             'customer' => $this->when($this->customer()->exists(), function () {
                 return new CustomerResource($this->customer);
             }),

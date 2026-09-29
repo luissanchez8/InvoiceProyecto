@@ -87,6 +87,9 @@ const bloques = computed(() => {
     { l: t('gestoria.neto'), v: props.money(x.neto) + ' €' },
     { l: t('gestoria.iva'), v: props.money(x.iva) + ' €' },
     { l: t('gestoria.bruto'), v: props.money(x.bruto) + ' €' },
+    // Onfactu v.1.15.0: gastos con su IVA
+    { l: t('gestoria.gastos') + ' (' + (x.gastos || 0) + ')', v: props.money(x.importe_gastos || 0) + ' €' },
+    { l: t('gestoria.iva_gastos'), v: props.money(x.gastos_iva || 0) + ' €' },
   ]
 })
 </script>

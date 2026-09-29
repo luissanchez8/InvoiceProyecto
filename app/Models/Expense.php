@@ -7,6 +7,7 @@ use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\DB;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
@@ -47,12 +48,39 @@ class Expense extends Model implements HasMedia
         return [
             'notes' => 'string',
             'exchange_rate' => 'float',
+            // Onfactu v.1.15.0: IVA en los gastos
+            'con_desglose' => 'boolean',
+            'retencion_porcentaje' => 'float',
+            'base_imponible' => 'integer',
+            'cuota_iva' => 'integer',
+            'cuota_deducible' => 'integer',
+            'cuota_autoliquidada' => 'integer',
+            'retencion' => 'integer',
         ];
     }
 
     public function category(): BelongsTo
     {
         return $this->belongsTo(ExpenseCategory::class, 'expense_category_id');
+    }
+
+    /** Onfactu v.1.15.0: los tipos de IVA del gasto (vacío si va sin desglose). */
+    public function lineasIva(): HasMany
+    {
+        return $this->hasMany(ExpenseIvaLinea::class)->orderBy('orden');
+    }
+
+    /**
+     * Onfactu v.1.15.0: sustituye las líneas de IVA por las del desglose
+     * calculado (IvaGastos::calcular), o las borra si va sin desglose.
+     */
+    public function guardarDesglose(?array $desglose): void
+    {
+        $this->lineasIva()->delete();
+
+        foreach ($desglose['lineas'] ?? [] as $l) {
+            $this->lineasIva()->create($l + ['company_id' => $this->company_id]);
+        }
     }
 
     public function customer(): BelongsTo
@@ -203,10 +231,16 @@ class Expense extends Model implements HasMedia
     public function scopeWhereSearch($query, $search)
     {
         foreach (explode(' ', $search) as $term) {
-            $query->whereHas('category', function ($query) use ($term) {
-                $query->where('name', 'LIKE', '%'.$term.'%');
-            })
-                ->orWhere('notes', 'LIKE', '%'.$term.'%');
+            // Onfactu v.1.15.0: también por proveedor, NIF y número de su factura
+            $query->where(function ($query) use ($term) {
+                $query->whereHas('category', function ($query) use ($term) {
+                    $query->where('name', 'LIKE', '%'.$term.'%');
+                })
+                    ->orWhere('notes', 'LIKE', '%'.$term.'%')
+                    ->orWhere('proveedor_nombre', 'ILIKE', '%'.$term.'%')
+                    ->orWhere('proveedor_nif', 'LIKE', '%'.strtoupper($term).'%')
+                    ->orWhere('numero_factura', 'LIKE', '%'.$term.'%');
+            });
         }
     }
 
@@ -248,6 +282,7 @@ class Expense extends Model implements HasMedia
     public static function createExpense($request)
     {
         $expense = self::create($request->getExpensePayload());
+        $expense->guardarDesglose($request->desglose());
 
         $company_currency = CompanySetting::getSetting('currency', $request->header('company'));
 
@@ -271,6 +306,7 @@ class Expense extends Model implements HasMedia
         $data = $request->getExpensePayload();
 
         $this->update($data);
+        $this->guardarDesglose($request->desglose());
 
         $company_currency = CompanySetting::getSetting('currency', $request->header('company'));
 

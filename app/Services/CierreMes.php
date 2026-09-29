@@ -48,17 +48,28 @@ class CierreMes
     {
         [$ini, $fin] = self::periodo($year, $month);
 
-        $facturas = Invoice::where('company_id', $companyId)
-            ->whereBetween('invoice_date', [$ini, $fin])
-            ->where('status', '!=', Invoice::STATUS_DRAFT)
-            ->get(['sub_total', 'tax', 'total', 'rectifies_invoice_id']);
+        // Onfactu v.1.15.0: neto con el descuento ya restado, y el IVA sin las
+        // retenciones de IRPF, que son impuestos de porcentaje negativo y antes
+        // se restaban del IVA.
+        $facturas = DB::table('invoices as i')
+            ->leftJoinSub(self::impuestosPorFactura(), 'imp', 'imp.invoice_id', '=', 'i.id')
+            ->where('i.company_id', $companyId)
+            ->whereBetween('i.invoice_date', [$ini, $fin])
+            ->where('i.status', '!=', Invoice::STATUS_DRAFT)
+            ->get([DB::raw('(i.sub_total - COALESCE(i.discount_val, 0)) as neto'),
+                   DB::raw('COALESCE(imp.iva, i.tax) as iva'), DB::raw('COALESCE(imp.retencion, 0) as retencion'),
+                   'i.total', 'i.rectifies_invoice_id']);
 
         $rectificativas = $facturas->whereNotNull('rectifies_invoice_id');
 
         $gastos = DB::table('expenses')
             ->where('company_id', $companyId)
             ->whereBetween('expense_date', [$ini, $fin])
-            ->get(['amount']);
+            ->get(['amount', 'base_amount', 'exchange_rate', 'con_desglose', 'base_imponible', 'cuota_iva', 'cuota_deducible', 'cuota_autoliquidada', 'retencion']);
+
+        // Onfactu v.1.15.0: neto e IVA de los gastos desglosados, en la moneda de la empresa
+        $desglosados = $gastos->where('con_desglose', true);
+        $conv = fn ($campo) => (int) $desglosados->sum(fn ($g) => (int) round(((int) $g->{$campo}) * (float) ($g->exchange_rate ?: 1)));
 
         // Lo único que queda fuera son las facturas en borrador: sin número y
         // sin emitir. Presupuestos, proformas y albaranes no son documentos
@@ -74,13 +85,21 @@ class CierreMes
             'nombre' => self::nombreMes($month).' de '.$year,
             'totales' => [
                 'facturas'               => $facturas->count(),
-                'neto'                   => (int) $facturas->sum('sub_total'),
-                'iva'                    => (int) $facturas->sum('tax'),
+                'neto'                   => (int) $facturas->sum('neto'),
+                'iva'                    => (int) $facturas->sum('iva'),
+                'retencion'              => (int) $facturas->sum('retencion'),
                 'bruto'                  => (int) $facturas->sum('total'),
                 'rectificativas'         => $rectificativas->count(),
                 'importe_rectificativas' => (int) $rectificativas->sum('total'),
                 'gastos'                 => $gastos->count(),
                 'importe_gastos'         => (int) $gastos->sum('amount'),
+                // Onfactu v.1.15.0: IVA de los gastos
+                'gastos_neto'            => $conv('base_imponible'),
+                'gastos_iva'             => $conv('cuota_iva'),
+                'gastos_iva_deducible'   => $conv('cuota_deducible'),
+                'gastos_iva_autoliquidado' => $conv('cuota_autoliquidada'),
+                'gastos_retencion'       => $conv('retencion'),
+                'gastos_sin_desglose'    => $gastos->count() - $desglosados->count(),
             ],
             'borradores'       => $borradores ? [['tipo' => $borradores === 1 ? 'factura' : 'facturas', 'total' => $borradores]] : [],
             'tiene_borradores' => $borradores > 0,
@@ -97,14 +116,17 @@ class CierreMes
         $filas = [];
 
         $facturas = DB::table('invoices as i')
+            ->leftJoinSub(self::impuestosPorFactura(), 'imp', 'imp.invoice_id', '=', 'i.id')
             ->leftJoin('customers as c', 'c.id', '=', 'i.customer_id')
             ->leftJoin('invoices as o', 'o.id', '=', 'i.rectifies_invoice_id')
             ->where('i.company_id', $companyId)
             ->whereBetween('i.invoice_date', [$ini, $fin])
             ->where('i.status', '!=', Invoice::STATUS_DRAFT)
             ->orderBy('i.invoice_date')->orderBy('i.invoice_number')
-            ->get(['i.invoice_date as fecha', 'i.invoice_number as numero', 'i.sub_total as neto',
-                   'i.tax as iva', 'i.total as bruto', 'i.rectifies_invoice_id',
+            ->get(['i.invoice_date as fecha', 'i.invoice_number as numero',
+                   DB::raw('(i.sub_total - COALESCE(i.discount_val, 0)) as neto'),
+                   DB::raw('COALESCE(imp.iva, i.tax) as iva'), DB::raw('COALESCE(imp.retencion, 0) as retencion'),
+                   'i.total as bruto', 'i.rectifies_invoice_id',
                    'c.name as cliente', 'c.tax_id as nif', 'o.invoice_number as rectifica_a']);
 
         foreach ($facturas as $f) {
@@ -114,7 +136,8 @@ class CierreMes
                 'numero' => $f->numero,
                 'texto' => trim(($f->cliente ?? '').($f->rectifica_a ? ' Rectifica a '.$f->rectifica_a : '')),
                 'nif' => $f->nif ?? '',
-                'neto' => (int) $f->neto, 'iva' => (int) $f->iva, 'bruto' => (int) $f->bruto,
+                'neto' => (int) $f->neto, 'iva' => (int) $f->iva,
+                'retencion' => (int) $f->retencion ?: null, 'bruto' => (int) $f->bruto,
             ];
         }
 
@@ -124,15 +147,22 @@ class CierreMes
             ->where('e.company_id', $companyId)
             ->whereBetween('e.expense_date', [$ini, $fin])
             ->orderBy('e.expense_date')
-            ->get(['e.expense_date as fecha', 'e.amount as bruto', 'e.notes', 'cat.name as categoria', 'c.name as proveedor']);
+            ->get(['e.expense_date as fecha', 'e.amount as bruto', 'e.notes', 'cat.name as categoria',
+                   'e.proveedor_nombre', 'e.proveedor_nif', 'e.numero_factura', 'e.con_desglose',
+                   'e.base_imponible', 'e.cuota_iva', 'e.retencion']);
 
         foreach ($gastos as $g) {
+            // Onfactu v.1.15.0: con el proveedor, su NIF y el número de su
+            // factura, y el neto y el IVA si el gasto está desglosado. Los
+            // anteriores siguen con solo el total.
             $filas[] = [
-                'fecha' => $g->fecha, 'tipo' => 'Gasto', 'numero' => '—',
-                'texto' => trim(($g->proveedor ?: ($g->categoria ?? '')).' '.($g->notes ?? '')),
-                'nif' => '',
-                // Los gastos no tienen desglose de IVA en Onfactu: solo el total
-                'neto' => null, 'iva' => null, 'bruto' => (int) $g->bruto,
+                'fecha' => $g->fecha, 'tipo' => 'Gasto', 'numero' => $g->numero_factura ?: '—',
+                'texto' => trim(($g->proveedor_nombre ?: ($g->categoria ?? '')).' '.($g->notes ?? '')),
+                'nif' => $g->proveedor_nif ?? '',
+                'neto' => $g->con_desglose ? (int) $g->base_imponible : null,
+                'iva' => $g->con_desglose ? (int) $g->cuota_iva : null,
+                'retencion' => $g->con_desglose && $g->retencion ? (int) $g->retencion : null,
+                'bruto' => (int) $g->bruto,
             ];
         }
 
@@ -142,11 +172,11 @@ class CierreMes
         // Excel en español y lo que importan los programas de contabilidad.
         $out = fopen('php://temp', 'r+');
         fwrite($out, "\xEF\xBB\xBF");
-        fputcsv($out, ['Fecha', 'Tipo', 'Numero', 'Cliente o concepto', 'NIF', 'Neto', 'IVA', 'Bruto'], ';');
+        fputcsv($out, ['Fecha', 'Tipo', 'Numero', 'Cliente, proveedor o concepto', 'NIF', 'Neto', 'IVA', 'Retencion', 'Bruto'], ';');
         foreach ($filas as $f) {
             fputcsv($out, [
                 Carbon::parse($f['fecha'])->format('d/m/Y'), $f['tipo'], $f['numero'], $f['texto'], $f['nif'],
-                self::importe($f['neto']), self::importe($f['iva']), self::importe($f['bruto']),
+                self::importe($f['neto']), self::importe($f['iva']), self::importe($f['retencion'] ?? null), self::importe($f['bruto']),
             ], ';');
         }
         rewind($out);
@@ -154,6 +184,28 @@ class CierreMes
         fclose($out);
 
         return $csv;
+    }
+
+    /**
+     * Onfactu v.1.15.0: IVA y retención de IRPF de cada factura, sumando los
+     * impuestos de la factura y los de sus líneas. La retención es un impuesto
+     * de porcentaje negativo: aquí sale en positivo (en negativo si es de una
+     * rectificativa, que la devuelve).
+     */
+    public static function impuestosPorFactura()
+    {
+        $deFactura = DB::table('taxes')->whereNotNull('invoice_id')
+            ->select('invoice_id', 'amount', 'percent');
+        $deLinea = DB::table('taxes as t')->join('invoice_items as it', 'it.id', '=', 't.invoice_item_id')
+            ->select('it.invoice_id', 't.amount', 't.percent');
+
+        return DB::query()->fromSub($deFactura->unionAll($deLinea), 'x')
+            ->groupBy('invoice_id')
+            ->select([
+                'invoice_id',
+                DB::raw('SUM(CASE WHEN percent >= 0 THEN amount ELSE 0 END) as iva'),
+                DB::raw('SUM(CASE WHEN percent < 0 THEN -amount ELSE 0 END) as retencion'),
+            ]);
     }
 
     public static function nombreFichero(int $companyId, int $year, int $month): string

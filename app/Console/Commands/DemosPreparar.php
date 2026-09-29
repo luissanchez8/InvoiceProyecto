@@ -40,7 +40,7 @@ class DemosPreparar extends Command
 
         if (! $this->option('si')) {
             $this->info('Se borrarían estas filas (se conservan empresa, usuarios, ajustes, impuestos, formas de pago y gestoría):');
-            $this->table(['Tabla', 'Filas'], $escenario->recuento());
+            $this->table(['Tabla', 'Filas'], \App\Services\Demo\LimpiezaPruebas::recuento());
             $this->warn('Ensayo: no se ha tocado nada. Para hacerlo: php artisan demos:preparar --si');
 
             return self::SUCCESS;
@@ -64,16 +64,30 @@ class DemosPreparar extends Command
             ['IVA 21 %', $eur($e['iva'])],
             ['Pendiente de cobro', $eur($e['pendiente'])],
             ['Cobrado', $eur($e['cobrado'])],
-            ['Gastos', $eur($e['gastos'])],
+            ['Gastos (total pagado)', $eur($e['gastos'])],
             ['Cobrado menos gastos', $eur($e['cobrado'] - $e['gastos'])],
+        ]);
+
+        // Onfactu v.1.15.0: IVA de los gastos y resultado del IVA
+        $g = $e['gastos_detalle'];
+        $this->table(['IVA de los gastos', 'Valor'], [
+            ['Gastos (uno sin desglose)', $g['numero'].' ('.$g['sin_desglose'].')'],
+            ['Base de los desglosados', $eur($g['base'])],
+            ['IVA soportado', $eur($g['iva'])],
+            ['  deducible', $eur($g['deducible'])],
+            ['  no deducible', $eur($g['no_deducible'])],
+            ['IVA autoliquidado (intracomunitaria)', $eur($g['autoliquidado'])],
+            ['Retenciones practicadas', $eur($g['retencion'])],
+            ['Resultado del IVA del año (a pagar)', $eur($e['iva_resultado'])],
         ]);
 
         $nombres = ['alfa' => 'Alfa Servicios S.L.', 'beta' => 'Beta Comercio S.L.', 'carmen' => 'Carmen Prueba Particular'];
         $this->table(['Cliente', 'Ventas'], collect($e['clientes'])
             ->map(fn ($v, $k) => [$nombres[$k] ?? $k, $eur($v)])->values()->all());
 
-        $this->table(['Mes', 'Base', 'IVA', 'Total', 'Gastos'], collect($e['meses'])
-            ->map(fn ($v, $m) => [$m, $eur($v['base'] ?? 0), $eur($v['iva'] ?? 0), $eur($v['total'] ?? 0), $eur($v['gastos'] ?? 0)])
+        $this->table(['Mes', 'Base', 'IVA', 'Total', 'Gastos', 'IVA gastos'], collect($e['meses'])
+            ->map(fn ($v, $m) => [$m, $eur($v['base'] ?? 0), $eur($v['iva'] ?? 0), $eur($v['total'] ?? 0),
+                $eur($v['gastos'] ?? 0), $eur($v['gastos_iva'] ?? 0)])
             ->values()->all());
 
         return self::SUCCESS;

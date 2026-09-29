@@ -3,21 +3,17 @@
 namespace App\Services\Demo;
 
 use App\Models\ClosedMonth;
-use App\Models\DeliveryNote;
-use App\Models\Estimate;
 use App\Models\Invoice;
 use App\Models\Payment;
-use App\Models\ProformaInvoice;
 use App\Services\AprobarFactura;
 use App\Services\CierreMes;
-use App\Services\GestoriaService;
 use App\Services\SerialNumberFormatter;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
-use RuntimeException;
 
 /**
- * Onfactu v.1.14.6 — Datos de prueba de la instancia demos.
+ * Onfactu v.1.14.6 — Datos de prueba de la instancia demos (gastos con IVA
+ * desde la v.1.15.0).
  *
  * Borra los datos de negocio y crea un juego pequeño y fijo, con importes
  * redondos, para saber de antemano qué tiene que salir en cada pantalla. El
@@ -34,7 +30,9 @@ use RuntimeException;
  *   M    FAC-6 Carmen Consultoría x1     100 +  21 =   121  pendiente
  *        Borrador Alfa Diseño web x5   5.000 + 1.050 = 6.050 (no cuenta en nada)
  *
- * Gastos: alquiler de 500 cada mes y una licencia de 121 en M-1.
+ * Gastos con el IVA desglosado (y uno sin desglose): ver GastosPruebas.
+ * La recurrente, el presupuesto, la proforma y el albarán: ComercialPruebas.
+ * Lo que se borra antes: LimpiezaPruebas.
  *
  * Las facturas se crean en borrador y se aprueban con AprobarFactura, en
  * orden de fecha: el número lo pone Onfactu, como al pulsar Aprobar. Los
@@ -45,29 +43,10 @@ use RuntimeException;
  */
 class EscenarioPruebas
 {
-    /** Tablas que se vacían enteras. Clientes y direcciones van aparte. */
-    public const TABLAS = [
-        'taxes', 'invoice_items', 'estimate_items', 'proforma_invoice_items', 'delivery_note_items',
-        'payments', 'transactions', 'invoices', 'estimates', 'proforma_invoices', 'delivery_notes',
-        'recurring_invoices', 'expenses', 'expense_categories', 'items', 'custom_field_values',
-        'email_logs', 'closed_months', 'notifications', 'exchange_rate_logs',
-    ];
-
-    /**
-     * Tablas de configuración que no se tocan nunca. Si alguna dependiera de
-     * las que se vacían, se para sin borrar nada.
-     */
-    private const PROTEGIDAS = [
-        'users', 'companies', 'company_settings', 'settings', 'app_config', 'tax_types',
-        'payment_methods', 'units', 'currencies', 'countries', 'custom_fields', 'addresses',
-        'customers', 'user_company', 'abilities', 'permissions', 'roles', 'assigned_roles',
-    ];
-
     private ContextoDemo $c;
 
     private array $clientes = [];
     private array $articulos = [];
-    private array $categorias = [];
     /** clave => ['id', 'numero', 'fecha', 'calc', 'cliente'] */
     private array $facturas = [];
 
@@ -99,79 +78,22 @@ class EscenarioPruebas
         ];
     }
 
-    private function planGastos(): array
-    {
-        // [meses atrás, día, concepto, céntimos, categoría]
-        return [
-            [3, 1, 'Alquiler de la oficina', 50000, 'Alquiler'],
-            [2, 1, 'Alquiler de la oficina', 50000, 'Alquiler'],
-            [1, 1, 'Alquiler de la oficina', 50000, 'Alquiler'],
-            [1, 12, 'Licencia anual del programa de diseño', 12100, 'Software'],
-            [0, 1, 'Alquiler de la oficina', 50000, 'Alquiler'],
-        ];
-    }
-
-    // ── Ensayo ─────────────────────────────────────────────────────────────
-
-    /** Lo que se borraría, sin tocar nada. */
-    public function recuento(): array
-    {
-        $filas = [];
-        foreach (array_merge(self::TABLAS, self::dependientes()) as $t) {
-            $filas[] = [$t, DB::table($t)->count()];
-        }
-        $filas[] = ['customers', DB::table('customers')->count()];
-        $filas[] = ['addresses (de clientes)', DB::table('addresses')->whereNotNull('customer_id')->count()];
-        $filas[] = ['media (sin logo ni avatares)', $this->mediaQuery()->count()];
-        $filas[] = ['tax_types "Impuesto N" (basura)', $this->impuestosBasura()->count()];
-
-        return $filas;
-    }
-
-    /**
-     * Tablas que no están en la lista pero dependen de alguna que sí (por
-     * ejemplo, registros de VeriFactu de las facturas). Se vacían con ellas.
-     */
-    public static function dependientes(): array
-    {
-        $todas = self::TABLAS;
-        do {
-            $nuevas = collect(DB::select(
-                "SELECT DISTINCT hija.relname AS tabla
-                   FROM pg_constraint c
-                   JOIN pg_class hija  ON hija.oid  = c.conrelid
-                   JOIN pg_class madre ON madre.oid = c.confrelid
-                  WHERE c.contype = 'f' AND madre.relname = ANY(?::text[])",
-                ['{'.implode(',', $todas).'}']
-            ))->pluck('tabla')->diff($todas)->values()->all();
-            $todas = array_merge($todas, $nuevas);
-        } while ($nuevas);
-
-        $extra = array_values(array_diff($todas, self::TABLAS));
-        $prohibidas = array_intersect($extra, self::PROTEGIDAS);
-        if ($prohibidas) {
-            throw new RuntimeException('Estas tablas de configuración dependen de las que se vacían: '
-                .implode(', ', $prohibidas).'. No se ha borrado nada.');
-        }
-
-        return $extra;
-    }
-
     // ── Preparar ───────────────────────────────────────────────────────────
 
     /** Borra y crea todo en una transacción: si algo falla, demos se queda como estaba. */
     public function preparar(): void
     {
         DB::transaction(function () {
-            $this->vaciar();
+            LimpiezaPruebas::vaciar();
 
             $this->c = new ContextoDemo($this->hoy);
             $this->maestros();
             $this->crearFacturas();
             $this->crearRectificativa();
-            $this->crearRecurrente();
-            $this->crearComerciales();
-            $this->crearGastos();
+            $comercial = new ComercialPruebas($this, $this->c);
+            $comercial->crearRecurrente();
+            $comercial->crearComerciales();
+            (new GastosPruebas($this, $this->c))->crear();
             $this->cerrarMeses();
         });
     }
@@ -182,75 +104,17 @@ class EscenarioPruebas
      */
     public function despues(): array
     {
-        $avisos = [];
-
-        // Los cierres antiguos de demos en la central: se sustituyen por los nuevos
-        $central = fn () => DB::connection('gestorias')->table('gestoria_cierres')
-            ->where('subdominio', GestoriaService::subdominio());
-        try {
-            $central()->delete();
-        } catch (\Throwable $e) {
-            // El usuario de la instancia puede no tener permiso para borrar:
-            // solo se avisa si quedan meses que no se van a sustituir.
-            try {
-                $nuevos = ClosedMonth::periodsFor(1);
-                $quedan = $central()->get(['year', 'month'])
-                    ->reject(fn ($r) => in_array(sprintf('%04d-%02d', $r->year, $r->month), $nuevos, true))
-                    ->count();
-            } catch (\Throwable $e2) {
-                $quedan = 1;
-            }
-            if ($quedan) {
-                $avisos[] = 'No se pudieron borrar los cierres antiguos de demos en la central (permisos): '
-                    .'pueden seguir viéndose en el portal junto a los nuevos.';
-            }
-        }
+        $avisos = array_filter([LimpiezaPruebas::limpiarCentral()]);
 
         $entregados = CierreMes::reenviarPendientes(1);
         $pendientes = ClosedMonth::pending()->count();
-        if ($pendientes) {
-            $avisos[] = "{$pendientes} mes(es) cerrado(s) sin entregar a la gestoría: ¿sigue vinculada y aceptada?";
-        } else {
-            $avisos[] = "Meses entregados a la gestoría: {$entregados}.";
-        }
+        $avisos[] = $pendientes
+            ? "{$pendientes} mes(es) cerrado(s) sin entregar a la gestoría: ¿sigue vinculada y aceptada?"
+            : "Meses entregados a la gestoría: {$entregados}.";
 
-        try {
-            $n = $this->impuestosBasura()->delete();
-            if ($n) {
-                $avisos[] = "Borrados {$n} tipos de impuesto de prueba (\"Impuesto N\").";
-            }
-        } catch (\Throwable $e) {
-            $avisos[] = 'No se pudieron borrar los tipos de impuesto "Impuesto N": '.$e->getMessage();
-        }
+        $avisos[] = LimpiezaPruebas::borrarImpuestosBasura();
 
-        return $avisos;
-    }
-
-    private function vaciar(): void
-    {
-        $tablas = array_merge(self::TABLAS, self::dependientes());
-
-        // Sin CASCADE: si otra tabla dependiera de estas, PostgreSQL se niega
-        // en vez de vaciarla a escondidas.
-        DB::statement('TRUNCATE TABLE '.implode(', ', array_map(fn ($t) => '"'.$t.'"', $tablas)).' RESTART IDENTITY');
-
-        // La dirección de la empresa no tiene cliente: se queda
-        DB::table('addresses')->whereNotNull('customer_id')->delete();
-        DB::table('customers')->delete();
-        $this->mediaQuery()->delete();
-
-        ClosedMonth::forgetCache();
-    }
-
-    private function mediaQuery()
-    {
-        return DB::table('media')->whereNotIn('model_type', ['App\\Models\\Company', 'App\\Models\\User']);
-    }
-
-    private function impuestosBasura()
-    {
-        return DB::table('tax_types')->where('name', '~', '^Impuesto [0-9]+$')
-            ->whereNotExists(fn ($q) => $q->select(DB::raw(1))->from('taxes')->whereColumn('taxes.tax_type_id', 'tax_types.id'));
+        return array_values(array_filter($avisos));
     }
 
     // ── Maestros ───────────────────────────────────────────────────────────
@@ -265,12 +129,6 @@ class EscenarioPruebas
                     'name' => $u, 'company_id' => $this->c->empresa, 'created_at' => $ahora, 'updated_at' => $ahora,
                 ]);
             }
-        }
-
-        foreach (['Alquiler', 'Software'] as $nombre) {
-            $this->categorias[$nombre] = (int) DB::table('expense_categories')->insertGetId([
-                'name' => $nombre, 'company_id' => $this->c->empresa, 'created_at' => $ahora, 'updated_at' => $ahora,
-            ]);
         }
 
         $articulos = [
@@ -311,12 +169,22 @@ class EscenarioPruebas
         }
     }
 
-    private function lineas(array $pares): array
+    public function hoy(): Carbon
+    {
+        return $this->hoy->copy();
+    }
+
+    public function cliente(string $clave): int
+    {
+        return $this->clientes[$clave];
+    }
+
+    public function lineas(array $pares): array
     {
         return array_map(fn ($p) => $this->articulos[$p[0]] + ['cantidad' => $p[1]], $pares);
     }
 
-    private function formaPago(): ?int
+    public function formaPago(): ?int
     {
         return $this->c->formasPago ? (int) end($this->c->formasPago) : null;
     }
@@ -327,7 +195,7 @@ class EscenarioPruebas
      *
      * @return array{0: string, 1: int, 2: int} número, secuencia y secuencia del cliente
      */
-    private function numero(string $modelo, string $tabla, string $serie, int $cliente): array
+    public function numero(string $modelo, string $tabla, string $serie, int $cliente): array
     {
         try {
             $s = (new SerialNumberFormatter)->setModel(new $modelo)->setCompany($this->c->empresa)
@@ -348,7 +216,7 @@ class EscenarioPruebas
         return [ContextoDemo::numero($serie, $n), $n, 1];
     }
 
-    private function hora(Carbon $dia, string $hora = '09:00:00'): string
+    public function hora(Carbon $dia, string $hora = '09:00:00'): string
     {
         return $dia->toDateString().' '.$hora;
     }
@@ -466,94 +334,6 @@ class EscenarioPruebas
                                     'cliente' => $orig['cliente'], 'cobros' => []];
     }
 
-    /** Mantenimiento mensual a Beta. Empieza el mes que viene: no genera nada hasta entonces. */
-    private function crearRecurrente(): void
-    {
-        $calc = $this->c->calcular($this->lineas([['mantenimiento', 1]]), ['iva21']);
-        $inicio = $this->hoy->copy()->startOfMonth()->addMonthNoOverflow();
-        $f = $this->hora($this->hoy);
-
-        $id = (int) DB::table('recurring_invoices')->insertGetId([
-            'starts_at' => $inicio->toDateTimeString(), 'send_automatically' => false, 'auto_approve' => false,
-            'customer_id' => $this->clientes['beta'], 'company_id' => $this->c->empresa, 'status' => 'ACTIVE',
-            'next_invoice_at' => $inicio->toDateTimeString(), 'creator_id' => $this->c->usuario,
-            'frequency' => '0 0 1 * *', 'limit_by' => 'NONE', 'currency_id' => $this->c->moneda,
-            'exchange_rate' => 1, 'tax_per_item' => 'NO', 'discount_per_item' => 'NO',
-            'notes' => 'Cuota mensual del mantenimiento.', 'discount_type' => 'fixed', 'discount' => 0,
-            'discount_val' => 0, 'sub_total' => $calc['sub_total'], 'total' => $calc['total'], 'tax' => $calc['tax'],
-            'template_name' => $this->c->plantillaFactura, 'due_amount' => $calc['total'],
-            'payment_method_id' => $this->formaPago(), 'created_at' => $f, 'updated_at' => $f,
-        ]);
-        $this->c->insertarLineas('invoice_items', 'recurring_invoice_id', $id, $calc['lineas'], $f);
-        $this->c->insertarImpuestos('recurring_invoice_id', $id, $calc['impuestos'], $f);
-    }
-
-    /** Un presupuesto enviado, una proforma en borrador y un albarán entregado, de este mes. */
-    private function crearComerciales(): void
-    {
-        $dia = $this->hoy->copy();
-        $f = $this->hora($dia);
-
-        // Presupuesto a Beta: 10 horas
-        $calc = $this->c->calcular($this->lineas([['consultoria', 10]]), ['iva21']);
-        $cliente = $this->clientes['beta'];
-        [$numero, $seq, $seqCliente] = $this->numero(Estimate::class, 'estimates', 'PRE', $cliente);
-        $id = (int) DB::table('estimates')->insertGetId($this->c->importes($calc) + [
-            'estimate_date' => $dia->toDateString(), 'expiry_date' => $dia->copy()->addDays(15)->toDateString(),
-            'estimate_number' => $numero, 'sequence_number' => $seq, 'customer_sequence_number' => $seqCliente,
-            'status' => Estimate::STATUS_SENT, 'template_name' => $this->c->plantillaPresupuesto,
-            'customer_id' => $cliente, 'payment_method_id' => $this->formaPago(), 'created_at' => $f, 'updated_at' => $f,
-        ]);
-        $this->c->insertarLineas('estimate_items', 'estimate_id', $id, $calc['lineas'], $f);
-        $this->c->insertarImpuestos('estimate_id', $id, $calc['impuestos'], $f);
-        $this->c->hash(Estimate::class, 'estimates', $id);
-
-        // Proforma a Carmen, en borrador: sin número, como las de pantalla
-        $calc = $this->c->calcular($this->lineas([['web', 1]]), ['iva21']);
-        $id = (int) DB::table('proforma_invoices')->insertGetId($this->c->importes($calc) + [
-            'proforma_invoice_date' => $dia->toDateString(), 'expiry_date' => $dia->copy()->addDays(15)->toDateString(),
-            'proforma_invoice_number' => null, 'sequence_number' => null, 'customer_sequence_number' => null,
-            'status' => ProformaInvoice::STATUS_DRAFT, 'template_name' => $this->c->plantillaFactura,
-            'customer_id' => $this->clientes['carmen'], 'sent' => false, 'viewed' => false,
-            'payment_method_id' => $this->formaPago(), 'created_at' => $f, 'updated_at' => $f,
-        ]);
-        $this->c->insertarLineas('proforma_invoice_items', 'proforma_invoice_id', $id, $calc['lineas'], $f);
-        $this->c->insertarImpuestos('proforma_invoice_id', $id, $calc['impuestos'], $f);
-        $this->c->hash(ProformaInvoice::class, 'proforma_invoices', $id);
-
-        // Albarán a Alfa, entregado: 3 horas
-        $calc = $this->c->calcular($this->lineas([['consultoria', 3]]), ['iva21']);
-        $cliente = $this->clientes['alfa'];
-        [$numero, $seq, $seqCliente] = $this->numero(DeliveryNote::class, 'delivery_notes', 'ALB', $cliente);
-        $id = (int) DB::table('delivery_notes')->insertGetId($this->c->importes($calc) + [
-            'delivery_note_date' => $dia->toDateString(), 'delivery_date' => $dia->toDateString(),
-            'delivery_note_number' => $numero, 'sequence_number' => $seq, 'customer_sequence_number' => $seqCliente,
-            'status' => DeliveryNote::STATUS_DELIVERED, 'show_prices' => true,
-            'template_name' => $this->c->plantillaFactura, 'customer_id' => $cliente, 'sent' => true, 'viewed' => false,
-            'payment_method_id' => $this->formaPago(), 'created_at' => $f, 'updated_at' => $f,
-        ]);
-        $this->c->insertarLineas('delivery_note_items', 'delivery_note_id', $id, $calc['lineas'], $f);
-        $this->c->insertarImpuestos('delivery_note_id', $id, $calc['impuestos'], $f);
-        $this->c->hash(DeliveryNote::class, 'delivery_notes', $id);
-    }
-
-    private function crearGastos(): void
-    {
-        $filas = [];
-        foreach ($this->planGastos() as [$atras, $d, $concepto, $importe, $categoria]) {
-            $dia = $this->dia($atras, $d);
-            $f = $this->hora($dia, '10:00:00');
-            $filas[] = [
-                'expense_date' => $dia->toDateString(), 'amount' => $importe, 'base_amount' => $importe,
-                'notes' => $concepto, 'expense_category_id' => $this->categorias[$categoria],
-                'company_id' => $this->c->empresa, 'creator_id' => $this->c->usuario, 'customer_id' => null,
-                'currency_id' => $this->c->moneda, 'exchange_rate' => 1,
-                'payment_method_id' => $this->formaPago(), 'created_at' => $f, 'updated_at' => $f,
-            ];
-        }
-        DB::table('expenses')->insert($filas);
-    }
-
     /**
      * Cierra M-3 y M-2 como lo haría el cliente, con el resumen de CierreMes.
      * La entrega a la central se hace después, fuera de la transacción.
@@ -603,11 +383,15 @@ class EscenarioPruebas
             $e['meses'][$m]['iva'] = ($e['meses'][$m]['iva'] ?? 0) + $f['calc']['tax'];
             $e['meses'][$m]['total'] = ($e['meses'][$m]['total'] ?? 0) + $f['calc']['total'];
         }
-        foreach ($this->planGastos() as [$atras, $d, , $importe]) {
-            $e['gastos'] += $importe;
-            $m = $this->dia($atras, $d)->format('Y-m');
-            $e['meses'][$m]['gastos'] = ($e['meses'][$m]['gastos'] ?? 0) + $importe;
+        // Onfactu v.1.15.0: gastos con su IVA, y el resultado del IVA del año
+        $g = (new GastosPruebas($this, $this->c ?? new ContextoDemo($this->hoy)))->esperado();
+        $e['gastos'] = $g['gastos'];
+        $e['gastos_detalle'] = $g;
+        foreach ($g['meses'] as $m => $v) {
+            $e['meses'][$m]['gastos'] = $v['gastos'];
+            $e['meses'][$m]['gastos_iva'] = $v['gastos_iva'];
         }
+        $e['iva_resultado'] = $e['iva'] + $g['autoliquidado'] - $g['deducible'] - $g['autoliquidado'];
         ksort($e['meses']);
 
         return $e;

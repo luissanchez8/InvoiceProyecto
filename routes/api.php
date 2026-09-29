@@ -396,6 +396,11 @@ Route::prefix('/v1')->group(function () {
 
             Route::post('/expenses/delete', [ExpensesController::class, 'delete']);
 
+            // Onfactu v.1.15.0: IVA en los gastos
+            Route::get('/expenses/iva/catalogo', [\App\Http\Controllers\V1\Admin\Expense\IvaGastosController::class, 'catalogo']);
+
+            Route::get('/expenses/iva/proveedores', [\App\Http\Controllers\V1\Admin\Expense\IvaGastosController::class, 'proveedores']);
+
             Route::apiResource('expenses', ExpensesController::class);
 
             Route::apiResource('categories', ExpenseCategoriesController::class);

@@ -182,6 +182,16 @@
             :amount="row.data.amount"
             :currency="row.data.currency"
           />
+          <!-- Onfactu v.1.15.0: los gastos de antes no tienen el IVA desglosado -->
+          <span v-if="!row.data.con_desglose" class="block text-xs text-gray-400">
+            {{ $t('gastos_iva.sin_desglose') }}
+          </span>
+        </template>
+
+        <template #cell-proveedor_nombre="{ row }">
+          <span class="block truncate max-w-[14rem]" :title="row.data.proveedor_nombre || ''">
+            {{ row.data.proveedor_nombre || '-' }}
+          </span>
         </template>
 
         <template #cell-expense_date="{ row }">
@@ -287,6 +297,8 @@ const expenseColumns = computed(() => {
       thClass: 'extra',
       tdClass: 'cursor-pointer font-medium text-primary-500',
     },
+    // Onfactu v.1.15.0: proveedor del gasto
+    { key: 'proveedor_nombre', label: t('gastos_iva.proveedor') },
     { key: 'user_name', label: t('expenses.customer') },
     { key: 'notes', label: t('expenses.note') },
     { key: 'amount', label: t('expenses.amount') },

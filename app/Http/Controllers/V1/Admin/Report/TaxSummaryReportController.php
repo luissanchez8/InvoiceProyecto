@@ -63,6 +63,12 @@ class TaxSummaryReportController extends Controller
             ->get();
 
         view()->share([
+            // Onfactu v.1.15.0: IVA de ventas, de gastos y resultado
+            'resumen' => \App\Services\ResumenIva::calcular(
+                $company->id,
+                Carbon::createFromFormat('Y-m-d', $request->from_date),
+                Carbon::createFromFormat('Y-m-d', $request->to_date)
+            ),
             'taxTypes' => $taxTypes,
             'totalTaxAmount' => $totalAmount,
             'colorSettings' => $colorSettings,

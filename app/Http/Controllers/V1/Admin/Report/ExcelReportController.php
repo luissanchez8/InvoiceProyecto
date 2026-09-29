@@ -136,11 +136,14 @@ class ExcelReportController extends Controller
     }
 
     // ── Gastos ──────────────────────────────────────────────────────────
+    // Onfactu v.1.15.0: con proveedor, base, IVA y retención. Los gastos sin
+    // desglose solo tienen el total, y lo dicen.
     private function expenses(Company $company, Carbon $from, Carbon $to, string $symbol)
     {
         $expenses = Expense::with('category')
             ->where('company_id', $company->id)
             ->whereBetween('expense_date', [$from->format('Y-m-d'), $to->format('Y-m-d')])
+            ->orderBy('expense_date')->orderBy('id')
             ->get();
 
         return $this->streamCsv('gastos.csv', function ($h) use ($expenses, $company, $from, $to, $symbol) {
@@ -148,21 +151,36 @@ class ExcelReportController extends Controller
             fputcsv($h, ['Informe de gastos'], ';');
             fputcsv($h, [$from->format('d/m/Y') . ' - ' . $to->format('d/m/Y')], ';');
             fputcsv($h, [], ';');
-            fputcsv($h, ['Categoría', 'Fecha', 'Descripción', 'Importe (' . $symbol . ')'], ';');
+            fputcsv($h, ['Fecha', 'Categoría', 'Proveedor', 'NIF', 'Nº factura', 'Descripción',
+                'Base (' . $symbol . ')', 'IVA (' . $symbol . ')', 'Retención (' . $symbol . ')', 'Total (' . $symbol . ')', 'Desglose'], ';');
 
-            $total = 0;
+            $t = ['base' => 0, 'iva' => 0, 'ret' => 0, 'total' => 0];
             foreach ($expenses as $exp) {
-                $catName = $exp->category->name ?? 'Sin categoría';
+                $cambio = (float) ($exp->exchange_rate ?: 1);
+                $conv = fn ($v) => (int) round(((int) $v) * $cambio);
+                $desglose = (bool) $exp->con_desglose;
                 fputcsv($h, [
-                    $catName,
                     Carbon::parse($exp->expense_date)->format('d/m/Y'),
+                    $exp->category->name ?? 'Sin categoría',
+                    $exp->proveedor_nombre ?? '',
+                    $exp->proveedor_nif ?? '',
+                    $exp->numero_factura ?? '',
                     $exp->notes ?? '',
+                    $desglose ? $this->fmt($conv($exp->base_imponible)) : '',
+                    $desglose ? $this->fmt($conv($exp->cuota_iva)) : '',
+                    $desglose ? $this->fmt($conv($exp->retencion)) : '',
                     $this->fmt($exp->base_amount),
+                    $desglose ? 'Sí' : 'Sin desglose',
                 ], ';');
-                $total += $exp->base_amount;
+                if ($desglose) {
+                    $t['base'] += $conv($exp->base_imponible);
+                    $t['iva'] += $conv($exp->cuota_iva);
+                    $t['ret'] += $conv($exp->retencion);
+                }
+                $t['total'] += $exp->base_amount;
             }
             fputcsv($h, [], ';');
-            fputcsv($h, ['', '', 'TOTAL', $this->fmt($total)], ';');
+            fputcsv($h, ['', '', '', '', '', 'TOTAL', $this->fmt($t['base']), $this->fmt($t['iva']), $this->fmt($t['ret']), $this->fmt($t['total']), ''], ';');
         });
     }
 
@@ -202,40 +220,71 @@ class ExcelReportController extends Controller
     }
 
     // ── Resumen de impuestos ────────────────────────────────────────────
+    // Onfactu v.1.15.0: lo mismo que el PDF (App\Services\ResumenIva): IVA de
+    // las ventas, de los gastos, autoliquidación, resultado y retenciones.
     private function taxSummary(Company $company, Carbon $from, Carbon $to, string $symbol)
     {
-        // Onfactu v.1.14.5: como el informe en PDF, las facturas aprobadas del
-        // periodo, con el impuesto de la factura o el de cada línea.
-        $factura = function ($iq) use ($from, $to, $company) {
-            $iq->where('company_id', $company->id)
-                ->where('status', Invoice::STATUS_APPROVED)
-                ->whereBetween('invoice_date', [$from->format('Y-m-d'), $to->format('Y-m-d')]);
-        };
-        $taxTypes = TaxType::with(['taxes' => function ($q) use ($factura) {
-            $q->where(function ($q) use ($factura) {
-                $q->whereHas('invoice', $factura)->orWhereHas('invoiceItem.invoice', $factura);
-            });
-        }])
-            ->where('company_id', $company->id)
-            ->get();
+        $r = \App\Services\ResumenIva::calcular($company->id, $from, $to);
 
-        return $this->streamCsv('resumen-impuestos.csv', function ($h) use ($taxTypes, $company, $from, $to, $symbol) {
+        return $this->streamCsv('resumen-impuestos.csv', function ($h) use ($r, $company, $from, $to, $symbol) {
+            $f = fn ($v) => $this->fmt($v);
             fputcsv($h, [$company->name], ';');
             fputcsv($h, ['Resumen de impuestos'], ';');
             fputcsv($h, [$from->format('d/m/Y') . ' - ' . $to->format('d/m/Y')], ';');
-            fputcsv($h, [], ';');
-            fputcsv($h, ['Impuesto', 'Porcentaje', 'Importe recaudado (' . $symbol . ')'], ';');
 
-            foreach ($taxTypes as $tt) {
-                $totalTax = 0;
-                foreach ($tt->taxes as $tax) {
-                    $totalTax += $tax->base_amount ?? $tax->amount;
+            fputcsv($h, [], ';');
+            fputcsv($h, ['IVA de las ventas'], ';');
+            fputcsv($h, ['Impuesto', 'Porcentaje', 'Base (' . $symbol . ')', 'Cuota (' . $symbol . ')'], ';');
+            foreach ($r['ventas'] as $v) {
+                fputcsv($h, [$v['nombre'], $this->pct($v['porcentaje']), $f($v['base']), $f($v['cuota'])], ';');
+            }
+            fputcsv($h, ['Total', '', $f($r['ventas_base']), $f($r['ventas_cuota'])], ';');
+
+            fputcsv($h, [], ';');
+            fputcsv($h, ['IVA de los gastos'], ';');
+            fputcsv($h, ['Tipo', 'Porcentaje', 'Base (' . $symbol . ')', 'Cuota (' . $symbol . ')', 'Deducible (' . $symbol . ')', 'No deducible (' . $symbol . ')'], ';');
+            foreach ($r['gastos'] as $g) {
+                fputcsv($h, [$g['nombre'], $this->pct($g['porcentaje']), $f($g['base']), $f($g['cuota']), $f($g['deducible']), $f($g['no_deducible'])], ';');
+            }
+            fputcsv($h, ['Total', '', $f($r['gastos_base']), $f($r['gastos_cuota']), $f($r['gastos_deducible']), $f($r['gastos_no_deducible'])], ';');
+            if ($r['sin_desglose']['numero'] > 0) {
+                fputcsv($h, ['Gastos sin IVA desglosado (no incluidos)', $r['sin_desglose']['numero'], '', '', '', $f($r['sin_desglose']['importe'])], ';');
+            }
+
+            if (count($r['autoliquidacion'])) {
+                fputcsv($h, [], ';');
+                fputcsv($h, ['Compras intracomunitarias (autoliquidación)'], ';');
+                fputcsv($h, ['Tipo', 'Porcentaje', 'Base (' . $symbol . ')', 'Cuota (' . $symbol . ')', 'Deducible (' . $symbol . ')'], ';');
+                foreach ($r['autoliquidacion'] as $a) {
+                    fputcsv($h, [$a['nombre'], $this->pct($a['porcentaje']), $f($a['base']), $f($a['cuota']), $f($a['deducible'])], ';');
                 }
-                // Las rectificativas restan: puede salir negativo
-                if ($totalTax != 0) {
-                    fputcsv($h, [$tt->name, $tt->percent . '%', $this->fmt($totalTax)], ';');
+            }
+
+            fputcsv($h, [], ';');
+            fputcsv($h, ['Resultado del IVA'], ';');
+            fputcsv($h, ['IVA de las ventas', $f($r['ventas_cuota'])], ';');
+            if ($r['autoliquidacion_cuota']) {
+                fputcsv($h, ['IVA autoliquidado', $f($r['autoliquidacion_cuota'])], ';');
+            }
+            fputcsv($h, ['IVA deducible de los gastos', $f(-$r['iva_deducible'])], ';');
+            fputcsv($h, [$r['resultado'] >= 0 ? 'A pagar' : 'A compensar o devolver', $f(abs($r['resultado']))], ';');
+
+            if (count($r['retenciones_ventas']) || count($r['retenciones_gastos'])) {
+                fputcsv($h, [], ';');
+                fputcsv($h, ['Retenciones de IRPF (no entran en el IVA)'], ';');
+                fputcsv($h, ['Concepto', 'Base (' . $symbol . ')', 'Importe (' . $symbol . ')'], ';');
+                foreach ($r['retenciones_ventas'] as $rv) {
+                    fputcsv($h, ['Te han retenido tus clientes (' . $rv['nombre'] . ')', $f($rv['base']), $f(abs($rv['cuota']))], ';');
+                }
+                foreach ($r['retenciones_gastos'] as $rg) {
+                    fputcsv($h, ['Has retenido a tus proveedores (' . $this->pct($rg['porcentaje']) . ')', $f($rg['base']), $f($rg['importe'])], ';');
                 }
             }
         });
+    }
+
+    private function pct($p): string
+    {
+        return rtrim(rtrim(number_format((float) $p, 2, ',', ''), '0'), ',') . ' %';
     }
 }

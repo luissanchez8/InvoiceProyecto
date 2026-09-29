@@ -60,7 +60,26 @@ class ExpensesReportController extends Controller
             ->whereCompany($company->id)
             ->get();
 
+        // Onfactu v.1.15.0: base e IVA por categoría, de los gastos desglosados
+        $desglose = \Illuminate\Support\Facades\DB::table('expenses')
+            ->where('company_id', $company->id)
+            ->where('con_desglose', true)
+            ->whereBetween('expense_date', [$request->from_date, $request->to_date])
+            ->groupBy('expense_category_id')
+            ->selectRaw('expense_category_id, SUM(ROUND(base_imponible * COALESCE(exchange_rate, 1))) as base, SUM(ROUND(cuota_iva * COALESCE(exchange_rate, 1))) as iva, COUNT(*) as numero')
+            ->get()->keyBy('expense_category_id');
+        $sinDesglose = \Illuminate\Support\Facades\DB::table('expenses')
+            ->where('company_id', $company->id)
+            ->where('con_desglose', false)
+            ->whereBetween('expense_date', [$request->from_date, $request->to_date])
+            ->selectRaw('COUNT(*) as numero, COALESCE(SUM(base_amount), 0) as importe')
+            ->first();
+
         view()->share([
+            'desgloseCategorias' => $desglose,
+            'totalBase' => (int) $desglose->sum('base'),
+            'totalIva' => (int) $desglose->sum('iva'),
+            'sinDesglose' => $sinDesglose,
             'expenseCategories' => $expenseCategories,
             'colorSettings' => $colorSettings,
             'totalExpense' => $totalAmount,

@@ -1929,7 +1929,9 @@
     "total_year_help": "Suma de los meses que has cerrado",
     "year_complete": "Año completo",
     "year_ongoing": "En curso",
-    "expenses_vat_note": "<strong>Los gastos no llevan desglose de IVA en Onfactu.</strong> Solo se guarda el importe total y la categoría, por eso la columna de gastos no separa neto e IVA."
+    "expenses_vat_note": "<strong>Hay gastos sin el IVA desglosado.</strong> Los gastos registrados antes de octubre de 2026 solo tienen el importe total, así que no suman en el IVA de gastos. Si hace falta, se puede desglosar su IVA al editarlos.",
+    "iva_gastos": "IVA de gastos",
+    "iva_gastos_corto": "IVA {importe}"
   },
   "estados": {
     "borrador": "Borrador",
@@ -1970,5 +1972,28 @@
     "comprobando": "Comprobando...",
     "numero_previsto": "Se asigna al aprobar (previsto: {numero})",
     "aprobar_hoy_con_numero": "Con la fecha de hoy recibirá el número {numero}."
+  },
+  "gastos_iva": {
+    "titulo": "IVA del gasto",
+    "tipo": "Tipo de IVA",
+    "base": "Base",
+    "iva": "IVA",
+    "total_linea": "Total",
+    "no_deducible": "No deducible",
+    "no_deducible_ayuda": "Márcalo si este IVA no se puede deducir: cuenta como gasto, pero no resta en el IVA",
+    "no_se_paga": "Autoliquidación: no se paga",
+    "quitar": "Quitar",
+    "anadir_tipo": "Añadir otro tipo de IVA",
+    "retencion": "Retención",
+    "sin_retencion": "Sin retención",
+    "total_pagar": "Total a pagar",
+    "total_obligatorio": "Indica la base o el total del gasto.",
+    "proveedor": "Proveedor",
+    "proveedor_ayuda": "Opcional",
+    "nif_proveedor": "NIF del proveedor",
+    "numero_factura": "Nº de su factura",
+    "sin_desglose": "Sin desglose de IVA",
+    "sin_desglose_ayuda": "Este gasto no tiene el IVA desglosado.",
+    "desglosar": "Desglosar IVA"
   }
 }

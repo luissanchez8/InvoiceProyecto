@@ -147,6 +147,11 @@
             line-height: 21px;
             color: #38d587;
         }
+        /* Onfactu v.1.15.0: base, IVA y total */
+        .col-cifra { text-align: right; font-size: 13px; color: #595959; padding: 3px 6px; }
+        .col-cab { text-align: right; font-size: 11px; color: #8a8f9c; font-weight: normal; padding: 4px 6px; border-bottom: 1px solid #e5e7eb; }
+        .col-cab.izq { text-align: left; }
+        .nota-gastos { font-size: 11px; color: #8a8f9c; margin: 8px 0 0 3px; }
     </style>
 
     @if (App::isLocale('th'))
@@ -174,13 +179,22 @@
         <p class="expenses-title">@lang('pdf_expenses_label')</p>
         <div class="expenses-table-container">
             <table class="expenses-table">
+                <tr>
+                    <th class="col-cab izq">Categoría</th>
+                    <th class="col-cab">Base</th>
+                    <th class="col-cab">IVA</th>
+                    <th class="col-cab">Total</th>
+                </tr>
                 @foreach ($expenseCategories as $expenseCategory)
+                @php $d = $desgloseCategorias[$expenseCategory->expense_category_id] ?? null; @endphp
                 <tr>
                     <td>
                         <p class="expense-title">
                             {{ $expenseCategory->category->name }}
                         </p>
                     </td>
+                    <td class="col-cifra">{!! $d ? format_money_pdf($d->base, $currency) : '-' !!}</td>
+                    <td class="col-cifra">{!! $d ? format_money_pdf($d->iva, $currency) : '-' !!}</td>
                     <td>
                         <p class="expense-amount">
                             {!! format_money_pdf($expenseCategory->total_amount, $currency) !!}
@@ -188,7 +202,14 @@
                     </td>
                 </tr>
                 @endforeach
+                <tr>
+                    <td class="col-cab izq"></td>
+                    <td class="col-cifra"><strong>{!! format_money_pdf($totalBase, $currency) !!}</strong></td>
+                    <td class="col-cifra"><strong>{!! format_money_pdf($totalIva, $currency) !!}</strong></td>
+                    <td></td>
+                </tr>
             </table>
+            <p class="nota-gastos">Base e IVA de los gastos con el IVA desglosado. El total incluye todos, con la retención ya descontada.@if ($sinDesglose->numero > 0) Hay {{ $sinDesglose->numero }} {{ $sinDesglose->numero == 1 ? 'gasto' : 'gastos' }} sin desglose por {!! format_money_pdf($sinDesglose->importe, $currency) !!}, que solo cuentan en el total.@endif</p>
         </div>
     </div>
 

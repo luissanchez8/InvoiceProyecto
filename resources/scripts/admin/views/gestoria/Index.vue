@@ -138,6 +138,10 @@
                       <span v-if="mes.totals.gastos > 0" class="block mt-0.5 text-xs text-gray-400">
                         {{ $t('gestoria.records', { n: mes.totals.gastos }) }}
                       </span>
+                      <!-- Onfactu v.1.15.0: IVA de los gastos desglosados -->
+                      <span v-if="mes.totals.gastos_iva" class="block mt-0.5 text-xs text-gray-500 tabular-nums">
+                        {{ $t('gestoria.iva_gastos_corto', { importe: money(mes.totals.gastos_iva) }) }}
+                      </span>
                     </template>
                     <span v-else class="text-gray-300">—</span>
                   </td>
@@ -197,6 +201,9 @@
                   </td>
                   <td class="px-6 py-6 text-base font-bold text-right tabular-nums text-primary-700">
                     {{ tri.cerrados ? money(tri.gastos) : '—' }}
+                    <span v-if="tri.cerrados && tri.gastos_iva" class="block mt-0.5 text-xs font-normal text-primary-500">
+                      {{ $t('gestoria.iva_gastos_corto', { importe: money(tri.gastos_iva) }) }}
+                    </span>
                   </td>
                   <td class="px-6 py-6 text-base font-bold text-center tabular-nums text-primary-700">
                     {{ tri.cerrados && tri.rectificativas ? money(tri.rectificativas) : '—' }}
@@ -231,7 +238,7 @@
       </div>
 
       <!-- ─── Nota sobre el IVA de los gastos ─── -->
-      <div class="flex gap-3 p-4 mt-6 text-sm border rounded-lg bg-amber-50 text-amber-800 border-amber-200">
+      <div v-if="hayGastosSinDesglose" class="flex gap-3 p-4 mt-6 text-sm border rounded-lg bg-amber-50 text-amber-800 border-amber-200">
         <BaseIcon name="ExclamationTriangleIcon" class="w-5 h-5 shrink-0 text-amber-500" />
         <div v-html="$t('gestoria.expenses_vat_note')"></div>
       </div>
@@ -336,11 +343,19 @@ const trimestres = computed(() => {
       iva: suma('iva'),
       bruto: suma('bruto'),
       gastos: suma('importe_gastos'),
+      gastos_iva: suma('gastos_iva'),
       rectificativas: suma('importe_rectificativas'),
     })
   }
   return out
 })
+
+// Onfactu v.1.15.0: el aviso solo sale si algún mes cerrado tiene gastos sin
+// el IVA desglosado (los de antes de la v.1.15.0, o cerrados antes de ella)
+const hayGastosSinDesglose = computed(() =>
+  meses.value.some((m) => m.totals && m.totals.gastos > 0 &&
+    (m.totals.gastos_sin_desglose === undefined || m.totals.gastos_sin_desglose > 0))
+)
 
 const anioCompleto = computed(() =>
   trimestres.value.length === 4 && trimestres.value.every((t) => t.estado === 'completo')
@@ -358,6 +373,7 @@ const bloquesAnuales = computed(() => {
     { l: t('gestoria.iva'), v: money(s('iva')) + ' €' },
     { l: t('gestoria.bruto'), v: money(s('bruto')) + ' €' },
     { l: t('gestoria.gastos') + ' (' + nGastos + ')', v: money(s('gastos')) + ' €' },
+    { l: t('gestoria.iva_gastos'), v: money(s('gastos_iva')) + ' €' },
   ]
 })
 
