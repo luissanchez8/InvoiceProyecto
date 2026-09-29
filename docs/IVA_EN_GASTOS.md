@@ -10,7 +10,7 @@ Era la fase 4 del plan del 25/09/2026. Hasta entonces un gasto solo tenía el im
 
 Tomadas el 29/09/2026:
 
-- **Proveedor opcional y sencillo**: nombre, NIF y número de su factura escritos en el propio gasto, sin lista ni menú de proveedores. Al escribir el nombre se sugieren los ya usados y se rellena su NIF. El campo Cliente del gasto sigue sirviendo para cargar el gasto a un cliente: no es el proveedor.
+- **Proveedor opcional y sencillo**: nombre, NIF y número de su factura escritos en el propio gasto, sin lista ni menú de proveedores. Al escribir el nombre se sugieren los ya usados y se rellena su NIF. El campo Cliente del gasto sigue sirviendo para cargar el gasto a un cliente: no es el proveedor. Para corregirlos, una ventana desde el propio campo (ver **Gestionar los proveedores**), también sin menú aparte.
 - **Casilla "No deducible"** en cada tipo de IVA del gasto: el IVA queda apuntado, pero no resta en el resultado. El caso típico es una comida.
 - **Compras intracomunitarias con autoliquidación** (Google, Meta, Canva…): la factura llega sin IVA y ese IVA no se paga al proveedor, pero se declara a la vez en lo devengado y en lo deducible. El informe lo enseña aparte.
 - **Los tipos de IVA son una lista fija del programa**, no los tipos de impuesto de cada instancia, que están duplicados y cambian de una a otra: con ellos el informe de impuestos no cuadraría.
@@ -56,9 +56,22 @@ Desde la v.1.15.1 tiene el mismo aspecto que el de las facturas:
 
 Un gasto anterior a la v.1.15.0 se abre con su importe y un botón **Desglosar IVA**, que lo pasa a la tabla de tipos.
 
+### Gestionar los proveedores
+
+Desde la v.1.15.3, el enlace **Gestionar** junto a la etiqueta Proveedor abre una ventana con todos los proveedores escritos en los gastos: nombre, NIF, cuántos gastos tiene y cuántos son de meses cerrados, con un buscador. No hay pantalla ni menú aparte, a propósito: se pidió algo simple desde el propio gasto.
+
+- **Editar**: corrige el nombre y el NIF en todos sus gastos a la vez.
+- **Unir**: si el nombre nuevo es el de otro proveedor que ya existe, la ventana lo avisa y al guardar quedan en uno. Sirve para los que se escribieron de dos formas.
+- **Quitar**: deja esos gastos sin proveedor. Los gastos no se borran. Se confirma en la misma fila.
+- **Los gastos de meses cerrados no se tocan nunca**: ya se entregaron así a la gestoría. El mensaje final dice cuántos se han quedado sin cambiar.
+
+Si el proveedor que se corrige o se quita es el del gasto que está abierto, el formulario se actualiza: si no, al guardarlo volvería a escribir el nombre antiguo.
+
+Cada nombre se lista tal como está escrito, sin juntar mayúsculas y minúsculas, para que se vean los repetidos y se puedan unir. Hace falta el permiso de editar gastos.
+
 En la lista de gastos sale la columna del proveedor, y los gastos sin desglose lo indican bajo el importe.
 
-Código: `resources/scripts/admin/views/expenses/Create.vue`, con `components/expenses/` (`DesgloseIvaGasto`, `TotalesGasto` y `ProveedorGasto`) y la lógica en `composables/useDesgloseIva.js`.
+Código: `resources/scripts/admin/views/expenses/Create.vue`, con `components/expenses/` (`DesgloseIvaGasto`, `TotalesGasto`, `ProveedorGasto` y `ModalProveedores`) y la lógica en `composables/useDesgloseIva.js`.
 
 ## Datos
 
@@ -72,6 +85,9 @@ Rutas nuevas, declaradas antes de las de gastos para que no las confunda con un 
 | --- | --- |
 | `GET /api/v1/expenses/iva/catalogo` | Los tipos y las retenciones |
 | `GET /api/v1/expenses/iva/proveedores?search=` | Los proveedores ya usados, cada uno con su último NIF |
+| `GET /api/v1/expenses/iva/proveedores/gestion?search=` | La lista de la ventana Gestionar: nombre, NIF, gastos y gastos en meses cerrados |
+| `PUT /api/v1/expenses/iva/proveedores` | Cambia nombre y NIF (`nombre`, `nuevo_nombre`, `nif`) en los gastos de meses abiertos |
+| `POST /api/v1/expenses/iva/proveedores/quitar` | Quita el proveedor (`nombre`) de los gastos de meses abiertos |
 
 ## Informes
 
