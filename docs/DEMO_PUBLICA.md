@@ -80,7 +80,7 @@ Empresa: **Estudio Nexo**, un autónomo de diseño y comunicación. Así la demo
 | Presupuestos | 15 | Aceptados, rechazados, caducados, enviados y borradores |
 | Proformas | 6 | Las aceptadas enlazadas a su factura |
 | Albaranes | 8 | Solo productos; con y sin precios |
-| Gastos | unos 33 | Cuota de autónomos y telefonía cada mes, y gastos puntuales |
+| Gastos | unos 33 | Cuota de autónomos y telefonía cada mes, y gastos puntuales. Desde la v.1.15.0, con proveedor inventado, NIF, número de factura y el IVA desglosado según la categoría: exento (cuota de autónomos, formación), 10 % (tren), intracomunitaria con autoliquidación (publicidad), 21 % con retención del 15 % (asesoría) y 21 % lo demás |
 
 Los correos de los clientes son `@demo.onfactu.com`, dominio nuestro: si algún día se activa el envío, nada saldrá hacia terceros.
 

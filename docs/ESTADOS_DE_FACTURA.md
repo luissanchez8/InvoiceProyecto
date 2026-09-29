@@ -72,7 +72,7 @@ Solo las facturas **aprobadas**. Un borrador no está emitido y no suma en ning�
 - los informes en PDF y en Excel: ventas por cliente, ventas por artículo y resumen de impuestos;
 - el cierre de mes y el portal de la gestoría (ver **Gestoría → Qué se entrega**).
 
-**El resumen de impuestos cuenta el IVA de todas las facturas aprobadas del periodo, se hayan cobrado o no**, porque el IVA se declara por la fecha de la factura. Hasta la v.1.14.5 solo contaba las cobradas, que era lo que hacía el programa base. Las rectificativas restan.
+**El resumen de impuestos cuenta el IVA de todas las facturas aprobadas del periodo, se hayan cobrado o no**, porque el IVA se declara por la fecha de la factura. Hasta la v.1.14.5 solo contaba las cobradas, que era lo que hacía el programa base. Las rectificativas restan. Desde la v.1.15.0 el informe lleva también el IVA de los gastos y el resultado (ver **IVA en los gastos → Informes**).
 
 Esto estaba en el plan de la fase 2 y se quedó sin hacer al desplegarla: el panel y los informes siguieron sumando los borradores hasta la v.1.14.5.
 
