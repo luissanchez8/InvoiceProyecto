@@ -1,5 +1,6 @@
 <template>
-  <BaseDropdown>
+  <!-- v.1.17.0: con la ventana de anticipo al lado, el componente tiene dos raíces; la clase que le pasa la pantalla (ml-3) va al desplegable -->
+  <BaseDropdown v-bind="$attrs">
     <template #activator>
       <BaseButton v-if="route.name === 'estimates.view'" variant="primary">
         <BaseIcon name="EllipsisHorizontalIcon" class="text-white" />
@@ -253,6 +254,8 @@ const props = defineProps({
 })
 
 const utils = inject('utils')
+
+defineOptions({ inheritAttrs: false })
 
 // Onfactu v.1.17.0: un presupuesto facturado no se edita, no se borra ni se vuelve a facturar
 const facturado = computed(() => props.row?.billing_status === 'FACTURADO')

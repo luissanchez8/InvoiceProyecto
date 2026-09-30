@@ -17,11 +17,10 @@
     @slot('subcopy')
         @component('mail::subcopy')
             {!! $data['body'] !!}
-            @if(!$data['attach']['data'])
-                @component('mail::button', ['url' => $data['url']])
-                    @lang('mail_view_invoice')
-                @endcomponent
-            @endif
+{{-- Onfactu v.1.17.0: sin sangría, ver mail/html/button.blade.php --}}
+@if(!$data['attach']['data'])
+@component('mail::button', ['url' => $data['url']])@lang('mail_view_invoice')@endcomponent
+@endif
         @endcomponent
     @endslot
 

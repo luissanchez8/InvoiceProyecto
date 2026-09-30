@@ -73,6 +73,8 @@ Del año: IVA soportado **451** (446 deducible y 5 no deducible), autoliquidado 
 ### Lo demás
 
 - **Gastos**: ocho, en la tabla de abajo. Total 2.492 €.
+Los números de presupuestos, proformas y albaranes también siguen la serie de demos, como las facturas: el 30/09/2026, PRE-000001 a PRE-000003 salieron como PRE-000007 a PRE-000009.
+
 - **Presupuesto** PRE-000001 a Beta, enviado: 10 horas, 1.210 €. Al terminar, la orden enseña el enlace que recibiría el cliente para aceptarlo o rechazarlo.
 - **Presupuesto** PRE-000002 a Alfa: diseño web x2, 2.420 €. Aceptado por el cliente desde el enlace, con un anticipo del 30 % (726 €) en borrador. Estado de facturación: Anticipo.
 - **Presupuesto** PRE-000003 a Carmen: 4 horas, 484 €. Convertido en factura, que queda en borrador. Estado de facturación: Facturado.

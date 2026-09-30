@@ -17,10 +17,8 @@
     @slot('subcopy')
         @component('mail::subcopy')
             {!! $data['body'] !!}
-            {{-- Onfactu v.1.17.0: el botón sale siempre, lleve o no el PDF adjunto: desde ahí se acepta --}}
-            @component('mail::button', ['url' => $data['url']])
-                Ver y responder
-            @endcomponent
+{{-- Onfactu v.1.17.0: el botón sale siempre, lleve o no el PDF adjunto: desde ahí se acepta. Sin sangría: ver mail/html/button.blade.php --}}
+@component('mail::button', ['url' => $data['url']]) Ver y responder @endcomponent
         @endcomponent
     @endslot
 
