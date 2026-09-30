@@ -64,8 +64,9 @@ class EstimatesRequest extends FormRequest
             'tax' => [
                 'required',
             ],
+            // Onfactu v.1.17.0: la plantilla la pone el servidor (DocumentoComercial)
             'template_name' => [
-                'required',
+                'nullable',
             ],
             'items' => [
                 'required',

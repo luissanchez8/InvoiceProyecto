@@ -220,6 +220,8 @@
           <BaseEstimateStatusBadge :status="row.data.status" class="px-3 py-1">
             <BaseEstimateStatusLabel :status="row.data.status"/>
           </BaseEstimateStatusBadge>
+          <!-- Onfactu v.1.17.0 -->
+          <EstadoFacturacionBadge :estado="row.data.billing_status" class="ml-2" />
         </template>
 
         <template #cell-total="{ row }">
@@ -250,6 +252,7 @@ import abilities from '@/scripts/admin/stub/abilities'
 
 import ObservatoryIcon from '@/scripts/components/icons/empty/ObservatoryIcon.vue'
 import EstimateDropDown from '@/scripts/admin/components/dropdowns/EstimateIndexDropdown.vue'
+import EstadoFacturacionBadge from '@/scripts/admin/components/facturacion/EstadoFacturacionBadge.vue'
 import SendEstimateModal from '@/scripts/admin/components/modal-components/SendEstimateModal.vue'
 import BaseEstimateStatusLabel from "@/scripts/components/base/BaseEstimateStatusLabel.vue";
 

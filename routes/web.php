@@ -109,6 +109,12 @@ Route::middleware('pdf-auth')->group(function () {
 // customer pdf endpoints for invoice, estimate and Payment
 // -------------------------------------------------
 
+// Onfactu v.1.17.0: aceptar o rechazar un presupuesto desde el enlace del correo
+// -------------------------------------------------
+Route::get('/presupuesto/{email_log:token}', [\App\Http\Controllers\V1\Customer\PresupuestoPublicoController::class, 'ver']);
+Route::post('/presupuesto/{email_log:token}', [\App\Http\Controllers\V1\Customer\PresupuestoPublicoController::class, 'responder'])
+    ->middleware('throttle:10,1');
+
 Route::prefix('/customer')->group(function () {
     Route::get('/invoices/{email_log:token}', [CustomerInvoicePdfController::class, 'getInvoice']);
     Route::get('/invoices/view/{email_log:token}', [CustomerInvoicePdfController::class, 'getPdf'])->name('invoice');

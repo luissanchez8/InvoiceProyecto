@@ -199,11 +199,7 @@
               class="mb-6"
             />
 
-            <SelectTemplate
-              :store="deliveryNoteStore"
-              store-prop="newDeliveryNote"
-              component-name="InvoiceTemplate"
-            />
+            <!-- Onfactu v.1.17.0: sin selector de plantilla, siempre la única (invoice4) -->
           </div>
 
           <CreateTotal
@@ -235,7 +231,7 @@ import { useCustomFieldStore } from '@/scripts/admin/stores/custom-field'
 
 import CreateItems from '@/scripts/admin/components/estimate-invoice-common/CreateItems.vue'
 import CreateTotal from '@/scripts/admin/components/estimate-invoice-common/CreateTotal.vue'
-import SelectTemplate from '@/scripts/admin/components/estimate-invoice-common/SelectTemplateButton.vue'
+import { useBloqueoFacturado } from '@/scripts/admin/components/facturacion/useBloqueoFacturado'
 import NoteFields from '@/scripts/admin/components/estimate-invoice-common/CreateNotesField.vue'
 import CreateCustomFields from '@/scripts/admin/components/custom-fields/CreateCustomFields.vue'
 import SelectTemplateModal from '@/scripts/admin/components/modal-components/SelectTemplateModal.vue'
@@ -295,11 +291,12 @@ const noteFieldList = ref(['customer', 'company', 'customerCustom', 'invoice', '
 
 let isEdit = computed(() => route.name === 'deliveryNotes.edit')
 
-// Onfactu: botón borrador solo si aún no hay número.
-const showDraftButton = computed(() => {
-  if (!isEdit.value) return true
-  return !deliveryNoteStore.newDeliveryNote.delivery_note_number
-})
+// Onfactu v.1.17.0: los albaranes se numeran al crearlos; ya no hay
+// "Guardar como borrador" sin número (DocumentoComercial).
+const showDraftButton = computed(() => false)
+
+// Onfactu v.1.17.0: un albarán facturado no se edita
+useBloqueoFacturado(() => deliveryNoteStore.newDeliveryNote, isEdit, (id) => `/admin/delivery-notes/${id}/view`)
 
 let isLoadingContent = computed(
   () => deliveryNoteStore.isFetchingDeliveryNote || deliveryNoteStore.isFetchingInitialSettings

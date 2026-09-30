@@ -23,12 +23,12 @@ Al terminar enseña las cifras que tienen que salir. **Se puede repetir siempre 
 - En la central de gestorías entrega los meses nuevos, y **la gestoría recibe un correo "Mes recibido" por cada uno**. Los meses antiguos de demos no los puede borrar, porque el usuario con el que la instancia se conecta a la central no tiene ese permiso: lo avisa al terminar, y se borran con el administrador:
 
 ```bash
-docker exec postgres_db_atenea psql -U onfactu_atenea_user -d onfactu_gestorias -c "DELETE FROM gestoria_cierres WHERE subdominio='demos' AND (year, month) NOT IN ((AÑO,M-3),(AÑO,M-2));"
+docker exec postgres_db_atenea psql -U onfactu_atenea_user -d onfactu_gestorias -c "DELETE FROM gestoria_cierres WHERE subdominio='demos' AND (year, month) NOT IN ((AÑO,M-3),(AÑO,M-2)); DELETE FROM gestoria_reaperturas WHERE subdominio='demos' AND NOT (year = AÑO AND month = M-2 AND numero = 1);"
 ```
 
   Con `AÑO`, `M-3` y `M-2` cambiados por los meses que acaba de cerrar la orden (en septiembre de 2026, `(2026,6),(2026,7)`).
 
-Código: `app/Console/Commands/DemosPreparar.php` y, en `app/Services/Demo/`, `EscenarioPruebas` (facturas, cobros, rectificativa, cierres y cifras esperadas), `GastosPruebas` (gastos), `ComercialPruebas` (presupuesto, proforma, albarán y recurrente) y `LimpiezaPruebas` (el borrado).
+Código: `app/Console/Commands/DemosPreparar.php` y, en `app/Services/Demo/`, `EscenarioPruebas` (facturas, cobros, rectificativa, cierres y cifras esperadas), `GastosPruebas` (gastos), `ComercialPruebas` (presupuesto, proforma, albarán y recurrente), `FacturacionPruebas` (presupuestos con anticipo y facturado, y el segundo albarán) y `LimpiezaPruebas` (el borrado).
 
 ## Los datos
 
@@ -73,11 +73,14 @@ Del año: IVA soportado **451** (446 deducible y 5 no deducible), autoliquidado 
 ### Lo demás
 
 - **Gastos**: ocho, en la tabla de abajo. Total 2.492 €.
-- **Presupuesto** PRE-000001 a Beta, enviado: 10 horas, 1.210 €.
-- **Proforma** a Carmen, en borrador y sin número: 1.210 €.
-- **Albarán** ALB-000001 a Alfa, entregado: 3 horas, 363 €.
+- **Presupuesto** PRE-000001 a Beta, enviado: 10 horas, 1.210 €. Al terminar, la orden enseña el enlace que recibiría el cliente para aceptarlo o rechazarlo.
+- **Presupuesto** PRE-000002 a Alfa: diseño web x2, 2.420 €. Aceptado por el cliente desde el enlace, con un anticipo del 30 % (726 €) en borrador. Estado de facturación: Anticipo.
+- **Presupuesto** PRE-000003 a Carmen: 4 horas, 484 €. Convertido en factura, que queda en borrador. Estado de facturación: Facturado.
+- **Proforma** PRO-000001 a Carmen, en borrador: 1.210 €.
+- **Albaranes** ALB-000001 (3 horas, 363 €) y ALB-000002 (2 horas, 242 €) a Alfa, entregados y sin facturar: para facturarlos juntos.
 - **Recurrente** a Beta: mantenimiento mensual de 60,50 €, sin aprobación ni envío automáticos. Empieza el día 1 del mes que viene.
 - **Meses cerrados**: M-3 y M-2, entregados a la gestoría. M-1 se deja abierto para probar el cierre.
+- **Corrección después del cierre** (v.1.16.0): el alquiler de M-2 se crea con el número mal escrito (ALQ-2026-7) y la orden abre M-2 como lo haría el titular, lo corrige a ALQ-2026-07 y lo vuelve a cerrar. Queda un registro de cambios, el mes sale como "Corregido" en el portal y la gestoría recibe dos correos más ("Mes abierto para corregir" y "Mes corregido"). Ninguna cifra cambia.
 
 ## Qué probar y qué tiene que salir
 
@@ -97,7 +100,7 @@ Las cifras son del año en curso. Si el comando se ejecuta en enero, febrero o m
 
 ### 2. Lista de facturas
 
-- **Borradores**: 1, sin número, con la libreta naranja.
+- **Borradores**: 3, sin número, con la libreta naranja: el de 6.050 €, el anticipo de PRE-000002 (726 €) y la factura de PRE-000003 (484 €).
 - **Aprobadas**: 7, con el candado verde, incluida REC-000001.
 - **Pendientes de cobro**: FAC-000004, FAC-000005 y FAC-000006.
 
@@ -162,19 +165,47 @@ Entrar en `gestoria.onfactu.com` con la Gestoría de Pruebas:
 - **Detalle**: el gasto de Google con "Autoliquidado 21,00" bajo el IVA, el del restaurante con "No deducible 5,00" y el material de M-3 con "Sin desglose" bajo el total.
 - El CSV de M-2 lleva FAC-000003 (242,00), REC-000001 (-121,00, "Rectifica a FAC-000002") y el alquiler con su número de factura, el proveedor, su NIF, neto 500,00, IVA 105,00, retención 95,00 y bruto 510,00. Tiene que ser idéntico al CSV de ese mes que se descarga en Onfactu.
 
-### 7. Aprobar
+### 7. Abrir un mes cerrado para corregirlo
+
+Entrando con el titular de la cuenta (en demos, el usuario con rol super admin; asistencia no ve el enlace):
+
+- **Pantalla de Gestoría**: M-2 sale cerrado. Bajo "Descargar CSV" está "Abrir para corregir"; los demás usuarios no lo ven.
+- **Abrir M-3** con un motivo: sale la etiqueta naranja "Abierto" y el aviso con la hora a la que se cerrará. La gestoría recibe "Mes abierto para corregir".
+- **Con M-3 abierto**: se puede crear, editar y borrar un gasto con fecha de M-3. Editar FAC-000001 no: avisa de que las facturas se corrigen con una rectificativa. No se puede abrir otro mes a la vez.
+- **Cerrar de nuevo**: la ventana lista los cambios y los totales que cambian. Al confirmar, el portal enseña la corrección en el Detalle de M-3, y la gestoría recibe "Mes corregido".
+- **Rectificar FAC-000001**, que es de un mes cerrado: se puede sin abrir el mes. La rectificativa sale con la fecha de hoy, y en el Detalle del portal pone "Factura original de" y el mes de FAC-000001.
+
+Al terminar, `demos:preparar --si` y el borrado de la central de arriba lo dejan todo como al principio.
+
+### 8. Presupuestos, proformas y albaranes
+
+- **Lista de presupuestos**: PRE-000002 sale como Aceptado y Anticipo; PRE-000003, como Aceptado y Facturado.
+- **PRE-000002**: encima del PDF salen la respuesta del cliente con su comentario, el anticipo en borrador y lo pendiente (1.694 €). Convertirlo en factura no deja hacerlo: pide aprobar o borrar el anticipo antes. Con el anticipo aprobado, la factura final lleva las líneas del presupuesto y una línea "Anticipo según factura…" en negativo: total 1.694 €.
+- **PRE-000003**: el menú no tiene Editar, Borrar, Convertir en factura ni Facturar anticipo. Si se entra por la dirección de editar, vuelve a la pantalla del presupuesto con un aviso. Al borrar su factura en borrador, vuelve a Sin facturar.
+- **Facturar un anticipo**: desde el menú de PRE-000001, un 40 % crea una factura en borrador de 484 € (400 de base y 84 de IVA) y la abre.
+- **Albaranes**: marcar ALB-000001 y ALB-000002 y pulsar Facturar juntos. Sale una factura en borrador de 605 € con "ALB-000001 · …" y "ALB-000002 · …" en las líneas, y los dos pasan a Facturado. Con un albarán de otro cliente, avisa.
+- **Aceptación online**: abrir el enlace que enseña la orden, poner un nombre y aceptar. PRE-000001 pasa a Aceptado, su pantalla enseña la respuesta y llega un correo "Presupuesto PRE-000001 aceptado" al correo de la empresa. Al volver a abrir el enlace, ya no salen los botones.
+- **Número al crear**: un presupuesto, una proforma o un albarán nuevos llevan número desde que se guardan. No sale "Guardar como borrador" ni el selector de plantilla.
+
+### 9. Aprobar
 
 - **El borrador**: la ventana de aprobar dice que recibirá el siguiente número de la serie (**FAC-000007**, o ANB000011 en demos). Al aprobarlo, el panel pasa a 8 facturas, 10.890,00 € de ventas y 8.228,00 € pendientes.
 - **Fecha fuera de orden**: un borrador nuevo con fecha de M-1 (sin cerrar ese mes) no se aprueba: avisa de que la fecha es anterior a la de FAC-000006 y ofrece aprobarlo con la de hoy.
 - **Fecha en mes cerrado**: un borrador con fecha de M-3 avisa de que es de un mes cerrado y ofrece la de hoy.
 
-### 8. Enviar un borrador
+### 10. Enviar un borrador
 
 Poner un correo propio en el cliente Alfa y enviar el borrador: el PDF dice **BORRADOR** con el número "Pendiente", y el adjunto se llama `Borrador.pdf`.
 
 Al terminar, `demos:preparar --si` deja todo como al principio.
 
 ## Cómo se comprobó
+
+El 30/09/2026, la v.1.17.0 se probó en local con PostgreSQL y en el navegador, con estos datos: anticipo y factura final, varios albaranes en una factura, los bloqueos, borrar la factura final, la cadena de presupuesto a proforma y a factura, la aceptación online, y que abrir y guardar las facturas generadas no cambia ninguna cifra. `demos:preparar` dio las mismas cifras de siempre.
+
+El 30/09/2026, la v.1.16.1 se probó en demos siguiendo el apartado 7: abrir, cambiar un gasto, intentar tocar una factura, volver a cerrar, rectificar una factura de un mes cerrado, los dos correos y el portal. Todo salió como se describe.
+
+El 29/09/2026, la v.1.16.0 se probó en local con PostgreSQL: abrir sin motivo o con otro mes abierto (rechazado), gasto creado y borrado con el mes abierto (registrados), factura del mes abierto (bloqueada), volver a cerrar y el bloqueo de nuevo, el cierre automático al caducar, rectificar una factura de junio, el caso de M-2 de `demos:preparar`, el portal (Resumen y Detalle) y el CSV del portal idéntico al de Onfactu.
 
 El 29/09/2026, con la v.1.15.0 a la v.1.15.2 (IVA en los gastos), se comprobaron en demos las cifras de esta página, el portal y los informes. Antes, en local, el CSV del portal y el de Onfactu salieron idénticos en tres meses y con una factura con descuento y retención.
 

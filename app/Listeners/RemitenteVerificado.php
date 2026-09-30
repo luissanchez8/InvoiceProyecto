@@ -57,6 +57,17 @@ class RemitenteVerificado
         }
     }
 
+    /**
+     * Onfactu v.1.17.0: el correo de la empresa, para avisarla (por ejemplo,
+     * cuando un cliente acepta un presupuesto desde el enlace del correo).
+     */
+    public static function correoDeLaEmpresa(): ?string
+    {
+        $dominio = strtolower((string) substr((string) strrchr((string) config('mail.from.address'), '@'), 1));
+
+        return self::correoEmpresa($dominio);
+    }
+
     /** Correo de la empresa de esta instancia, o null si no tiene uno válido. */
     private static function correoEmpresa(string $dominio): ?string
     {

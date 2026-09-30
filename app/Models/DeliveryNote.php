@@ -40,6 +40,7 @@ class DeliveryNote extends Model implements HasMedia
 {
     // Onfactu: ordenar solo por campos permitidos (ver Concerns/OrdenSeguro)
     use \App\Models\Concerns\OrdenSeguro;
+    use \App\Models\Concerns\DocumentoComercial;
 
     /** Onfactu: campos calculados de la lista que se pueden ordenar. */
     protected function ordenesExtra(): array
@@ -170,7 +171,8 @@ class DeliveryNote extends Model implements HasMedia
     /** Permite edición siempre que no esté entregado */
     public function getAllowEditAttribute()
     {
-        return $this->status !== self::STATUS_DELIVERED;
+        // Onfactu v.1.17.0: tampoco si está facturado
+        return $this->status !== self::STATUS_DELIVERED && ! $this->estaFacturado();
     }
 
     public function getPreviousStatus()
@@ -222,6 +224,8 @@ class DeliveryNote extends Model implements HasMedia
             $query->whereSearch($search);
         })->when($filters['status'] ?? null, function ($query, $status) {
             $query->whereStatus($status);
+        })->when($filters['billing_status'] ?? null, function ($query, $estado) {
+            $query->where('billing_status', $estado); // Onfactu v.1.17.0
         })->when($filters['delivery_note_number'] ?? null, function ($query, $number) {
             $query->whereDeliveryNoteNumber($number);
         })->when(($filters['from_date'] ?? null) && ($filters['to_date'] ?? null), function ($query) use ($filters) {

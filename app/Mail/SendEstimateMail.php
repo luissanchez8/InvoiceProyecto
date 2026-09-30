@@ -45,7 +45,9 @@ class SendEstimateMail extends Mailable
         $log->token = Hashids::connection(EmailLog::class)->encode($log->id);
         $log->save();
 
-        $this->data['url'] = route('estimate', ['email_log' => $log->token]);
+        // Onfactu v.1.17.0: el botón lleva a la página del presupuesto, donde
+        // se ve el PDF y se acepta o se rechaza (PresupuestoPublicoController)
+        $this->data['url'] = url('/presupuesto/'.$log->token);
 
         $mailContent = $this->from($this->data['from'], data_get($this->data, 'company.name') ?: config('mail.from.name'))
             ->subject($this->data['subject'])

@@ -59,11 +59,12 @@ class ComercialPruebas
         $this->c->insertarImpuestos('estimate_id', $id, $calc['impuestos'], $f);
         $this->c->hash(Estimate::class, 'estimates', $id);
 
-        // Proforma a Carmen, en borrador: sin número, como las de pantalla
+        // Proforma a Carmen, en borrador (v.1.17.0: con número, como todas desde entonces)
         $calc = $this->c->calcular($this->e->lineas([['web', 1]]), ['iva21']);
+        [$numero, $seq, $seqCliente] = $this->e->numero(ProformaInvoice::class, 'proforma_invoices', 'PRO', $this->e->cliente('carmen'));
         $id = (int) DB::table('proforma_invoices')->insertGetId($this->c->importes($calc) + [
             'proforma_invoice_date' => $dia->toDateString(), 'expiry_date' => $dia->copy()->addDays(15)->toDateString(),
-            'proforma_invoice_number' => null, 'sequence_number' => null, 'customer_sequence_number' => null,
+            'proforma_invoice_number' => $numero, 'sequence_number' => $seq, 'customer_sequence_number' => $seqCliente,
             'status' => ProformaInvoice::STATUS_DRAFT, 'template_name' => $this->c->plantillaFactura,
             'customer_id' => $this->e->cliente('carmen'), 'sent' => false, 'viewed' => false,
             'payment_method_id' => $this->e->formaPago(), 'created_at' => $f, 'updated_at' => $f,

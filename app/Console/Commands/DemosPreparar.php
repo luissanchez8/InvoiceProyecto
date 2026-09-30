@@ -56,7 +56,7 @@ class DemosPreparar extends Command
         $eur = fn (int $c) => number_format($c / 100, 2, ',', '.').' €';
 
         $this->newLine();
-        $this->info('Lo que tiene que salir (solo facturas aprobadas; el borrador de 6.050 € no cuenta):');
+        $this->info('Lo que tiene que salir (solo facturas aprobadas; los borradores no cuentan):');
         $this->table(['Dato', 'Valor'], [
             ['Facturas aprobadas (con 1 rectificativa)', $e['facturas']],
             ['Ventas (total con IVA)', $eur($e['ventas'])],

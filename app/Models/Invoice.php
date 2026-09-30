@@ -107,6 +107,12 @@ class Invoice extends Model implements HasMedia
      */
     protected static function booted(): void
     {
+        // Onfactu v.1.17.0: al borrar una factura (solo se borran los
+        // borradores), el presupuesto, la proforma o el albarán del que salió
+        // deja de estar facturado y se desbloquea.
+        static::deleting(fn (Invoice $invoice) => \App\Services\Facturacion\EstadoFacturacion::antesDeBorrarFactura($invoice));
+        static::deleted(fn (Invoice $invoice) => \App\Services\Facturacion\EstadoFacturacion::despuesDeBorrarFactura($invoice));
+
         // Onfactu v.1.14.3: una sola plantilla PDF. Toda factura nueva o en
         // borrador, y la que se aprueba en este momento, usa la universal, venga
         // de donde venga (duplicar, recurrente, conversión, rectificativa). Las

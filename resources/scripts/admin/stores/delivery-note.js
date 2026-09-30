@@ -327,6 +327,23 @@ export const useDeliveryNoteStore = (useWindow = false) => {
         })
       },
 
+      // Onfactu v.1.17.0: uno o varios albaranes en una factura en borrador
+      facturar(ids) {
+        return new Promise((resolve, reject) => {
+          axios
+            .post('/api/v1/facturacion/convertir', { tipo: 'delivery_note', ids })
+            .then((response) => {
+              const notificationStore = useNotificationStore()
+              notificationStore.showNotification({ type: 'success', message: global.t('facturacion.factura_creada') })
+              resolve(response)
+            })
+            .catch((err) => {
+              handleError(err)
+              reject(err)
+            })
+        })
+      },
+
       deleteDeliveryNote(id) {
         return new Promise((resolve, reject) => {
           axios.post('/api/v1/delivery-notes/delete', { ids: [id] })

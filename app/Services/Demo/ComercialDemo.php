@@ -93,8 +93,16 @@ class ComercialDemo
                 'template_name' => $this->c->plantillaFactura, 'customer_id' => $cliente['id'],
                 'sent' => $estado !== 'DRAFT', 'viewed' => in_array($estado, ['ACCEPTED', 'REJECTED'], true),
                 'converted_invoice_id' => $convertida, 'payment_method_id' => end($this->c->formasPago),
+                'billing_status' => $convertida ? 'FACTURADO' : 'PENDIENTE',
                 'created_at' => $f, 'updated_at' => $f,
             ]);
+            if ($convertida) {
+                // v.1.17.0: enlazada a su factura, como al convertirla desde la pantalla
+                DB::table('documentos_facturados')->insert([
+                    'company_id' => $this->c->empresa, 'invoice_id' => $convertida, 'documento_tipo' => 'proforma',
+                    'documento_id' => $id, 'tipo' => 'final', 'importe' => $calc['total'], 'created_at' => $f,
+                ]);
+            }
             $this->c->insertarLineas('proforma_invoice_items', 'proforma_invoice_id', $id, $calc['lineas'], $f);
             $this->c->insertarImpuestos('proforma_invoice_id', $id, $calc['impuestos'], $f);
             $this->c->hash(ProformaInvoice::class, 'proforma_invoices', $id);

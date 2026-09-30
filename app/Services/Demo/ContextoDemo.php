@@ -33,7 +33,8 @@ class ContextoDemo
     public array $paises = [];
 
     public string $plantillaFactura = 'invoice4';
-    public string $plantillaPresupuesto = 'estimate1';
+    // v.1.17.0: presupuestos, proformas y albaranes, con la misma plantilla que las facturas
+    public string $plantillaPresupuesto = 'invoice4';
 
     public function __construct(Carbon $hoy)
     {
@@ -67,6 +68,7 @@ class ContextoDemo
         // Plantilla de PDF: la profesional de Onfactu si existe
         if (! file_exists(resource_path('views/app/pdf/invoice/invoice4.blade.php'))) {
             $this->plantillaFactura = 'invoice1';
+            $this->plantillaPresupuesto = 'invoice1';
         }
     }
 

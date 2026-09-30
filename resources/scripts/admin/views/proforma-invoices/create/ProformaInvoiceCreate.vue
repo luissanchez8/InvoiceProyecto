@@ -215,12 +215,7 @@
               class="mb-6"
             />
 
-            <!-- Selector de plantilla PDF -->
-            <SelectTemplate
-              :store="proformaInvoiceStore"
-              store-prop="newProformaInvoice"
-              component-name="InvoiceTemplate"
-            />
+            <!-- Onfactu v.1.17.0: sin selector de plantilla, siempre la única (invoice4) -->
           </div>
 
           <!-- Bloque de totales — componente compartido -->
@@ -260,7 +255,7 @@ import { useCustomFieldStore } from '@/scripts/admin/stores/custom-field'
 // Componentes compartidos con facturas y presupuestos
 import CreateItems from '@/scripts/admin/components/estimate-invoice-common/CreateItems.vue'
 import CreateTotal from '@/scripts/admin/components/estimate-invoice-common/CreateTotal.vue'
-import SelectTemplate from '@/scripts/admin/components/estimate-invoice-common/SelectTemplateButton.vue'
+import { useBloqueoFacturado } from '@/scripts/admin/components/facturacion/useBloqueoFacturado'
 import NoteFields from '@/scripts/admin/components/estimate-invoice-common/CreateNotesField.vue'
 import CreateCustomFields from '@/scripts/admin/components/custom-fields/CreateCustomFields.vue'
 import SelectTemplateModal from '@/scripts/admin/components/modal-components/SelectTemplateModal.vue'
@@ -322,11 +317,12 @@ const noteFieldList = ref(['customer', 'company', 'customerCustom', 'invoice', '
 // Detectar si estamos en modo edición por el nombre de la ruta
 let isEdit = computed(() => route.name === 'proformaInvoices.edit')
 
-// Onfactu: botón borrador solo si aún no hay número.
-const showDraftButton = computed(() => {
-  if (!isEdit.value) return true
-  return !proformaInvoiceStore.newProformaInvoice.proforma_invoice_number
-})
+// Onfactu v.1.17.0: las proformas se numeran al crearlas; ya no hay
+// "Guardar como borrador" sin número (DocumentoComercial).
+const showDraftButton = computed(() => false)
+
+// Onfactu v.1.17.0: una proforma facturada no se edita
+useBloqueoFacturado(() => proformaInvoiceStore.newProformaInvoice, isEdit, (id) => `/admin/proforma-invoices/${id}/view`)
 
 let isLoadingContent = computed(
   () => proformaInvoiceStore.isFetchingProformaInvoice || proformaInvoiceStore.isFetchingInitialSettings

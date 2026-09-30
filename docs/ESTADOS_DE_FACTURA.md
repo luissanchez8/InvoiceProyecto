@@ -92,7 +92,7 @@ Todas las facturas nuevas salen con la plantilla universal, `invoice4`. Desde la
 
 Por qué hizo falta: la plantilla única solo se ponía al crear una factura desde cero en pantalla. Duplicar copiaba la plantilla de la original, las recurrentes nacían con la primera de la lista (`invoice1`) y la pasaban a cada factura que generaban, y las conversiones arrastraban la suya. Una instancia llegó a tener 141 facturas con la antigua y 4 con la universal, y el mismo cliente recibía PDF con dos diseños distintos.
 
-Presupuestos, proformas y albaranes no se han tocado todavía: se revisan en la fase 3 (ver **Mejoras a Implementar**).
+Desde la v.1.17.0, presupuestos, proformas y albaranes también la llevan siempre, incluidos los que ya existían, porque no son documentos fiscales (ver **Presupuestos, proformas y albaranes**).
 
 ## Recurrentes
 

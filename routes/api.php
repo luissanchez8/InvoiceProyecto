@@ -196,7 +196,7 @@ Route::prefix('/v1')->group(function () {
         Route::post('/finish', FinishController::class);
     });
 
-    Route::middleware(['auth:sanctum', 'company', 'check-plan-status', 'check-month-closed'])->group(function () {
+    Route::middleware(['auth:sanctum', 'company', 'check-plan-status', 'check-month-closed', 'check-documento-facturado'])->group(function () {
         
         Route::post('verifactu/invoices/{invoice}', [VerifactuController::class, 'send']);
 
@@ -325,6 +325,13 @@ Route::prefix('/v1')->group(function () {
             Route::get('/closed-months/reabierto', [\App\Http\Controllers\V1\Admin\ClosedMonth\ReaperturaMesController::class, 'vistaPrevia']);
             Route::post('/closed-months/recerrar', [\App\Http\Controllers\V1\Admin\ClosedMonth\ReaperturaMesController::class, 'cerrar']);
 
+            // Onfactu v.1.17.0: facturar varios documentos juntos y anticipos
+            // -------------------------------------------------
+
+            Route::post('/facturacion/convertir', [\App\Http\Controllers\V1\Admin\Facturacion\FacturacionController::class, 'convertir']);
+
+            Route::post('/facturacion/anticipo', [\App\Http\Controllers\V1\Admin\Facturacion\FacturacionController::class, 'anticipo']);
+
             // Proforma Invoices (Facturas Proforma)
             // -------------------------------------------------
 
@@ -348,6 +355,8 @@ Route::prefix('/v1')->group(function () {
             Route::post('/delivery-notes/{delivery_note}/status', [\App\Http\Controllers\V1\Admin\DeliveryNote\ChangeDeliveryNoteStatusController::class, '__invoke']);
 
             Route::post('/delivery-notes/{delivery_note}/clone', [\App\Http\Controllers\V1\Admin\DeliveryNote\CloneDeliveryNoteController::class, '__invoke']);
+
+            Route::post('/delivery-notes/{delivery_note}/convert-to-invoice', \App\Http\Controllers\V1\Admin\DeliveryNote\ConvertDeliveryNoteToInvoiceController::class);
 
             Route::post('/delivery-notes/{delivery_note}/send', [\App\Http\Controllers\V1\Admin\DeliveryNote\SendDeliveryNoteController::class, '__invoke']);
 

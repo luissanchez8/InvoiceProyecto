@@ -19,6 +19,12 @@ class EstimateResource extends JsonResource
             'expiry_date' => $this->expiry_date,
             'estimate_number' => $this->estimate_number,
             'status' => $this->status,
+            // Onfactu v.1.17.0: estado de facturación y respuesta del cliente
+            'billing_status' => $this->billing_status,
+            'respuesta_at' => $this->respuesta_at ? \Carbon\Carbon::parse($this->respuesta_at)->toIso8601String() : null,
+            'respuesta_nombre' => $this->respuesta_nombre,
+            'respuesta_comentario' => $this->respuesta_comentario,
+            'facturacion' => $this->when($request->route()?->getActionMethod() === 'show', fn () => $this->facturacion),
             'reference_number' => $this->reference_number,
             'tax_per_item' => $this->tax_per_item,
             'discount_per_item' => $this->discount_per_item,

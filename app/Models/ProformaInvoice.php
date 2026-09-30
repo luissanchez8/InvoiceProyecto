@@ -41,6 +41,7 @@ class ProformaInvoice extends Model implements HasMedia
 {
     // Onfactu: ordenar solo por campos permitidos (ver Concerns/OrdenSeguro)
     use \App\Models\Concerns\OrdenSeguro;
+    use \App\Models\Concerns\DocumentoComercial;
 
     /** Onfactu: campos calculados de la lista que se pueden ordenar. */
     protected function ordenesExtra(): array
@@ -187,10 +188,10 @@ class ProformaInvoice extends Model implements HasMedia
         return Carbon::parse($this->expiry_date)->translatedFormat($dateFormat);
     }
 
-    /** Permite edición siempre que no esté aceptada */
+    /** Permite edición siempre que no esté aceptada ni facturada (v.1.17.0) */
     public function getAllowEditAttribute()
     {
-        return $this->status !== self::STATUS_ACCEPTED;
+        return $this->status !== self::STATUS_ACCEPTED && ! $this->estaFacturado();
     }
 
     /** Estado previo basado en flags de envío/visualización */
@@ -252,6 +253,8 @@ class ProformaInvoice extends Model implements HasMedia
             $query->whereSearch($search);
         })->when($filters['status'] ?? null, function ($query, $status) {
             $query->whereStatus($status);
+        })->when($filters['billing_status'] ?? null, function ($query, $estado) {
+            $query->where('billing_status', $estado); // Onfactu v.1.17.0
         })->when($filters['proforma_invoice_number'] ?? null, function ($query, $number) {
             $query->whereProformaInvoiceNumber($number);
         })->when(($filters['from_date'] ?? null) && ($filters['to_date'] ?? null), function ($query) use ($filters) {
@@ -531,82 +534,11 @@ class ProformaInvoice extends Model implements HasMedia
 
     /**
      * Convierte esta proforma en una factura real.
-     * Copia todos los datos (ítems, impuestos, campos personalizados)
-     * y registra la relación en converted_invoice_id.
-     *
-     * @return Invoice La factura creada
+     * Onfactu v.1.17.0: lo hace ConvertirEnFactura (resta anticipos, enlaza y bloquea).
      */
     public function convertToInvoice()
     {
-        // Crear la factura con los datos de la proforma
-        $invoice = Invoice::create([
-            'invoice_date' => Carbon::now(),
-            'due_date' => Carbon::now()->addDays(
-                (int) CompanySetting::getSetting('invoice_due_date_days', $this->company_id) ?: 7
-            ),
-            'invoice_number' => '', // Se regenerará abajo
-            'status' => Invoice::STATUS_DRAFT,
-            'paid_status' => Invoice::STATUS_UNPAID,
-            'discount_type' => $this->discount_type,
-            'discount' => $this->discount,
-            'discount_val' => $this->discount_val,
-            'sub_total' => $this->sub_total,
-            'total' => $this->total,
-            'tax' => $this->tax,
-            'due_amount' => $this->total,
-            'notes' => $this->notes,
-            'reference_number' => $this->reference_number,
-            'customer_id' => $this->customer_id,
-            'company_id' => $this->company_id,
-            'creator_id' => auth()->id(),
-            'currency_id' => $this->currency_id,
-            'exchange_rate' => $this->exchange_rate,
-            'base_discount_val' => $this->base_discount_val,
-            'base_sub_total' => $this->base_sub_total,
-            'base_total' => $this->base_total,
-            'base_tax' => $this->base_tax,
-            'base_due_amount' => $this->base_total,
-            'template_name' => $this->template_name,
-            'tax_per_item' => $this->tax_per_item,
-            'discount_per_item' => $this->discount_per_item,
-            'sales_tax_type' => $this->sales_tax_type,
-            'sales_tax_address_type' => $this->sales_tax_address_type,
-        ]);
-
-        // Generar número y secuencia de la factura
-        $serial = (new SerialNumberFormatter)
-            ->setModel($invoice)
-            ->setCompany($invoice->company_id)
-            ->setCustomer($invoice->customer_id)
-            ->setNextNumbers();
-
-        // Onfactu v.1.13: la factura nace en borrador y sin número; se numera al aprobarla
-        $invoice->invoice_number = null;
-        $invoice->unique_hash = Hashids::connection(Invoice::class)->encode($invoice->id);
-        $invoice->save();
-
-        // Copiar ítems de la proforma a la factura
-        foreach ($this->items as $item) {
-            $newItem = $invoice->items()->create($item->toArray());
-
-            // Copiar impuestos del ítem
-            foreach ($item->taxes as $tax) {
-                $newItem->taxes()->create($tax->toArray());
-            }
-        }
-
-        // Copiar impuestos globales
-        foreach ($this->taxes as $tax) {
-            $invoice->taxes()->create($tax->toArray());
-        }
-
-        // Marcar la proforma como convertida
-        $this->update([
-            'status' => self::STATUS_ACCEPTED,
-            'converted_invoice_id' => $invoice->id,
-        ]);
-
-        return $invoice;
+        return \App\Services\Facturacion\ConvertirEnFactura::desde([$this]);
     }
 
     // =====================================================================

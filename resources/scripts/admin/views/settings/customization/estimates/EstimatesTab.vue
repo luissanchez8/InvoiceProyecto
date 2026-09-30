@@ -6,9 +6,8 @@
 
   <EstimatesTabExpiryDate />
 
-  <BaseDivider class="my-8" />
-
-  <EstimatesTabConvertEstimate />
+  <!-- Onfactu v.1.17.0: sin "Al convertir el presupuesto". Convertirlo lo deja
+       siempre aceptado y enlazado a su factura: nunca se borra (ConvertirEnFactura) -->
 
   <!-- Formatos por defecto y adjunto: SOLO asistencia. Su separador va dentro
        para que un usuario normal no vea dos líneas seguidas. -->
@@ -39,7 +38,6 @@ import { useUserStore } from '@/scripts/admin/stores/user'
 import EstimatesTabEstimateNumber from './EstimatesTabEstimateNumber.vue'
 import EstimatesTabExpiryDate from './EstimatesTabExpiryDate.vue'
 import EstimatesTabDefaultFormats from './EstimatesTabDefaultFormats.vue'
-import EstimatesTabConvertEstimate from './EstimatesTabConvertEstimate.vue'
 import EstimatesTabFooter from './EstimatesTabFooter.vue'
 
 const companyStore = useCompanyStore()

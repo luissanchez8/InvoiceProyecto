@@ -257,6 +257,9 @@
       </div>
     </div>
 
+    <!-- Onfactu v.1.17.0: respuesta del cliente, facturas y documentos creados a partir de este -->
+    <PanelFacturacion :doc="estimateData" />
+
     <div
       class="flex flex-col min-h-0 mt-8 overflow-hidden"
       style="height: 75vh"
@@ -289,6 +292,7 @@ import { useUserStore } from '@/scripts/admin/stores/user'
 import EstimateDropDown from '@/scripts/admin/components/dropdowns/EstimateIndexDropdown.vue'
 import SendEstimateModal from '@/scripts/admin/components/modal-components/SendEstimateModal.vue'
 import LoadingIcon from '@/scripts/components/icons/LoadingIcon.vue'
+import PanelFacturacion from '@/scripts/admin/components/facturacion/PanelFacturacion.vue'
 
 import abilities from '@/scripts/admin/stub/abilities'
 

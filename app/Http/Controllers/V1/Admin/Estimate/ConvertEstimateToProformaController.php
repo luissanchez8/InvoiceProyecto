@@ -25,6 +25,7 @@ class ConvertEstimateToProformaController extends Controller
         // Se asignará al marcar como enviada (DRAFT → SENT).
         $proforma = ProformaInvoice::create([
             'creator_id' => Auth::id(),
+            'estimate_id' => $estimate->id, // Onfactu v.1.17.0: el presupuesto del que sale
             'proforma_invoice_date' => Carbon::now()->format('Y-m-d'),
             'expiry_date' => $estimate->expiry_date,
             'proforma_invoice_number' => null,

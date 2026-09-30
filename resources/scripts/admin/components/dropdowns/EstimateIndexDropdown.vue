@@ -33,9 +33,9 @@
       {{ $t('general.copy_pdf_url') }}
     </BaseDropdownItem>
 
-    <!-- Edit Estimate -->
+    <!-- Edit Estimate (Onfactu v.1.17.0: no si está facturado) -->
     <router-link
-      v-if="userStore.hasAbilities(abilities.EDIT_ESTIMATE)"
+      v-if="!facturado && userStore.hasAbilities(abilities.EDIT_ESTIMATE)"
       :to="`/admin/estimates/${row.id}/edit`"
     >
       <BaseDropdownItem>
@@ -49,7 +49,7 @@
 
     <!-- Delete Estimate  -->
     <BaseDropdownItem
-      v-if="userStore.hasAbilities(abilities.DELETE_ESTIMATE)"
+      v-if="!facturado && userStore.hasAbilities(abilities.DELETE_ESTIMATE)"
       @click="removeEstimate(row.id)"
     >
       <BaseIcon
@@ -90,7 +90,7 @@
 
     <!-- Convert into Invoice  -->
     <BaseDropdownItem
-      v-if="userStore.hasAbilities(abilities.CREATE_INVOICE)"
+      v-if="!facturado && userStore.hasAbilities(abilities.CREATE_INVOICE)"
       @click="convertInToinvoice(row.id)"
     >
       <BaseIcon
@@ -98,6 +98,18 @@
         class="w-5 h-5 mr-3 text-gray-400 group-hover:text-gray-500"
       />
       {{ $t('estimates.convert_to_invoice') }}
+    </BaseDropdownItem>
+
+    <!-- Onfactu v.1.17.0: factura de anticipo -->
+    <BaseDropdownItem
+      v-if="!facturado && userStore.hasAbilities(abilities.CREATE_INVOICE)"
+      @click="verAnticipo = true"
+    >
+      <BaseIcon
+        name="BanknotesIcon"
+        class="w-5 h-5 mr-3 text-gray-400 group-hover:text-gray-500"
+      />
+      {{ $t('facturacion.anticipo') }}
     </BaseDropdownItem>
 
     <!-- Convert into Proforma  -->
@@ -184,6 +196,7 @@
     <BaseDropdownItem
       v-if="
         row.status !== 'REJECTED' &&
+        !facturado &&
         userStore.hasAbilities(abilities.EDIT_ESTIMATE)
       "
       @click="onMarkAsRejected(row.id)"
@@ -195,6 +208,15 @@
       {{ $t('estimates.mark_as_rejected') }}
     </BaseDropdownItem>
   </BaseDropdown>
+
+  <ModalAnticipo
+    v-if="row"
+    :show="verAnticipo"
+    tipo="estimate"
+    :doc="row"
+    :numero="row.estimate_number || ''"
+    @close="verAnticipo = false"
+  />
 </template>
 
 <script setup>
@@ -208,6 +230,8 @@ import { inject, computed} from 'vue'
 import { useUserStore } from '@/scripts/admin/stores/user'
 import abilities from '@/scripts/admin/stub/abilities'
 import CompartirPdf from '@/scripts/admin/components/CompartirPdf.vue'
+import ModalAnticipo from '@/scripts/admin/components/facturacion/ModalAnticipo.vue'
+import { ref } from 'vue'
 
 const props = defineProps({
   // Onfactu: "Ver PDF" y "Compartir" solo se muestran en la vista de detalle
@@ -229,6 +253,10 @@ const props = defineProps({
 })
 
 const utils = inject('utils')
+
+// Onfactu v.1.17.0: un presupuesto facturado no se edita, no se borra ni se vuelve a facturar
+const facturado = computed(() => props.row?.billing_status === 'FACTURADO')
+const verAnticipo = ref(false)
 
 const estimateStore = useEstimateStore()
 const modalStore = useModalStore()

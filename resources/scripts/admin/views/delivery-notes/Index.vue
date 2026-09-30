@@ -128,7 +128,19 @@
           <BaseTab :title="$t('general.draft')" filter="DRAFT" />
           <BaseTab :title="$t('general.sent')" filter="SENT" />
           <BaseTab :title="$t('status_delivered')" filter="DELIVERED" />
+          <BaseTab :title="$t('facturacion.estado_PENDIENTE')" filter="SIN_FACTURAR" />
         </BaseTabGroup>
+
+        <!-- Onfactu v.1.17.0: varios albaranes en una factura -->
+        <BaseButton
+          v-if="seleccion.length > 1 && userStore.hasAbilities(abilities.CREATE_INVOICE)"
+          variant="primary-outline"
+          size="sm"
+          class="absolute right-0"
+          @click="facturarJuntos"
+        >
+          {{ $t('facturacion.facturar_juntos') }} ({{ seleccion.length }})
+        </BaseButton>
       </div>
 
       <!-- BaseTable con fetchData async -->
@@ -141,6 +153,18 @@
         :key="tableKey"
         class="mt-10"
       >
+        <!-- Onfactu v.1.17.0: selección para facturar juntos -->
+        <template #header>
+          <div class="absolute items-center left-6 top-2.5 select-none">
+            <BaseCheckbox v-model="todos" variant="primary" @change="marcarTodos" />
+          </div>
+        </template>
+        <template #cell-checkbox="{ row }">
+          <div class="relative block">
+            <BaseCheckbox :id="'alb-' + row.data.id" v-model="seleccion" :value="row.data.id" />
+          </div>
+        </template>
+
         <!-- Número de albarán (enlace a vista detalle) -->
         <template #cell-delivery_note_number="{ row }">
           <router-link
@@ -166,6 +190,7 @@
           <BaseInvoiceStatusBadge :status="row.data.status" class="px-3 py-1">
             <BaseInvoiceStatusLabel :status="row.data.status" />
           </BaseInvoiceStatusBadge>
+          <EstadoFacturacionBadge :estado="row.data.billing_status" class="ml-2" />
         </template>
 
         <!-- Total formateado (oculto si show_prices = false) -->
@@ -201,11 +226,44 @@ import { debouncedWatch } from '@vueuse/core'
 import DeliveryNoteDropdown from '@/scripts/admin/components/dropdowns/DeliveryNoteIndexDropdown.vue'
 import ObservatoryIcon from '@/scripts/components/icons/empty/ObservatoryIcon.vue'
 import SendInvoiceModal from '@/scripts/admin/components/modal-components/SendInvoiceModal.vue'
+import EstadoFacturacionBadge from '@/scripts/admin/components/facturacion/EstadoFacturacionBadge.vue'
+import { useDialogStore } from '@/scripts/stores/dialog'
+import { useUserStore } from '@/scripts/admin/stores/user'
+import abilities from '@/scripts/admin/stub/abilities'
 
 const router = useRouter()
 
 const deliveryNoteStore = useDeliveryNoteStore()
 const { t } = useI18n()
+
+const dialogStore = useDialogStore()
+const userStore = useUserStore()
+
+// Onfactu v.1.17.0: albaranes marcados para facturar juntos
+const seleccion = ref([])
+const todos = ref(false)
+const filasActuales = ref([])
+
+function marcarTodos() {
+  seleccion.value = todos.value
+    ? filasActuales.value.filter((r) => r.billing_status !== 'FACTURADO').map((r) => r.id)
+    : []
+}
+
+async function facturarJuntos() {
+  const ok = await dialogStore.openDialog({
+    title: t('facturacion.facturar_juntos_titulo', { n: seleccion.value.length }),
+    message: t('facturacion.facturar_juntos_mensaje'),
+    yesLabel: t('facturacion.facturar'),
+    noLabel: t('general.cancel'),
+    variant: 'primary',
+    hideNoButton: false,
+    size: 'lg',
+  })
+  if (!ok) return
+  const res = await deliveryNoteStore.facturar([...seleccion.value]).catch(() => null)
+  if (res?.data?.data?.id) router.push(`/admin/invoices/${res.data.data.id}/view`)
+}
 
 const table = ref(null)
 const tableKey = ref(0)
@@ -233,6 +291,12 @@ const showEmptyScreen = computed(
 )
 
 const deliveryNoteColumns = computed(() => [
+  {
+    key: 'checkbox',
+    thClass: 'extra w-10 pr-0',
+    sortable: false,
+    tdClass: 'font-medium text-gray-900 pr-0',
+  },
   {
     key: 'delivery_note_date',
     label: t('pdf_invoice_date_short'),
@@ -280,9 +344,18 @@ async function fetchData({ page, filter, sort }) {
     page,
   }
 
+  // Onfactu v.1.17.0: pestaña "Sin facturar" (filtra por el estado de facturación)
+  if (data.status === 'SIN_FACTURAR') {
+    data.status = ''
+    data.billing_status = 'PENDIENTE'
+  }
+
   isRequestOngoing.value = true
   let response = await deliveryNoteStore.fetchDeliveryNotes(data)
   isRequestOngoing.value = false
+  filasActuales.value = response.data.data || []
+  seleccion.value = seleccion.value.filter((id) => filasActuales.value.some((r) => r.id === id))
+  todos.value = false
 
   return {
     data: response.data.data,

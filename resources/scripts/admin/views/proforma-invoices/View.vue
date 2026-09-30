@@ -17,6 +17,7 @@ import { useUserStore } from '@/scripts/admin/stores/user'
 import SendInvoiceModal from '@/scripts/admin/components/modal-components/SendInvoiceModal.vue'
 import ProformaInvoiceDropdown from '@/scripts/admin/components/dropdowns/ProformaInvoiceIndexDropdown.vue'
 import LoadingIcon from '@/scripts/components/icons/LoadingIcon.vue'
+import PanelFacturacion from '@/scripts/admin/components/facturacion/PanelFacturacion.vue'
 import abilities from '@/scripts/admin/stub/abilities'
 
 const proformaInvoiceStore = useProformaInvoiceStore()
@@ -163,8 +164,9 @@ async function onConvertToInvoice() {
     variant: 'primary',
   })
   if (confirmed) {
-    await proformaInvoiceStore.convertToInvoice(proformaInvoiceData.value.id)
-    router.push({ name: 'invoices.index' })
+    // Onfactu v.1.17.0: abre la factura creada
+    const res = await proformaInvoiceStore.convertToInvoice(proformaInvoiceData.value.id)
+    if (res?.data?.data?.id) router.push(`/admin/invoices/${res.data.data.id}/view`)
   }
 }
 
@@ -221,7 +223,7 @@ onSearched = debounce(onSearched, 500)
         </BaseButton>
 
         <BaseButton
-          v-if="proformaInvoiceData.status !== 'REJECTED' && !proformaInvoiceData.converted_invoice_id"
+          v-if="proformaInvoiceData.status !== 'REJECTED' && proformaInvoiceData.billing_status !== 'FACTURADO'"
           variant="primary"
           class="ml-3 text-sm"
           @click="onConvertToInvoice"
@@ -309,6 +311,9 @@ onSearched = debounce(onSearched, 500)
         </p>
       </div>
     </div>
+
+    <!-- Onfactu v.1.17.0: facturas, anticipos y presupuesto de origen -->
+    <PanelFacturacion :doc="proformaInvoiceData" />
 
     <!-- =============== IFRAME PDF =============== -->
     <div class="flex flex-col min-h-0 mt-8 overflow-hidden" style="height: 75vh">

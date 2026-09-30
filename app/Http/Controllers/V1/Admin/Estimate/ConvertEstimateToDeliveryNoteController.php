@@ -25,6 +25,7 @@ class ConvertEstimateToDeliveryNoteController extends Controller
         // Se asignará al marcar como enviado (DRAFT → SENT).
         $deliveryNote = DeliveryNote::create([
             'creator_id' => Auth::id(),
+            'estimate_id' => $estimate->id, // Onfactu v.1.17.0: el presupuesto del que sale
             'delivery_note_date' => Carbon::now()->format('Y-m-d'),
             'delivery_date' => null,
             'delivery_note_number' => null,

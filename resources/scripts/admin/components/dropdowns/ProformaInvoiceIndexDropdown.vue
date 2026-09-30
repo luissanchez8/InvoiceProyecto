@@ -85,6 +85,22 @@
       {{ $t('proforma_invoices.mark_as_rejected') }}
     </BaseDropdownItem>
 
+    <!-- Onfactu v.1.17.0: convertir en factura y factura de anticipo -->
+    <BaseDropdownItem
+      v-if="!facturado && row.status !== 'REJECTED' && userStore.hasAbilities(abilities.CREATE_INVOICE)"
+      @click="convertirEnFactura(row.id)"
+    >
+      <BaseIcon name="DocumentTextIcon" class="w-5 h-5 mr-3 text-gray-400 group-hover:text-gray-500" />
+      {{ $t('facturacion.convertir_factura') }}
+    </BaseDropdownItem>
+    <BaseDropdownItem
+      v-if="!facturado && row.status !== 'REJECTED' && userStore.hasAbilities(abilities.CREATE_INVOICE)"
+      @click="verAnticipo = true"
+    >
+      <BaseIcon name="BanknotesIcon" class="w-5 h-5 mr-3 text-gray-400 group-hover:text-gray-500" />
+      {{ $t('facturacion.anticipo') }}
+    </BaseDropdownItem>
+
     <!-- Clone -->
     <BaseDropdownItem @click="cloneProformaInvoiceData(row)">
       <BaseIcon name="DocumentDuplicateIcon" class="w-5 h-5 mr-3 text-gray-400 group-hover:text-gray-500" />
@@ -93,13 +109,22 @@
 
     <!-- Delete -->
     <BaseDropdownItem
-      v-if="userStore.hasAbilities(abilities.DELETE_PROFORMA_INVOICE)"
+      v-if="!facturado && userStore.hasAbilities(abilities.DELETE_PROFORMA_INVOICE)"
       @click="removeProformaInvoice(row.id)"
     >
       <BaseIcon name="TrashIcon" class="w-5 h-5 mr-3 text-gray-400 group-hover:text-gray-500" />
       {{ $t('general.delete') }}
     </BaseDropdownItem>
   </BaseDropdown>
+
+  <ModalAnticipo
+    v-if="row"
+    :show="verAnticipo"
+    tipo="proforma"
+    :doc="row"
+    :numero="row.proforma_invoice_number || ''"
+    @close="verAnticipo = false"
+  />
 </template>
 
 <script setup>
@@ -113,6 +138,8 @@ import { useUserStore } from '@/scripts/admin/stores/user'
 import { inject, computed} from 'vue'
 import abilities from '@/scripts/admin/stub/abilities'
 import CompartirPdf from '@/scripts/admin/components/CompartirPdf.vue'
+import ModalAnticipo from '@/scripts/admin/components/facturacion/ModalAnticipo.vue'
+import { ref } from 'vue'
 
 const props = defineProps({
   // Onfactu: "Ver PDF" y "Compartir" solo se muestran en la vista de detalle
@@ -146,6 +173,25 @@ const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const utils = inject('utils')
+
+// Onfactu v.1.17.0: una proforma facturada no se borra ni se vuelve a facturar
+const facturado = computed(() => props.row?.billing_status === 'FACTURADO')
+const verAnticipo = ref(false)
+
+async function convertirEnFactura(id) {
+  const ok = await dialogStore.openDialog({
+    title: t('facturacion.convertir_factura'),
+    message: t('general.are_you_sure'),
+    yesLabel: t('facturacion.convertir_factura'),
+    noLabel: t('general.cancel'),
+    variant: 'primary',
+    hideNoButton: false,
+    size: 'lg',
+  })
+  if (!ok) return
+  const res = await proformaInvoiceStore.convertToInvoice(id)
+  if (res?.data?.data?.id) router.push(`/admin/invoices/${res.data.data.id}/view`)
+}
 
 async function removeProformaInvoice(id) {
   dialogStore

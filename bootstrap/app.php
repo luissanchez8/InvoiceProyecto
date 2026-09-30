@@ -56,6 +56,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'company' => \App\Http\Middleware\CompanyMiddleware::class,
             'check-plan-status' => \App\Http\Middleware\CheckPlanStatus::class,
             'check-month-closed' => \App\Http\Middleware\CheckMonthClosed::class,
+            'check-documento-facturado' => \App\Http\Middleware\CheckDocumentoFacturado::class,
             'cron-job' => \App\Http\Middleware\CronJobMiddleware::class,
             'customer' => \App\Http\Middleware\CustomerRedirectIfAuthenticated::class,
             'customer-guest' => \App\Http\Middleware\CustomerGuest::class,

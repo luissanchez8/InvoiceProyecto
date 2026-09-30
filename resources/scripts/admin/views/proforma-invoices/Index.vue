@@ -167,6 +167,8 @@
           <BaseInvoiceStatusBadge :status="row.data.status" class="px-3 py-1">
             <BaseInvoiceStatusLabel :status="row.data.status" />
           </BaseInvoiceStatusBadge>
+          <!-- Onfactu v.1.17.0 -->
+          <EstadoFacturacionBadge :estado="row.data.billing_status" class="ml-2" />
         </template>
 
         <!-- Total formateado -->
@@ -201,6 +203,7 @@ import { useI18n } from 'vue-i18n'
 import { useProformaInvoiceStore } from '@/scripts/admin/stores/proforma-invoice'
 import { debouncedWatch } from '@vueuse/core'
 import ProformaInvoiceDropdown from '@/scripts/admin/components/dropdowns/ProformaInvoiceIndexDropdown.vue'
+import EstadoFacturacionBadge from '@/scripts/admin/components/facturacion/EstadoFacturacionBadge.vue'
 import ObservatoryIcon from '@/scripts/components/icons/empty/ObservatoryIcon.vue'
 import SendInvoiceModal from '@/scripts/admin/components/modal-components/SendInvoiceModal.vue'
 

@@ -61,7 +61,8 @@ class DeliveryNotesController extends Controller
             'fields', 'fields.customField',
         ]);
 
-        return response()->json(['data' => $deliveryNote]);
+        // Onfactu v.1.17.0: facturas, anticipos y presupuesto de origen
+        return response()->json(['data' => $deliveryNote->append('facturacion')]);
     }
 
     /** Actualiza un albarán existente */

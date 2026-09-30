@@ -146,13 +146,7 @@
               class="mb-6"
             />
 
-            <!-- Estimate Template Button-->
-            <SelectTemplate
-              :store="estimateStore"
-              component-name="EstimateTemplate"
-              store-prop="newEstimate"
-              :is-mark-as-default="isMarkAsDefault"
-            />
+            <!-- Onfactu v.1.17.0: sin selector de plantilla, siempre la única (invoice4) -->
           </div>
 
           <Total
@@ -190,7 +184,7 @@ import { useCustomFieldStore } from '@/scripts/admin/stores/custom-field'
 
 import Items from '@/scripts/admin/components/estimate-invoice-common/CreateItems.vue'
 import Total from '@/scripts/admin/components/estimate-invoice-common/CreateTotal.vue'
-import SelectTemplate from '@/scripts/admin/components/estimate-invoice-common/SelectTemplateButton.vue'
+import { useBloqueoFacturado } from '@/scripts/admin/components/facturacion/useBloqueoFacturado'
 import EstimateCustomFields from '@/scripts/admin/components/custom-fields/CreateCustomFields.vue'
 import NoteFields from '@/scripts/admin/components/estimate-invoice-common/CreateNotesField.vue'
 import EstimateBasicFields from './EstimateCreateBasicFields.vue'
@@ -238,11 +232,12 @@ let pageTitle = computed(() =>
 
 let isEdit = computed(() => route.name === 'estimates.edit')
 
-// Onfactu: 'Guardar como borrador' solo visible si aún no hay número.
-const showDraftButton = computed(() => {
-  if (!isEdit.value) return true
-  return !estimateStore.newEstimate.estimate_number
-})
+// Onfactu v.1.17.0: los presupuestos se numeran al crearlos; ya no hay
+// "Guardar como borrador" sin número (DocumentoComercial).
+const showDraftButton = computed(() => false)
+
+// Onfactu v.1.17.0: un presupuesto facturado no se edita
+useBloqueoFacturado(() => estimateStore.newEstimate, isEdit, (id) => `/admin/estimates/${id}/view`)
 
 const salesTaxEnabled = computed(() => {
   return (

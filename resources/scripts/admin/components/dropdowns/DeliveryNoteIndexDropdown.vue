@@ -76,6 +76,15 @@
       {{ $t('delivery_notes.mark_as_delivered') }}
     </BaseDropdownItem>
 
+    <!-- Onfactu v.1.17.0: convertir en factura -->
+    <BaseDropdownItem
+      v-if="!facturado && userStore.hasAbilities(abilities.CREATE_INVOICE)"
+      @click="convertirEnFactura(row.id)"
+    >
+      <BaseIcon name="DocumentTextIcon" class="w-5 h-5 mr-3 text-gray-400 group-hover:text-gray-500" />
+      {{ $t('facturacion.convertir_factura') }}
+    </BaseDropdownItem>
+
     <!-- Clone -->
     <BaseDropdownItem @click="cloneDeliveryNoteData(row)">
       <BaseIcon name="DocumentDuplicateIcon" class="w-5 h-5 mr-3 text-gray-400 group-hover:text-gray-500" />
@@ -84,7 +93,7 @@
 
     <!-- Delete -->
     <BaseDropdownItem
-      v-if="userStore.hasAbilities(abilities.DELETE_DELIVERY_NOTE)"
+      v-if="!facturado && userStore.hasAbilities(abilities.DELETE_DELIVERY_NOTE)"
       @click="removeDeliveryNote(row.id)"
     >
       <BaseIcon name="TrashIcon" class="w-5 h-5 mr-3 text-gray-400 group-hover:text-gray-500" />
@@ -137,6 +146,24 @@ const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const utils = inject('utils')
+
+// Onfactu v.1.17.0: un albarán facturado no se borra ni se vuelve a facturar
+const facturado = computed(() => props.row?.billing_status === 'FACTURADO')
+
+async function convertirEnFactura(id) {
+  const ok = await dialogStore.openDialog({
+    title: t('facturacion.convertir_factura'),
+    message: t('general.are_you_sure'),
+    yesLabel: t('facturacion.convertir_factura'),
+    noLabel: t('general.cancel'),
+    variant: 'primary',
+    hideNoButton: false,
+    size: 'lg',
+  })
+  if (!ok) return
+  const res = await deliveryNoteStore.facturar([id])
+  if (res?.data?.data?.id) router.push(`/admin/invoices/${res.data.data.id}/view`)
+}
 
 async function removeDeliveryNote(id) {
   dialogStore

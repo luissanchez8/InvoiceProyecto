@@ -71,7 +71,8 @@ class ProformaInvoicesController extends Controller
             'fields', 'fields.customField',
         ]);
 
-        return response()->json(['data' => $proformaInvoice]);
+        // Onfactu v.1.17.0: facturas, anticipos y presupuesto de origen
+        return response()->json(['data' => $proformaInvoice->append('facturacion')]);
     }
 
     /** Actualiza una factura proforma existente */

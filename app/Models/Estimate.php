@@ -24,6 +24,7 @@ class Estimate extends Model implements HasMedia
 {
     // Onfactu: ordenar solo por campos permitidos (ver Concerns/OrdenSeguro)
     use \App\Models\Concerns\OrdenSeguro;
+    use \App\Models\Concerns\DocumentoComercial;
 
     /** Onfactu: campos calculados de la lista que se pueden ordenar. */
     protected function ordenesExtra(): array
@@ -190,6 +191,11 @@ class Estimate extends Model implements HasMedia
 
         if ($filters->get('status')) {
             $query->whereStatus($filters->get('status'));
+        }
+
+        // Onfactu v.1.17.0: filtro por estado de facturación
+        if ($filters->get('billing_status')) {
+            $query->where('billing_status', $filters->get('billing_status'));
         }
 
         if ($filters->get('estimate_id')) {
@@ -641,20 +647,16 @@ class Estimate extends Model implements HasMedia
         return $templateName;
     }
 
+    /**
+     * Onfactu v.1.17.0: convertir un presupuesto ya no lo borra nunca, aunque
+     * el ajuste estimate_convert_action diga "delete_estimate": queda
+     * aceptado y enlazado a su factura (ConvertirEnFactura).
+     */
     public function checkForEstimateConvertAction()
     {
-        $convertEstimateAction = CompanySetting::getSetting(
-            'estimate_convert_action',
-            $this->company_id
-        );
-
-        if ($convertEstimateAction === 'delete_estimate') {
-            $this->delete();
-        }
-
-        if ($convertEstimateAction === 'mark_estimate_as_accepted') {
+        if ($this->status !== self::STATUS_ACCEPTED) {
             $this->status = self::STATUS_ACCEPTED;
-            $this->save();
+            $this->saveQuietly();
         }
 
         return true;

@@ -17,6 +17,7 @@ import { useUserStore } from '@/scripts/admin/stores/user'
 import SendInvoiceModal from '@/scripts/admin/components/modal-components/SendInvoiceModal.vue'
 import DeliveryNoteDropdown from '@/scripts/admin/components/dropdowns/DeliveryNoteIndexDropdown.vue'
 import LoadingIcon from '@/scripts/components/icons/LoadingIcon.vue'
+import PanelFacturacion from '@/scripts/admin/components/facturacion/PanelFacturacion.vue'
 import abilities from '@/scripts/admin/stub/abilities'
 
 const deliveryNoteStore = useDeliveryNoteStore()
@@ -293,6 +294,9 @@ onSearched = debounce(onSearched, 500)
         </p>
       </div>
     </div>
+
+    <!-- Onfactu v.1.17.0: su factura y el presupuesto de origen -->
+    <PanelFacturacion :doc="deliveryNoteData" />
 
     <!-- =============== IFRAME PDF =============== -->
     <div class="flex flex-col min-h-0 mt-8 overflow-hidden" style="height: 75vh">

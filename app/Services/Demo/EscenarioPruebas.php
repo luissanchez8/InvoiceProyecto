@@ -32,6 +32,7 @@ use Illuminate\Support\Facades\DB;
  *
  * Gastos con el IVA desglosado (y uno sin desglose): ver GastosPruebas.
  * La recurrente, el presupuesto, la proforma y el albarán: ComercialPruebas.
+ * Los casos de facturación (anticipo, facturado, varios albaranes): FacturacionPruebas.
  * Lo que se borra antes: LimpiezaPruebas.
  *
  * Las facturas se crean en borrador y se aprueban con AprobarFactura, en
@@ -49,6 +50,8 @@ class EscenarioPruebas
     private array $articulos = [];
     /** clave => ['id', 'numero', 'fecha', 'calc', 'cliente'] */
     private array $facturas = [];
+
+    private ?FacturacionPruebas $facturacion = null;
 
     public function __construct(private Carbon $hoy)
     {
@@ -93,6 +96,9 @@ class EscenarioPruebas
             $comercial = new ComercialPruebas($this, $this->c);
             $comercial->crearRecurrente();
             $comercial->crearComerciales();
+            // v.1.17.0: presupuestos con anticipo y facturado, y un albarán para facturar juntos
+            $this->facturacion = new FacturacionPruebas($this, $this->c);
+            $this->facturacion->crear();
             (new GastosPruebas($this, $this->c))->crear();
             $this->cerrarMeses();
         });
@@ -116,6 +122,11 @@ class EscenarioPruebas
 
         // v.1.16.0: M-2 abierto para corregir y vuelto a cerrar
         $avisos[] = ReaperturaPruebas::crear($this, $this->c->empresa, $this->c->usuario);
+
+        // v.1.17.0: el enlace que recibiría el cliente de PRE-1, para aceptarlo o rechazarlo
+        if ($this->facturacion?->enlacePresupuesto) {
+            $avisos[] = 'Enlace del cliente para aceptar el presupuesto enviado: '.$this->facturacion->enlacePresupuesto;
+        }
 
         return array_values(array_filter($avisos));
     }

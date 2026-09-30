@@ -17,11 +17,10 @@
     @slot('subcopy')
         @component('mail::subcopy')
             {!! $data['body'] !!}
-            @if(!$data['attach']['data'])
-                @component('mail::button', ['url' => $data['url']])
-                    @lang('mail_view_estimate')
-                @endcomponent
-            @endif
+            {{-- Onfactu v.1.17.0: el botón sale siempre, lleve o no el PDF adjunto: desde ahí se acepta --}}
+            @component('mail::button', ['url' => $data['url']])
+                Ver y responder
+            @endcomponent
         @endcomponent
     @endslot
 

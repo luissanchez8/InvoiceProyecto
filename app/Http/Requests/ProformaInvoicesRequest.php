@@ -41,7 +41,7 @@ class ProformaInvoicesRequest extends FormRequest
             'sub_total' => ['numeric', 'required'],
             'total' => ['numeric', 'max:999999999999', 'required'],
             'tax' => ['required'],
-            'template_name' => ['required'],
+            'template_name' => ['nullable'], // Onfactu v.1.17.0: la pone el servidor
             'items' => ['required', 'array'],
             'items.*.name' => ['required'],
             'items.*.quantity' => ['numeric', 'required'],
