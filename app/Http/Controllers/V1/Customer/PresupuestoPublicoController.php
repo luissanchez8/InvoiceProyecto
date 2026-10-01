@@ -25,6 +25,9 @@ use Illuminate\Support\Facades\Mail;
  *
  * Al responder, el presupuesto pasa a aceptado o rechazado, se guarda quién
  * y cuándo (respuesta_*) y la empresa recibe un correo.
+ *
+ * v.1.17.2: limitador de intentos propio (daba 429 con la sesión de la
+ * empresa abierta) y el "visto" no cuenta cuando lo abre la propia empresa.
  */
 class PresupuestoPublicoController extends Controller
 {
@@ -32,7 +35,10 @@ class PresupuestoPublicoController extends Controller
     {
         $presupuesto = $this->presupuesto($emailLog);
 
-        if (! $emailLog->isExpired() && in_array($presupuesto->status, [Estimate::STATUS_SENT, Estimate::STATUS_DRAFT], true)) {
+        // Visto solo si lo abre el cliente: no la propia empresa con su sesión
+        // abierta, que lo está comprobando (v.1.17.2)
+        if (! auth()->check() && ! $emailLog->isExpired()
+            && in_array($presupuesto->status, [Estimate::STATUS_SENT, Estimate::STATUS_DRAFT], true)) {
             $presupuesto->forceFill(['status' => Estimate::STATUS_VIEWED])->saveQuietly();
         }
 

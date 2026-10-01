@@ -110,10 +110,11 @@ Route::middleware('pdf-auth')->group(function () {
 // -------------------------------------------------
 
 // Onfactu v.1.17.0: aceptar o rechazar un presupuesto desde el enlace del correo
+// (v.1.17.2: limitador propio, ver RouteServiceProvider)
 // -------------------------------------------------
 Route::get('/presupuesto/{email_log:token}', [\App\Http\Controllers\V1\Customer\PresupuestoPublicoController::class, 'ver']);
 Route::post('/presupuesto/{email_log:token}', [\App\Http\Controllers\V1\Customer\PresupuestoPublicoController::class, 'responder'])
-    ->middleware('throttle:10,1');
+    ->middleware('throttle:presupuesto-publico');
 
 Route::prefix('/customer')->group(function () {
     Route::get('/invoices/{email_log:token}', [CustomerInvoicePdfController::class, 'getInvoice']);

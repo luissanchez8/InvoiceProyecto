@@ -67,7 +67,9 @@ El botón del correo del presupuesto ("Ver y responder") lleva a `/presupuesto/{
 - El token es el del registro del envío (`email_logs`), el mismo que ya servía para ver el PDF, y caduca igual.
 - Al responder, el presupuesto pasa a aceptado o rechazado y se guarda quién y cuándo. La empresa recibe un correo ("Presupuesto PRE-4 aceptado") con el comentario y un botón al presupuesto. Va al correo de la empresa, el mismo que se usa para "Responder a".
 - No enseña los botones si ya está respondido, aceptado o facturado, si el enlace ha caducado o si ha pasado la fecha de validez.
-- Máximo 10 respuestas por minuto (`throttle`).
+- Antes de aceptar o rechazar, pide confirmación en una ventana como las de Onfactu, y al confirmar se envía una sola vez.
+- Al abrirlo el cliente, el presupuesto pasa a **Visto**. Si lo abre alguien de la empresa con la sesión de Onfactu abierta, no cuenta como visto.
+- Máximo 10 respuestas por minuto desde el mismo enlace y la misma conexión (limitador `presupuesto-publico`, en `RouteServiceProvider`). Si se pasa, la página avisa de que espere un minuto.
 
 ## Número y plantilla
 

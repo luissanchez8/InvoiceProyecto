@@ -2,6 +2,8 @@
   Onfactu v.1.17.0 — Página que abre el cliente desde el correo del presupuesto
   (PresupuestoPublicoController). Enseña el presupuesto, el enlace al PDF y los
   botones para aceptarlo o rechazarlo. Página suelta, sin la aplicación Vue.
+  v.1.17.2: la confirmación es una ventana como las de Onfactu (_confirmar),
+  no la del navegador; ?espera=1 llega del limitador de intentos.
 --}}
 <!doctype html>
 <html lang="es">
@@ -71,6 +73,9 @@
     <a class="pdf" href="{{ $pdf }}" target="_blank" rel="noopener">Ver el presupuesto completo (PDF)</a>
 
     @if($motivo === null)
+      @if(request()->boolean('espera'))
+        <p class="aviso info" style="margin-bottom:16px">Has hecho varios intentos seguidos. Espera un minuto y vuelve a probar.</p>
+      @endif
       <form method="post" action="{{ $accion }}" id="respuesta">
         @csrf
         <label for="nombre">Tu nombre (opcional)</label>
@@ -78,12 +83,11 @@
         <label for="comentario">Comentario (opcional)</label>
         <textarea id="comentario" name="comentario" maxlength="1000"></textarea>
         <div class="botones">
-          <button class="aceptar" type="submit" name="accion" value="aceptar"
-                  onclick="return confirm('¿Aceptar el presupuesto?')">Aceptar presupuesto</button>
-          <button class="rechazar" type="submit" name="accion" value="rechazar"
-                  onclick="return confirm('¿Rechazar el presupuesto?')">Rechazar</button>
+          <button class="aceptar" type="submit" name="accion" value="aceptar">Aceptar presupuesto</button>
+          <button class="rechazar" type="submit" name="accion" value="rechazar">Rechazar</button>
         </div>
       </form>
+      @include('presupuesto._confirmar')
     @elseif($motivo === 'respondido')
       @if($p->status === 'REJECTED')
         <p class="aviso no">Presupuesto rechazado{{ $respondidoEl ? ' el '.$respondidoEl : '' }}. Gracias por responder.</p>
