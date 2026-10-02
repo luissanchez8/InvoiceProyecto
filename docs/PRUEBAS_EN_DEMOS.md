@@ -202,7 +202,7 @@ Poner un correo propio en el cliente Alfa y enviar el borrador: el PDF dice **BO
 
 ### 11. Lo de la v.1.18.0
 
-- **Novedades**: al entrar sale la ventana con las novedades de la v.1.18.0, y "Ver más" enseña las de la v.1.17.0. Con **Entendido** no vuelve a salir; el icono de destellos de la barra de arriba la abre otra vez.
+- **Novedades**: al entrar sale una tarjeta oscura y pequeña con las novedades de la v.1.18.0, una por diapositiva: se pasan con **Siguiente**, los puntos, deslizando el dedo o con las flechas del teclado. La pestaña "1 oct" enseña las de la v.1.17.0. Con **Entendido** (en la última) o la X no vuelve a salir; el icono de destellos de la barra de arriba la abre otra vez.
 - **Recordarme 30 días**: cerrar sesión y entrar con la casilla marcada. Al cerrar el navegador entero y volver a abrir la instancia, se sigue dentro.
 - **Exportar facturas**: en la lista de facturas, **Exportar → Excel** descarga 10 filas: las 7 aprobadas, con REC-000001 en negativo, y los 3 borradores. Total 12.100,00 €, pendiente 2.178,00 €. En PDF salen las mismas, en horizontal. Con un filtro (por ejemplo, la pestaña de borradores) se exporta solo lo filtrado.
 - **Exportar gastos**: los 8 gastos, total 2.492,00 €. Los que no tienen desglose solo llevan el total.
