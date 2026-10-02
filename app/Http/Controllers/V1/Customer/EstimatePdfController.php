@@ -4,9 +4,6 @@ namespace App\Http\Controllers\V1\Customer;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\EstimateResource;
-use App\Mail\EstimateViewedMail;
-use App\Models\CompanySetting;
-use App\Models\Customer;
 use App\Models\EmailLog;
 use App\Models\Estimate;
 use Illuminate\Http\Request;
@@ -18,24 +15,12 @@ class EstimatePdfController extends Controller
         $estimate = Estimate::find($emailLog->mailable_id);
 
         if (! $emailLog->isExpired()) {
-            if ($estimate && ($estimate->status == Estimate::STATUS_SENT || $estimate->status == Estimate::STATUS_DRAFT)) {
+            // v.1.18.0: no cuenta si lo abre alguien de la empresa con su sesión,
+            // y el aviso es el de AvisoVisto (diseño de Onfactu)
+            if ($estimate && ! auth()->check() && ($estimate->status == Estimate::STATUS_SENT || $estimate->status == Estimate::STATUS_DRAFT)) {
                 $estimate->status = Estimate::STATUS_VIEWED;
                 $estimate->save();
-                $notifyEstimateViewed = CompanySetting::getSetting(
-                    'notify_estimate_viewed',
-                    $estimate->company_id
-                );
-
-                if ($notifyEstimateViewed == 'YES') {
-                    $data['estimate'] = Estimate::findOrFail($estimate->id)->toArray();
-                    $data['user'] = Customer::find($estimate->customer_id)->toArray();
-                    $notificationEmail = CompanySetting::getSetting(
-                        'notification_email',
-                        $estimate->company_id
-                    );
-
-                    \Mail::to($notificationEmail)->send(new EstimateViewedMail($data));
-                }
+                \App\Services\AvisoVisto::presupuesto($estimate);
             }
 
             return $estimate->getGeneratedPDFOrStream('estimate');

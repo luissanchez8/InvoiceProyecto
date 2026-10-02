@@ -101,6 +101,8 @@ class EscenarioPruebas
             $this->facturacion->crear();
             (new GastosPruebas($this, $this->c))->crear();
             $this->cerrarMeses();
+            // v.1.18.0: avisos de documento visto activados, para probarlos en demos
+            \App\Models\CompanySetting::setSettings(['notify_invoice_viewed' => 'YES', 'notify_estimate_viewed' => 'YES'], $this->c->empresa);
         });
     }
 
@@ -330,7 +332,9 @@ class EscenarioPruebas
             'invoice_date' => $f, 'due_date' => $dia->toDateString(),
             'invoice_number' => $numero, 'sequence_number' => $seq, 'customer_sequence_number' => $seqCliente,
             'status' => Invoice::STATUS_APPROVED, 'paid_status' => 'PAID', 'approved_at' => $f,
-            'notes' => "Esta factura rectifica a la factura {$orig['numero']} de fecha {$orig['fecha']->format('d/m/Y')}.",
+            // v.1.18.0: con motivo, como las que se crean desde la pantalla
+            'notes' => "<p><strong>Esta factura rectifica a la factura {$orig['numero']} de fecha {$orig['fecha']->format('d/m/Y')}.</strong></p><p><strong>Motivo:</strong> Error en el importe del servicio.</p>",
+            'rectificacion_motivo' => 'Error en el importe del servicio.',
             'due_amount' => 0, 'base_due_amount' => 0, 'sent' => true, 'sent_at' => $f, 'viewed' => false,
             'template_name' => $this->c->plantillaFactura, 'customer_id' => $cliente, 'overdue' => false,
             'payment_method_id' => $this->formaPago(), 'rectifies_invoice_id' => $orig['id'],
@@ -341,7 +345,7 @@ class EscenarioPruebas
         $this->c->hash(Invoice::class, 'invoices', $id);
 
         DB::table('invoices')->where('id', $orig['id'])->update([
-            'notes' => "Esta factura ha sido rectificada por la factura rectificativa {$numero} de fecha {$dia->format('d/m/Y')}.",
+            'notes' => "<p><strong>Esta factura ha sido rectificada por la factura rectificativa {$numero} de fecha {$dia->format('d/m/Y')}.</strong></p>",
         ]);
 
         $this->facturas['REC-1'] = ['id' => $id, 'numero' => $numero, 'fecha' => $dia, 'calc' => $calc,

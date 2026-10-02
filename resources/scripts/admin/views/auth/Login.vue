@@ -39,6 +39,14 @@
       </BaseInput>
     </BaseInputGroup>
 
+    <!-- Onfactu v.1.18.0: mantener la sesión 30 días -->
+    <BaseCheckbox
+      id="recordar-sesion"
+      v-model="authStore.loginData.remember"
+      :label="$t('login.remember')"
+      class="mt-2"
+    />
+
     <div class="mt-5 mb-8">
       <div class="mb-4">
         <router-link

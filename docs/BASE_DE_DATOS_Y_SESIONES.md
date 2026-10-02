@@ -65,6 +65,10 @@ Desde la v.1.12.2, la sesión dura **8 horas sin actividad** (`SESSION_LIFETIME=
 
 Al caducar, aparece "Tu sesión ha caducado. Vuelve a iniciar sesión." y se vuelve al acceso. El aviso sale una sola vez, aunque fallen varias peticiones a la vez.
 
+### Recordarme 30 días
+
+Desde la v.1.18.0, el acceso tiene la casilla **Recordarme 30 días**. Marcada, Laravel deja una cookie `remember_web_…` de la misma instancia, con su dominio, que vuelve a abrir la sesión aunque la normal haya caducado. Dura 30 días (`LoginController::RECORDAR_MINUTOS`; Laravel pone cinco años si no se le dice). Cerrar sesión la invalida. Sin marcarla, todo sigue como arriba.
+
 ### Por qué salía "Unauthenticated." en rojo
 
 El frontend reconocía la sesión caducada por el texto "Unauthorized" de la respuesta. Con HTTP/2, que es lo que sirve Caddy, ese texto llega vacío: no lo detectaba, mostraba el mensaje del servidor en inglés y no llevaba al acceso. Ahora se mira el código de respuesta: 401, o 419 cuando lo que ha caducado es el token de seguridad (CSRF) de la sesión. Está en `resources/scripts/helpers/error-handling.js`.

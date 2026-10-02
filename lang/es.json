@@ -492,7 +492,10 @@
     "confirm_rectify_title": "Crear factura rectificativa",
     "confirm_rectify": "Se creará una factura rectificativa que anula por completo la factura {number}, con los mismos conceptos en negativo. Esta acción no se puede deshacer y la rectificativa no será editable.",
     "already_rectified_by": "Rectificada por {number}",
-    "rectifies_invoice": "Rectifica a la factura {number}"
+    "rectifies_invoice": "Rectifica a la factura {number}",
+    "confirm_rectify_rectificativa": "Se creará una factura rectificativa que anula la rectificativa {number}: la factura {original} volverá a valer entera. Esta acción no se puede deshacer.",
+    "rectify_reason": "Motivo",
+    "rectify_reason_placeholder": "Por ejemplo: error en el importe, devolución o descuento posterior"
   },
   "recurring_invoices": {
     "title": "Facturas recurrentes",
@@ -708,6 +711,7 @@
   },
   "login": {
     "email": "Correo electrónico",
+    "remember": "Recordarme 30 días",
     "password": "Contraseña",
     "forgot_password": "¿Olvidaste tu contraseña?",
     "or_signIn_with": "o Inicia sesión con",
@@ -1156,13 +1160,13 @@
       "confirm_password": "Confirmar contraseña"
     },
     "notification": {
-      "title": "Notificación",
-      "email": "Enviar notificaciones a",
-      "description": "¿Qué notificaciones por correo electrónico le gustaría recibir cuando algo cambia?",
+      "title": "Notificaciones",
+      "email": "Enviar los avisos a",
+      "description": "Avisos por correo cuando tu cliente abre un documento que le has enviado.",
       "invoice_viewed": "Factura vista",
-      "invoice_viewed_desc": "Cuando su cliente vio la factura enviada a través del panel de control de InvoiceShelf.",
+      "invoice_viewed_desc": "Cuando tu cliente abre la factura desde el enlace del correo. Si solo abre el PDF adjunto, no se puede saber.",
       "estimate_viewed": "Presupuesto visto",
-      "estimate_viewed_desc": "Cuando su cliente vio el presupuesto enviado a través del panel de control de InvoiceShelf.",
+      "estimate_viewed_desc": "Cuando tu cliente abre el presupuesto desde el enlace del correo. Si solo abre el PDF adjunto, no se puede saber.",
       "save": "Guardar",
       "email_save_message": "Correo electrónico guardado con éxito",
       "please_enter_email": "Por favor, introduzca su correo electrónico"
@@ -2062,5 +2066,17 @@
     "facturar": "Facturar",
     "convertir_factura": "Convertir en factura",
     "ver_factura": "Ver factura"
+  },
+  "exportar": {
+    "boton": "Exportar",
+    "excel": "Excel",
+    "pdf": "PDF",
+    "error": "No se ha podido exportar. Inténtalo de nuevo."
+  },
+  "novedades": {
+    "titulo": "Novedades",
+    "ir": "Ver",
+    "ver_mas": "Ver más",
+    "entendido": "Entendido"
   }
 }

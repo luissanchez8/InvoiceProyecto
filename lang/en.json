@@ -483,7 +483,10 @@
         "confirm_rectify_title": "Create corrective invoice",
         "confirm_rectify": "A corrective invoice will be created cancelling invoice {number} completely, with the same items in negative. This action cannot be undone and the corrective invoice will not be editable.",
         "already_rectified_by": "Corrected by {number}",
-        "rectifies_invoice": "Corrects invoice {number}"
+        "rectifies_invoice": "Corrects invoice {number}",
+        "confirm_rectify_rectificativa": "A corrective invoice will be created that cancels corrective invoice {number}: invoice {original} will be fully valid again. This cannot be undone.",
+        "rectify_reason": "Reason",
+        "rectify_reason_placeholder": "For example: wrong amount, return or later discount"
     },
     "recurring_invoices": {
         "title": "Recurring Invoices",
@@ -699,6 +702,7 @@
     },
     "login": {
         "email": "Email",
+        "remember": "Remember me for 30 days",
         "password": "Password",
         "forgot_password": "Forgot Password?",
         "or_signIn_with": "or Sign in with",
@@ -2003,5 +2007,17 @@
         "facturar": "Invoice",
         "convertir_factura": "Convert to invoice",
         "ver_factura": "View invoice"
+    },
+    "exportar": {
+        "boton": "Export",
+        "excel": "Excel",
+        "pdf": "PDF",
+        "error": "Could not export. Please try again."
+    },
+    "novedades": {
+        "titulo": "What is new",
+        "ir": "Open",
+        "ver_mas": "See more",
+        "entendido": "Got it"
     }
 }

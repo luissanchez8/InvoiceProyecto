@@ -25,6 +25,9 @@ class CompanySetting extends Model
     public static function setSettings($settings, $company_id)
     {
         foreach ($settings as $key => $value) {
+            // Onfactu v.1.18.0: un campo vaciado llega como null (los formularios
+            // convierten "" en null) y la columna no lo admite. Se guarda vacío.
+            $value = $value ?? '';
             self::updateOrCreate(
                 [
                     'option' => $key,

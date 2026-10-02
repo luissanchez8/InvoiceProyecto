@@ -128,6 +128,11 @@
         />
       </li>
 
+      <!-- Onfactu v.1.18.0: novedades -->
+      <li>
+        <BotonNovedades />
+      </li>
+
       <li>
         <CompanySwitcher />
       </li>
@@ -175,6 +180,7 @@ import { useUserStore } from '@/scripts/admin/stores/user'
 import { useGlobalStore } from '@/scripts/admin/stores/global'
 
 import CompanySwitcher from '@/scripts/components/CompanySwitcher.vue'
+import BotonNovedades from '@/scripts/admin/components/novedades/BotonNovedades.vue'
 import GlobalSearchBar from '@/scripts/components/GlobalSearchBar.vue'
 import MainLogo from '@/scripts/components/icons/MainLogo.vue'
 

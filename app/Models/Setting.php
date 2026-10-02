@@ -13,6 +13,7 @@ class Setting extends Model
 
     public static function setSetting($key, $setting)
     {
+        $setting = $setting ?? '';   // Onfactu v.1.18.0: ver CompanySetting::setSettings
         $old = self::whereOption($key)->first();
 
         if ($old) {
@@ -31,6 +32,7 @@ class Setting extends Model
     public static function setSettings($settings)
     {
         foreach ($settings as $key => $value) {
+            $value = $value ?? '';   // Onfactu v.1.18.0: ver CompanySetting::setSettings
             self::updateOrCreate(
                 [
                     'option' => $key,

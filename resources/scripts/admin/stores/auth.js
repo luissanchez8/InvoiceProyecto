@@ -15,7 +15,7 @@ export const useAuthStore = (useWindow = false) => {
       loginData: {
         email: '',
         password: '',
-        remember: '',
+        remember: false,   // Onfactu v.1.18.0: "Recordarme 30 días"
       },
     }),
 

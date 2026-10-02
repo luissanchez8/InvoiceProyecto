@@ -197,6 +197,13 @@ Route::prefix('/v1')->group(function () {
     });
 
     Route::middleware(['auth:sanctum', 'company', 'check-plan-status', 'check-month-closed', 'check-documento-facturado'])->group(function () {
+
+        // Onfactu v.1.18.0: ventana de novedades
+        Route::get('/novedades', [\App\Http\Controllers\V1\Admin\Novedades\NovedadesController::class, 'index']);
+        Route::post('/novedades/vistas', [\App\Http\Controllers\V1\Admin\Novedades\NovedadesController::class, 'vistas']);
+
+        // Onfactu v.1.18.0: exportar la lista de facturas o de gastos a Excel o PDF
+        Route::get('/exportar/{tipo}/{formato}', \App\Http\Controllers\V1\Admin\Exportar\ExportarListadoController::class);
         
         Route::post('verifactu/invoices/{invoice}', [VerifactuController::class, 'send']);
 

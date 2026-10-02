@@ -276,7 +276,8 @@ class FacturasDemo
             $id = (int) DB::table('invoices')->insertGetId($this->c->importes($calc) + [
                 'invoice_date' => $fecha, 'due_date' => $fechaC->toDateString(),
                 'invoice_number' => $numero, 'status' => 'APPROVED', 'paid_status' => 'PAID',
-                'notes' => "Rectifica la factura {$orig['numero']} por un error en los datos del servicio.",
+                'notes' => "<p><strong>Esta factura rectifica a la factura {$orig['numero']}.</strong></p><p><strong>Motivo:</strong> Error en los datos del servicio.</p>",
+                'rectificacion_motivo' => 'Error en los datos del servicio.',   // v.1.18.0
                 'due_amount' => 0, 'base_due_amount' => 0, 'sent' => true, 'viewed' => true,
                 'template_name' => $this->c->plantillaFactura, 'customer_id' => $orig['cliente']['id'],
                 'sequence_number' => $k + 1,

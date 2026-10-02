@@ -162,9 +162,7 @@ class Invoice extends Model implements HasMedia
      */
     public function getCannotRectifyReasonAttribute(): ?string
     {
-        if ($this->rectifies_invoice_id !== null) {
-            return 'Este documento ya es una factura rectificativa.';
-        }
+        // v.1.18.0: una rectificativa también se puede rectificar
         if ($this->status !== self::STATUS_APPROVED) {
             return 'Solo se pueden rectificar facturas aprobadas.';
         }
@@ -173,6 +171,28 @@ class Invoice extends Model implements HasMedia
         }
 
         return null;
+    }
+
+    /**
+     * Onfactu v.1.18.0 — true si este documento está anulado por una
+     * rectificativa. Con rectificativas de rectificativas, cada eslabón le da
+     * la vuelta: rectificada una vez, anulada; dos, vuelve a valer.
+     */
+    public function estaAnulada(): bool
+    {
+        $anulada = false;
+        $vistos = [$this->id];
+        $actual = $this;
+        while ($r = self::where('rectifies_invoice_id', $actual->id)->first()) {
+            if (in_array($r->id, $vistos, true)) {
+                break;
+            }
+            $anulada = ! $anulada;
+            $vistos[] = $r->id;
+            $actual = $r;
+        }
+
+        return $anulada;
     }
 
     public function getCanBeRectifiedAttribute(): bool
@@ -863,7 +883,9 @@ class Invoice extends Model implements HasMedia
         return [
             '{INVOICE_DATE}' => $this->formattedInvoiceDate,
             '{INVOICE_DUE_DATE}' => $this->formattedDueDate,
-            '{INVOICE_NUMBER}' => $this->invoice_number,
+            // Onfactu v.1.18.0: un borrador no tiene número; el asunto y el texto
+            // del correo dicen BORRADOR, como el PDF, en vez de quedar en blanco
+            '{INVOICE_NUMBER}' => $this->invoice_number ?: 'BORRADOR',
             '{INVOICE_REF_NUMBER}' => $this->reference_number,
         ];
     }

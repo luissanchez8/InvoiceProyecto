@@ -113,7 +113,8 @@ class ExcelReportController extends Controller
                 if (!isset($itemTotals[$name])) {
                     $itemTotals[$name] = ['qty' => 0, 'amount' => 0];
                 }
-                $itemTotals[$name]['qty'] += $item->quantity;
+                // Onfactu v.1.18.0: con el signo del importe (ver InvoiceItem::scopeItemAttributes)
+                $itemTotals[$name]['qty'] += $item->total < 0 ? -abs($item->quantity) : ($item->total > 0 ? abs($item->quantity) : $item->quantity);
                 $itemTotals[$name]['amount'] += $item->total;
             }
         }

@@ -25,6 +25,13 @@
           </template>
         </BaseButton>
 
+        <!-- Onfactu v.1.18.0: exportar la lista, con sus filtros -->
+        <BotonExportar
+          v-show="invoiceStore.invoiceTotalCount"
+          tipo="facturas"
+          :filtros="filtrosExportar"
+        />
+
         <router-link
           v-if="userStore.hasAbilities(abilities.CREATE_INVOICE)"
           to="invoices/create"
@@ -284,6 +291,7 @@
 </template>
 
 <script setup>
+import BotonExportar from '@/scripts/admin/components/exportar/BotonExportar.vue'
 import { computed, onUnmounted, reactive, ref, watch, inject } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
@@ -372,6 +380,9 @@ let filters = reactive({
   to_date: '',
   invoice_number: '',
 })
+
+// Onfactu v.1.18.0: lo que se exporta es lo que se ve (mismos filtros y orden)
+const filtrosExportar = computed(() => ({ ...filters }))
 
 const showEmptyScreen = computed(
   () => !invoiceStore.invoiceTotalCount && !isRequestOngoing.value

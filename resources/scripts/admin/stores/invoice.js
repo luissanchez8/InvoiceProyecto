@@ -330,10 +330,11 @@ export const useInvoiceStore = (useWindow = false) => {
       },
 
       // Onfactu: crear factura rectificativa a partir de una factura.
-      rectifyInvoice(id) {
+      // v.1.18.0: con el motivo, obligatorio
+      rectifyInvoice(id, motivo) {
         return new Promise((resolve, reject) => {
           axios
-            .post(`/api/v1/invoices/${id}/rectify`)
+            .post(`/api/v1/invoices/${id}/rectify`, { motivo })
             .then((response) => {
               notificationStore.showNotification({
                 type: 'success',

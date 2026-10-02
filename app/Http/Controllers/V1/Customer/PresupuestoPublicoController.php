@@ -40,6 +40,7 @@ class PresupuestoPublicoController extends Controller
         if (! auth()->check() && ! $emailLog->isExpired()
             && in_array($presupuesto->status, [Estimate::STATUS_SENT, Estimate::STATUS_DRAFT], true)) {
             $presupuesto->forceFill(['status' => Estimate::STATUS_VIEWED])->saveQuietly();
+            \App\Services\AvisoVisto::presupuesto($presupuesto);   // v.1.18.0
         }
 
         return $this->pagina($emailLog, $presupuesto);

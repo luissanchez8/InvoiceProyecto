@@ -49,9 +49,9 @@ class InvoiceResource extends JsonResource
             'rectified_invoice_number' => $this->when($this->rectifies_invoice_id !== null, function () {
                 return optional($this->rectifiedInvoice)->invoice_number;
             }),
-            'rectification_number' => $this->when($this->rectifies_invoice_id === null, function () {
-                return optional($this->rectification)->invoice_number;
-            }),
+            // v.1.18.0: también en las rectificativas, que ahora se pueden rectificar
+            'rectification_number' => optional($this->rectification)->invoice_number,
+            'rectificacion_motivo' => $this->rectificacion_motivo,
             'sequence_number' => $this->sequence_number,
             'exchange_rate' => $this->exchange_rate,
             'base_discount_val' => $this->base_discount_val,

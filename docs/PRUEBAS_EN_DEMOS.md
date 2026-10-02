@@ -45,7 +45,7 @@ Tres clientes: **Alfa Servicios S.L.** y **Beta Comercio S.L.** (empresas) y **C
 | M-3 (cerrado) | FAC-000001 | Alfa | Diseño web x1 | 1.000 | 210 | 1.210 | Cobrada |
 | M-3 (cerrado) | FAC-000002 | Beta | Consultoría x1 | 100 | 21 | 121 | Cobrada. Rectificada |
 | M-2 (cerrado) | FAC-000003 | Carmen | Consultoría x2 | 200 | 42 | 242 | Cobrada |
-| M-2 (cerrado) | REC-000001 | Beta | Rectifica FAC-000002 | -100 | -21 | -121 | Devuelta |
+| M-2 (cerrado) | REC-000001 | Beta | Rectifica FAC-000002 (motivo: error en el importe del servicio) | -100 | -21 | -121 | Devuelta |
 | M-1 (abierto) | FAC-000004 | Alfa | Diseño web x2 | 2.000 | 420 | 2.420 | Cobrada la mitad (1.210) |
 | M-1 (abierto) | FAC-000005 | Beta | Consultoría x7 | 700 | 147 | 847 | Sin cobrar, vencida |
 | M | FAC-000006 | Carmen | Consultoría x1 | 100 | 21 | 121 | Sin cobrar |
@@ -80,7 +80,8 @@ Los números de presupuestos, proformas y albaranes también siguen la serie de 
 - **Presupuesto** PRE-000003 a Carmen: 4 horas, 484 €. Convertido en factura, que queda en borrador. Estado de facturación: Facturado.
 - **Proforma** PRO-000001 a Carmen, en borrador: 1.210 €.
 - **Albaranes** ALB-000001 (3 horas, 363 €) y ALB-000002 (2 horas, 242 €) a Alfa, entregados y sin facturar: para facturarlos juntos.
-- **Recurrente** a Beta: mantenimiento mensual de 60,50 €, sin aprobación ni envío automáticos. Empieza el día 1 del mes que viene.
+- **Recurrente** a Beta: mantenimiento mensual de 60,50 €, sin aprobación ni envío automáticos. Empieza el día 1 del mes que viene, que es también su próxima factura.
+- **Avisos de documento visto** (v.1.18.0): activados para facturas y presupuestos (Ajustes → Notificaciones).
 - **Meses cerrados**: M-3 y M-2, entregados a la gestoría. M-1 se deja abierto para probar el cierre.
 - **Corrección después del cierre** (v.1.16.0): el alquiler de M-2 se crea con el número mal escrito (ALQ-2026-7) y la orden abre M-2 como lo haría el titular, lo corrige a ALQ-2026-07 y lo vuelve a cerrar. Queda un registro de cambios, el mes sale como "Corregido" en el portal y la gestoría recibe dos correos más ("Mes abierto para corregir" y "Mes corregido"). Ninguna cifra cambia.
 
@@ -197,11 +198,25 @@ Al terminar, `demos:preparar --si` y el borrado de la central de arriba lo dejan
 
 ### 10. Enviar un borrador
 
-Poner un correo propio en el cliente Alfa y enviar el borrador: el PDF dice **BORRADOR** con el número "Pendiente", y el adjunto se llama `Borrador.pdf`.
+Poner un correo propio en el cliente Alfa y enviar el borrador: el PDF dice **BORRADOR** con el número "Pendiente", el adjunto se llama `Borrador.pdf` y el asunto del correo dice BORRADOR donde iría el número (v.1.18.0).
+
+### 11. Lo de la v.1.18.0
+
+- **Novedades**: al entrar sale la ventana con las novedades de la v.1.18.0, y "Ver más" enseña las de la v.1.17.0. Con **Entendido** no vuelve a salir; el icono de destellos de la barra de arriba la abre otra vez.
+- **Recordarme 30 días**: cerrar sesión y entrar con la casilla marcada. Al cerrar el navegador entero y volver a abrir la instancia, se sigue dentro.
+- **Exportar facturas**: en la lista de facturas, **Exportar → Excel** descarga 10 filas: las 7 aprobadas, con REC-000001 en negativo, y los 3 borradores. Total 12.100,00 €, pendiente 2.178,00 €. En PDF salen las mismas, en horizontal. Con un filtro (por ejemplo, la pestaña de borradores) se exporta solo lo filtrado.
+- **Exportar gastos**: los 8 gastos, total 2.492,00 €. Los que no tienen desglose solo llevan el total.
+- **Ventas por artículo** (Informes, PDF y Excel): Consultoría sale con 10 horas, no 12, porque REC-000001 resta.
+- **Rectificativa con motivo**: el PDF de REC-000001 lleva "Motivo: Error en el importe del servicio." Crear la rectificativa de FAC-000006: la ventana pide el motivo y no deja crearla sin él. Después, rectificar esa rectificativa: la ventana avisa de que FAC-000006 volverá a valer, y la nueva sale en positivo (121,00 €).
+- **Aviso de documento visto**: enviar FAC-000006 a un correo propio y abrir el enlace del correo en una ventana privada. Llega a la empresa "Factura FAC-000006 vista por tu cliente", una sola vez. Abierto con la sesión de Onfactu, no llega. Con un presupuesto enviado, igual, también desde la página de aceptar.
+- **Recurrente**: en la lista, la próxima factura es el día 1 del mes que viene, no una fecha pasada.
+- **Ajuste vacío**: en Ajustes → Personalización → Facturas, vaciar el texto legal del pie y guardar: se guarda sin error.
 
 Al terminar, `demos:preparar --si` deja todo como al principio.
 
 ## Cómo se comprobó
+
+El 01/10/2026, de la v.1.17.1 a la v.1.17.3 se probaron en demos siguiendo el apartado 8: el botón del correo en los dos Outlook, aceptar y rechazar desde el enlace (con y sin la sesión de Onfactu), la ventana de confirmación, el paso a Visto, la cabecera de presupuestos y proformas, los formularios sin plantilla ni borrador, y Rechazado en rojo. La primera prueba de aceptar dio un error 429, que se arregló en la v.1.17.2.
 
 El 30/09/2026, la v.1.17.0 se probó en local con PostgreSQL y en el navegador, con estos datos: anticipo y factura final, varios albaranes en una factura, los bloqueos, borrar la factura final, la cadena de presupuesto a proforma y a factura, la aceptación online, y que abrir y guardar las facturas generadas no cambia ninguna cifra. `demos:preparar` dio las mismas cifras de siempre.
 

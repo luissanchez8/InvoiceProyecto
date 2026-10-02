@@ -21,8 +21,12 @@ use Vinkla\Hashids\Facades\Hashids;
  *   - Solo se puede rectificar una factura en estado COMPLETED.
  *   - No se puede rectificar una factura con cobros registrados.
  *   - No se puede rectificar una factura ya rectificada.
- *   - No se puede rectificar una rectificativa.
- *   - La rectificativa es un clon EXACTO en negativo (rectificacion total).
+ *   - Desde la v.1.18.0 se puede rectificar una rectificativa (la Agencia
+ *     Tributaria lo admite): la nueva le da la vuelta y la factura original
+ *     vuelve a valer. Siempre entera: no hay rectificación parcial.
+ *   - El motivo es obligatorio (v.1.18.0): se guarda en rectificacion_motivo
+ *     y se escribe en las notas, que salen en el PDF.
+ *   - La rectificativa es un clon EXACTO con el signo cambiado (rectificacion total).
  *   - Nace en COMPLETED + UNPAID, con fecha de HOY y serie propia (REC).
  *   - No es editable ni borrable.
  *
@@ -37,11 +41,13 @@ class RectifyInvoiceController extends Controller
     {
         $this->authorize('create', Invoice::class);
 
-        // ─── Validaciones ───────────────────────────────────────────────
-        if ($invoice->rectifies_invoice_id !== null) {
-            return $this->error('Este documento ya es una factura rectificativa, no puede rectificarse.');
-        }
+        $motivo = trim((string) $request->validate([
+            'motivo' => ['required', 'string', 'max:500'],
+        ], [
+            'motivo.required' => 'Indica el motivo de la rectificación.',
+        ])['motivo']);
 
+        // ─── Validaciones ───────────────────────────────────────────────
         if ($invoice->status !== Invoice::STATUS_APPROVED) {
             return $this->error('Solo se pueden rectificar facturas aprobadas.');
         }
@@ -54,7 +60,7 @@ class RectifyInvoiceController extends Controller
         }
 
         // ─── Creacion ───────────────────────────────────────────────────
-        $rectificativa = DB::transaction(function () use ($request, $invoice) {
+        $rectificativa = DB::transaction(function () use ($request, $invoice, $motivo) {
 
             $companyId = $request->header('company') ?: $invoice->company_id;
 
@@ -67,7 +73,10 @@ class RectifyInvoiceController extends Controller
 
             $numero = $serial->getNextNumber();
             $rate = $invoice->exchange_rate;
-            $neg = fn ($v) => $v === null ? null : -abs($v);
+            // v.1.18.0: cambia el signo (antes -abs, que dejaba en negativo las
+            // líneas que ya lo eran, como la de un anticipo descontado, y no
+            // servía para rectificar una rectificativa)
+            $neg = fn ($v) => $v === null ? null : -$v;
 
             $rect = Invoice::create([
                 'invoice_date'              => Carbon::now()->format('Y-m-d'),
@@ -83,6 +92,7 @@ class RectifyInvoiceController extends Controller
                 'approved_at'               => now(),
                 'paid_status'               => Invoice::STATUS_UNPAID,
                 'rectifies_invoice_id'      => $invoice->id,
+                'rectificacion_motivo'      => $motivo,
 
                 'sub_total'         => $neg($invoice->sub_total),
                 'total'             => $neg($invoice->total),
@@ -106,7 +116,7 @@ class RectifyInvoiceController extends Controller
                 'sales_tax_type'          => $invoice->sales_tax_type,
                 'sales_tax_address_type'  => $invoice->sales_tax_address_type,
 
-                'notes' => $this->notaRectificativa($invoice),
+                'notes' => $this->notaRectificativa($invoice, $motivo),
             ]);
 
             $rect->unique_hash = Hashids::connection(Invoice::class)->encode($rect->id);
@@ -182,16 +192,29 @@ class RectifyInvoiceController extends Controller
      * Nota que se escribe EN LA RECTIFICATIVA.
      * Se antepone al texto que tuviera la factura original.
      */
-    private function notaRectificativa(Invoice $original): string
+    private function notaRectificativa(Invoice $original, string $motivo): string
     {
         // Se escribe en HTML porque el campo notes usa editor rich text: si va
         // en texto plano queda pegado al parrafo siguiente en el PDF.
         $aviso = '<p><strong>Esta factura rectifica a la factura '
                .e($original->invoice_number)
                .' de fecha '.Carbon::parse($original->invoice_date)->format('d/m/Y')
-               .'.</strong></p>';
+               .'.</strong></p><p><strong>Motivo:</strong> '.nl2br(e($motivo)).'</p>';
 
-        return trim($aviso.(string) $original->notes);
+        return trim($aviso.self::sinAvisos((string) $original->notes));
+    }
+
+    /**
+     * Las notas de la original sin los avisos que escribe este controlador:
+     * al rectificar una rectificativa no se arrastran "rectifica a...",
+     * "Motivo: ..." ni "ha sido rectificada por..." de la anterior.
+     */
+    private static function sinAvisos(string $notas): string
+    {
+        $notas = preg_replace('#<p><strong>Esta factura (rectifica a la factura|ha sido rectificada por).*?</strong></p>#su', '', $notas);
+        $notas = preg_replace('#<p><strong>Motivo:</strong>.*?</p>#su', '', $notas);
+
+        return trim($notas);
     }
 
     /**

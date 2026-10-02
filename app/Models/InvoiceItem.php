@@ -81,7 +81,10 @@ class InvoiceItem extends Model
     public function scopeItemAttributes($query)
     {
         $query->select(
-            DB::raw('sum(quantity) as total_quantity, sum(base_total) as total_amount, invoice_items.name')
+            // Onfactu v.1.18.0: la cantidad lleva el signo del importe. Las
+            // rectificativas restan con precio negativo y cantidad positiva, y
+            // sumaban horas en vez de quitarlas (Consultoría 12 en vez de 10).
+            DB::raw('sum(CASE WHEN invoice_items.base_total < 0 THEN -ABS(invoice_items.quantity) WHEN invoice_items.base_total > 0 THEN ABS(invoice_items.quantity) ELSE invoice_items.quantity END) as total_quantity, sum(invoice_items.base_total) as total_amount, invoice_items.name')
         )->groupBy('invoice_items.name');
     }
 }

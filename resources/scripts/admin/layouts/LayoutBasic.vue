@@ -8,6 +8,9 @@
 
     <ExchangeRateBulkUpdateModal />
 
+    <!-- Onfactu v.1.18.0 -->
+    <VentanaNovedades />
+
     <main
       class="h-screen h-screen-ios overflow-y-auto md:pl-56 xl:pl-64 min-h-0"
     >
@@ -34,6 +37,7 @@ import SiteHeader from '@/scripts/admin/layouts/partials/TheSiteHeader.vue'
 import SiteSidebar from '@/scripts/admin/layouts/partials/TheSiteSidebar.vue'
 import NotificationRoot from '@/scripts/components/notifications/NotificationRoot.vue'
 import ExchangeRateBulkUpdateModal from '@/scripts/admin/components/modal-components/ExchangeRateBulkUpdateModal.vue'
+import VentanaNovedades from '@/scripts/admin/components/novedades/VentanaNovedades.vue'
 
 const globalStore = useGlobalStore()
 const route = useRoute()

@@ -24,6 +24,13 @@
           </template>
         </BaseButton>
 
+        <!-- Onfactu v.1.18.0: exportar la lista, con sus filtros -->
+        <BotonExportar
+          v-show="expenseStore.totalExpenses"
+          tipo="gastos"
+          :filtros="filtrosExportar"
+        />
+
         <BaseButton
           v-if="userStore.hasAbilities(abilities.CREATE_EXPENSE)"
           class="ml-4"
@@ -225,6 +232,7 @@
 </template>
 
 <script setup>
+import BotonExportar from '@/scripts/admin/components/exportar/BotonExportar.vue'
 import { ref, onMounted, computed, reactive, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useExpenseStore } from '@/scripts/admin/stores/expense'
@@ -254,6 +262,9 @@ const filters = reactive({
   to_date: '',
   customer_id: '',
 })
+
+// Onfactu v.1.18.0: lo que se exporta es lo que se ve
+const filtrosExportar = computed(() => ({ ...filters }))
 
 const { t } = useI18n()
 let tableComponent = ref(null)

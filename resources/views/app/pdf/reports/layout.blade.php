@@ -71,7 +71,7 @@
         <table class="cabecera">
             <tr>
                 <td><p class="empresa">{{ $company->name }}</p></td>
-                <td><p class="fechas">{{ $from_date }} - {{ $to_date }}</p></td>
+                <td><p class="fechas">{{ $periodo ?? ($from_date.' - '.$to_date) }}</p></td>
             </tr>
             <tr>
                 <td colspan="2"><p class="titulo-informe">@yield('titulo')</p></td>

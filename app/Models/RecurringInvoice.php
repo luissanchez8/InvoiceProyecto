@@ -444,16 +444,35 @@ class RecurringInvoice extends Model
         }
     }
 
-    public static function getNextInvoiceDate($frequency, $starts_at)
+    /**
+     * Onfactu v.1.18.0 — Siguiente fecha de la recurrente, contando desde
+     * ahora (o desde el inicio, si aún no ha llegado). Antes contaba siempre
+     * desde el inicio: tras generar una factura, "próxima factura" se quedaba
+     * en la primera fecha y no avanzaba. Las facturas sí se generaban, porque
+     * el programador va por la expresión de la frecuencia, no por esta fecha.
+     */
+    public static function getNextInvoiceDate($frequency, $starts_at, ?string $zona = null)
     {
+        $zona = $zona ?: config('app.timezone');
+        $desde = Carbon::now($zona);
+        $incluida = false;   // si el inicio cae justo en una fecha de la frecuencia, esa es la primera
+        if ($starts_at) {
+            $inicio = Carbon::parse($starts_at, $zona);
+            if ($inicio->greaterThan($desde)) {
+                $desde = $inicio;
+                $incluida = true;
+            }
+        }
+
         $cron = new Cron\CronExpression($frequency);
 
-        return $cron->getNextRunDate($starts_at)->format('Y-m-d H:i:s');
+        return $cron->getNextRunDate($desde, 0, $incluida, $zona)->format('Y-m-d H:i:s');
     }
 
     public function updateNextInvoiceDate()
     {
-        $nextInvoiceAt = self::getNextInvoiceDate($this->frequency, $this->starts_at);
+        $zona = CompanySetting::getSetting('time_zone', $this->company_id) ?: null;
+        $nextInvoiceAt = self::getNextInvoiceDate($this->frequency, $this->starts_at, $zona);
 
         $this->next_invoice_at = $nextInvoiceAt;
         $this->save();

@@ -1,5 +1,5 @@
 <template>
-  <BaseDropdown>
+  <BaseDropdown v-bind="$attrs">
     <template #activator>
       <BaseButton v-if="route.name === 'invoices.view'" variant="primary">
         <BaseIcon name="EllipsisHorizontalIcon" class="h-5 text-white" />
@@ -134,7 +134,7 @@
     <!-- Onfactu: crear factura rectificativa -->
     <BaseDropdownItem
       v-if="row.can_be_rectified && userStore.hasAbilities(abilities.CREATE_INVOICE)"
-      @click="rectifyInvoiceData(row)"
+      @click="rectifyInvoiceData"
     >
       <BaseIcon
         name="ReceiptRefundIcon"
@@ -171,6 +171,15 @@
       {{ $t('general.delete') }}
     </BaseDropdownItem>
   </BaseDropdown>
+
+  <!-- Onfactu v.1.18.0: crear la rectificativa pidiendo el motivo -->
+  <ModalRectificativa
+    v-if="row"
+    :show="verRectificar"
+    :factura="row"
+    @close="verRectificar = false"
+    @creada="onRectificativaCreada"
+  />
 </template>
 
 <script setup>
@@ -186,6 +195,12 @@ import abilities from '@/scripts/admin/stub/abilities'
 import CompartirPdf from '@/scripts/admin/components/CompartirPdf.vue'
 import { useAprobarFactura } from '@/scripts/admin/composables/useAprobarFactura'
 import IconoAprobada from '@/scripts/components/icons/estados/IconoAprobada.vue'
+import ModalRectificativa from '@/scripts/admin/components/rectificativas/ModalRectificativa.vue'
+import { ref } from 'vue'
+
+// v.1.18.0: el modal es una segunda raíz; los atributos (clases de la cabecera)
+// van al desplegable, como en presupuestos y proformas (v.1.17.1)
+defineOptions({ inheritAttrs: false })
 
 const props = defineProps({
   // Onfactu: "Ver PDF" y "Compartir" solo se muestran en la vista de detalle
@@ -288,26 +303,17 @@ async function removeInvoice(id) {
     })
 }
 
-// Onfactu: crea la rectificativa tras confirmar. Es IRREVERSIBLE.
-async function rectifyInvoiceData(row) {
-  dialogStore
-    .openDialog({
-      title: t('invoices.confirm_rectify_title'),
-      message: t('invoices.confirm_rectify', { number: row.invoice_number }),
-      yesLabel: t('invoices.create_rectificative'),
-      noLabel: t('general.cancel'),
-      variant: 'danger',
-      hideNoButton: false,
-      size: 'lg',
-    })
-    .then((res) => {
-      if (res) {
-        invoiceStore.rectifyInvoice(row.id).then((response) => {
-          props.table && props.table.refresh()
-          router.push(`/admin/invoices/${response.data.data.id}/view`)
-        })
-      }
-    })
+// Onfactu: crea la rectificativa. Es IRREVERSIBLE. v.1.18.0: con motivo, en una ventana propia.
+const verRectificar = ref(false)
+
+function rectifyInvoiceData() {
+  verRectificar.value = true
+}
+
+function onRectificativaCreada(rect) {
+  verRectificar.value = false
+  props.table && props.table.refresh()
+  router.push(`/admin/invoices/${rect.id}/view`)
 }
 
 async function cloneInvoiceData(data) {

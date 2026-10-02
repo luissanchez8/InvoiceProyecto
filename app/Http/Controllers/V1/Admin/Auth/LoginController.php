@@ -37,4 +37,22 @@ class LoginController extends Controller
     {
         $this->middleware('guest')->except('logout');
     }
+
+    /** Onfactu v.1.18.0: cuánto dura "Recordarme" (en minutos): 30 días. */
+    public const RECORDAR_MINUTOS = 60 * 24 * 30;
+
+    /**
+     * Onfactu v.1.18.0 — Con "Recordarme" marcado, la sesión se recupera sola
+     * durante 30 días aunque caduque la normal (cookie de Laravel "remember",
+     * de la misma instancia). Sin marcarlo, todo sigue como antes.
+     */
+    protected function attemptLogin(\Illuminate\Http\Request $request)
+    {
+        $guard = $this->guard();
+        if (method_exists($guard, 'setRememberDuration')) {
+            $guard->setRememberDuration(self::RECORDAR_MINUTOS);
+        }
+
+        return $guard->attempt($this->credentials($request), $request->boolean('remember'));
+    }
 }

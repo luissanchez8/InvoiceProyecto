@@ -117,7 +117,7 @@ class EstadoFacturacion
             ->where('tipo', DocumentoFacturado::ANTICIPO)
             ->map(fn ($e) => $e->invoice)
             ->unique('id')
-            ->reject(fn ($f) => Invoice::where('rectifies_invoice_id', $f->id)->exists());
+            ->reject(fn ($f) => $f->estaAnulada());   // v.1.18.0: con rectificativas de rectificativas
 
         return [
             $facturas->where('status', '!=', Invoice::STATUS_DRAFT)->values(),
